@@ -1,0 +1,5 @@
+container:
+  image: golang:1.11.4
+
+install_task:
+  install_script: go install
