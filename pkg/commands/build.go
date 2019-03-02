@@ -1,9 +1,9 @@
 package commands
 
 import (
-	"deber/pkg/docker"
-	"deber/pkg/logger"
 	"errors"
+	"github.com/dawidd6/deber/pkg/docker"
+	"github.com/dawidd6/deber/pkg/logger"
 	"github.com/spf13/cobra"
 	"io"
 	"io/ioutil"

@@ -1,8 +1,6 @@
 package main
 
-import (
-	"deber/pkg/commands"
-)
+import "github.com/dawidd6/deber/pkg/commands"
 
 func main() {
 	commands.Execute()

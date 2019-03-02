@@ -2,7 +2,7 @@ package docker
 
 import (
 	"bytes"
-	"deber/pkg/constants"
+	"github.com/dawidd6/deber/pkg/constants"
 	"text/template"
 )
 

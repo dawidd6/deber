@@ -1,10 +1,10 @@
 package commands
 
 import (
-	"deber/pkg/debian"
-	"deber/pkg/docker"
-	"deber/pkg/logger"
-	"deber/pkg/naming"
+	"github.com/dawidd6/deber/pkg/debian"
+	"github.com/dawidd6/deber/pkg/docker"
+	"github.com/dawidd6/deber/pkg/logger"
+	"github.com/dawidd6/deber/pkg/naming"
 	"github.com/spf13/cobra"
 )
 

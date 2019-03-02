@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"deber/pkg/logger"
+	"github.com/dawidd6/deber/pkg/logger"
 	"github.com/spf13/cobra"
 	"io"
 	"io/ioutil"

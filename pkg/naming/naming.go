@@ -1,9 +1,9 @@
 package naming
 
 import (
-	"deber/pkg/constants"
-	"deber/pkg/debian"
 	"fmt"
+	"github.com/dawidd6/deber/pkg/constants"
+	"github.com/dawidd6/deber/pkg/debian"
 )
 
 type Naming struct {

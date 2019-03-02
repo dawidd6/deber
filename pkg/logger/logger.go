@@ -1,8 +1,8 @@
 package logger
 
 import (
-	"deber/pkg/constants"
 	"fmt"
+	"github.com/dawidd6/deber/pkg/constants"
 	"github.com/fatih/color"
 )
 

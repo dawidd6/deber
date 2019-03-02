@@ -1,9 +1,9 @@
 package commands
 
 import (
-	"deber/pkg/constants"
-	"deber/pkg/logger"
 	"fmt"
+	"github.com/dawidd6/deber/pkg/constants"
+	"github.com/dawidd6/deber/pkg/logger"
 	"github.com/spf13/cobra"
 	"syscall"
 )
