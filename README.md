@@ -7,7 +7,7 @@ Create Debian packages in Docker containers easily.
 
 ## Dependencies
 
-- **Go** 1.11.4 or newer
+- **Go** 1.11 or newer
 - **Docker** (daemon)
 
 ## Installation
