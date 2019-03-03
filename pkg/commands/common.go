@@ -20,18 +20,20 @@ func pre(cmd *cobra.Command, args []string) error {
 	logger.Info("Parsing Debian changelog")
 	deb, err = debian.New()
 	if err != nil {
+		logger.Fail()
+		return err
+	}
+	logger.Done()
+
+	logger.Info("Connecting with Docker")
+	dock, err = docker.New(verbose)
+	if err != nil {
+		logger.Fail()
 		return err
 	}
 	logger.Done()
 
 	names = naming.New(args[0], args[1], deb)
-
-	logger.Info("Connecting with Docker")
-	dock, err = docker.New()
-	if err != nil {
-		return err
-	}
-	logger.Done()
 
 	return nil
 }

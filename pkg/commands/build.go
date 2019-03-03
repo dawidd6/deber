@@ -5,9 +5,6 @@ import (
 	"github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/logger"
 	"github.com/spf13/cobra"
-	"io"
-	"io/ioutil"
-	"os"
 )
 
 var cmdBuild = &cobra.Command{
@@ -20,11 +17,6 @@ var cmdBuild = &cobra.Command{
 
 func runBuild(cmd *cobra.Command, args []string) error {
 	logger.Info("Building image")
-
-	writer := ioutil.Discard
-	if verbose {
-		writer = os.Stdout
-	}
 
 	isImageBuilt, err := dock.IsImageBuilt(names.Image())
 	if err != nil {
@@ -42,19 +34,7 @@ func runBuild(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	response, err := dock.BuildImage(names.Image(), dockerfile)
-	if err != nil {
-		logger.Fail()
-		return err
-	}
-
-	_, err = io.Copy(writer, response.Body)
-	if err != nil {
-		logger.Fail()
-		return err
-	}
-
-	err = response.Body.Close()
+	err = dock.BuildImage(names.Image(), dockerfile)
 	if err != nil {
 		logger.Fail()
 		return err

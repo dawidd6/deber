@@ -4,12 +4,14 @@ import (
 	"archive/tar"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/dawidd6/deber/pkg/constants"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
+	"io"
 	"io/ioutil"
 	"os"
 	"time"
@@ -25,19 +27,28 @@ const (
 )
 
 type Docker struct {
-	client *client.Client
-	ctx    context.Context
+	client  *client.Client
+	ctx     context.Context
+	verbose bool
+	writer  io.Writer
 }
 
-func New() (*Docker, error) {
+func New(verbose bool) (*Docker, error) {
 	cli, err := client.NewEnvClient()
 	if err != nil {
 		return nil, err
 	}
 
+	writer := ioutil.Discard
+	if verbose {
+		writer = os.Stdout
+	}
+
 	return &Docker{
-		client: cli,
-		ctx:    context.Background(),
+		client:  cli,
+		ctx:     context.Background(),
+		verbose: verbose,
+		writer:  writer,
 	}, nil
 }
 
@@ -113,7 +124,7 @@ func (docker *Docker) IsContainerStopped(container string) (bool, error) {
 	return false, nil
 }
 
-func (docker *Docker) BuildImage(name, dockerfile string) (*types.ImageBuildResponse, error) {
+func (docker *Docker) BuildImage(name, dockerfile string) error {
 	buffer := new(bytes.Buffer)
 	writer := tar.NewWriter(buffer)
 	header := &tar.Header{
@@ -127,25 +138,35 @@ func (docker *Docker) BuildImage(name, dockerfile string) (*types.ImageBuildResp
 
 	err := writer.WriteHeader(header)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	_, err = writer.Write([]byte(dockerfile))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = writer.Close()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	response, err := docker.client.ImageBuild(docker.ctx, buffer, options)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &response, nil
+	_, err = io.Copy(docker.writer, response.Body)
+	if err != nil {
+		return err
+	}
+
+	err = response.Body.Close()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (docker *Docker) CreateContainer(name, image, buildDir, tarball string) error {
@@ -220,7 +241,7 @@ func (docker *Docker) RemoveContainer(container string) error {
 	return docker.client.ContainerRemove(docker.ctx, container, options)
 }
 
-func (docker *Docker) ExecContainer(container string, cmd ...string) (*types.HijackedResponse, error) {
+func (docker *Docker) ExecContainer(container string, cmd ...string) error {
 	config := types.ExecConfig{
 		Cmd:          cmd,
 		AttachStdout: true,
@@ -230,13 +251,29 @@ func (docker *Docker) ExecContainer(container string, cmd ...string) (*types.Hij
 
 	response, err := docker.client.ContainerExecCreate(docker.ctx, container, config)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	hijack, err := docker.client.ContainerExecAttach(docker.ctx, response.ID, config)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &hijack, nil
+	_, err = io.Copy(docker.writer, hijack.Reader)
+	if err != nil {
+		return err
+	}
+
+	hijack.Close()
+
+	inspect, err := docker.client.ContainerExecInspect(docker.ctx, response.ID)
+	if err != nil {
+		return err
+	}
+
+	if inspect.ExitCode != 0 {
+		return errors.New("command exited with non-zero status")
+	}
+
+	return nil
 }
