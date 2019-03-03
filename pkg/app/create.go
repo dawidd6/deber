@@ -1,17 +1,9 @@
-package commands
+package app
 
 import (
 	"github.com/dawidd6/deber/pkg/logger"
 	"github.com/spf13/cobra"
 )
-
-var cmdCreate = &cobra.Command{
-	Use:               "create OS DIST",
-	Short:             "create Docker container",
-	Args:              cobra.ExactArgs(2),
-	PersistentPreRunE: pre,
-	RunE:              runCreate,
-}
 
 func runCreate(cmd *cobra.Command, args []string) error {
 	logger.Info("Creating container")

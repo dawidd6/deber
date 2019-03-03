@@ -1,17 +1,9 @@
-package commands
+package app
 
 import (
 	"github.com/dawidd6/deber/pkg/logger"
 	"github.com/spf13/cobra"
 )
-
-var cmdRemove = &cobra.Command{
-	Use:               "remove OS DIST",
-	Short:             "remove Docker container",
-	Args:              cobra.ExactArgs(2),
-	PersistentPreRunE: pre,
-	RunE:              runRemove,
-}
 
 func runRemove(cmd *cobra.Command, args []string) error {
 	logger.Info("Removing container")

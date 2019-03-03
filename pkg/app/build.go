@@ -1,4 +1,4 @@
-package commands
+package app
 
 import (
 	"errors"
@@ -6,14 +6,6 @@ import (
 	"github.com/dawidd6/deber/pkg/logger"
 	"github.com/spf13/cobra"
 )
-
-var cmdBuild = &cobra.Command{
-	Use:               "build OS DIST",
-	Short:             "build Docker image",
-	Args:              cobra.ExactArgs(2),
-	PersistentPreRunE: pre,
-	RunE:              runBuild,
-}
 
 func runBuild(cmd *cobra.Command, args []string) error {
 	logger.Info("Building image")

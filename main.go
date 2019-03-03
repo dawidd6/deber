@@ -1,7 +1,7 @@
 package main
 
-import "github.com/dawidd6/deber/pkg/commands"
+import "github.com/dawidd6/deber/pkg/app"
 
 func main() {
-	commands.Execute()
+	app.Execute()
 }

@@ -1,17 +1,9 @@
-package commands
+package app
 
 import (
 	"github.com/dawidd6/deber/pkg/logger"
 	"github.com/spf13/cobra"
 )
-
-var cmdTest = &cobra.Command{
-	Use:               "test OS DIST",
-	Short:             "test package in Docker container",
-	Args:              cobra.ExactArgs(2),
-	PersistentPreRunE: pre,
-	RunE:              runTest,
-}
 
 func runTest(cmd *cobra.Command, args []string) error {
 	logger.Info("Testing package")

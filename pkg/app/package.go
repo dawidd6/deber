@@ -1,17 +1,9 @@
-package commands
+package app
 
 import (
 	"github.com/dawidd6/deber/pkg/logger"
 	"github.com/spf13/cobra"
 )
-
-var cmdPackage = &cobra.Command{
-	Use:               "package OS DIST",
-	Short:             "package Docker container",
-	Args:              cobra.ExactArgs(2),
-	PersistentPreRunE: pre,
-	RunE:              runPackage,
-}
 
 func runPackage(cmd *cobra.Command, args []string) error {
 	logger.Info("Packaging software")
