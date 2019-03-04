@@ -1,4 +1,4 @@
-package loading
+package main
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ type Loading struct {
 	delay   time.Duration
 }
 
-func New() *Loading {
+func NewLoading() *Loading {
 	return &Loading{
 		stop:    make(chan bool, 1),
 		current: 1,

@@ -1,4 +1,4 @@
-package docker
+package main
 
 import (
 	"archive/tar"
@@ -6,8 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/dawidd6/deber/pkg/constants"
-	"github.com/dawidd6/deber/pkg/logger"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -25,6 +23,11 @@ const (
 	ContainerStateRestarting = "restarting"
 	ContainerStatePaused     = "paused"
 	ContainerStateDead       = "dead"
+
+	ContainerRepoList    = "/etc/apt/sources.list.d/repo.list"
+	ContainerBuildDir    = "/build"
+	ContainerSourceDir   = "/build/source"
+	ContainerArchivesDir = "/var/cache/apt/archives"
 )
 
 type Docker struct {
@@ -34,7 +37,7 @@ type Docker struct {
 	writer  io.Writer
 }
 
-func New(verbose bool) (*Docker, error) {
+func NewDocker(verbose bool) (*Docker, error) {
 	cli, err := client.NewEnvClient()
 	if err != nil {
 		return nil, err
@@ -128,7 +131,6 @@ func (docker *Docker) IsContainerStopped(container string) (bool, error) {
 func (docker *Docker) BuildImage(name, from string) error {
 	dockerfile, err := dockerfileParse(from)
 	if err != nil {
-		logger.Fail()
 		return err
 	}
 
@@ -192,15 +194,15 @@ func (docker *Docker) CreateContainer(name, image, buildDir, tarball string) err
 			{
 				Type:   mount.TypeBind,
 				Source: hostArchivesDir,
-				Target: constants.ContainerArchivesDir,
+				Target: ContainerArchivesDir,
 			}, {
 				Type:   mount.TypeBind,
 				Source: hostSourceDir,
-				Target: constants.ContainerSourceDir,
+				Target: ContainerSourceDir,
 			}, {
 				Type:   mount.TypeBind,
 				Source: hostBuildDir,
-				Target: constants.ContainerBuildDir,
+				Target: ContainerBuildDir,
 			},
 		},
 	}

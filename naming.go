@@ -1,21 +1,19 @@
-package naming
+package main
 
 import (
 	"fmt"
-	"github.com/dawidd6/deber/pkg/constants"
-	"github.com/dawidd6/deber/pkg/debian"
 )
 
 type Naming struct {
 	program string
 	os      string
 	dist    string
-	deb     *debian.Debian
+	deb     *Debian
 }
 
-func New(os, dist string, deb *debian.Debian) *Naming {
+func NewNaming(os, dist string, deb *Debian) *Naming {
 	return &Naming{
-		program: constants.Program,
+		program: Program,
 		os:      os,
 		dist:    dist,
 		deb:     deb,

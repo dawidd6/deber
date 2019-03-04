@@ -1,8 +1,7 @@
-package docker
+package main
 
 import (
 	"bytes"
-	"github.com/dawidd6/deber/pkg/constants"
 	"text/template"
 )
 
@@ -30,7 +29,7 @@ CMD ["sleep", "inf"]
 func dockerfileParse(from string) (string, error) {
 	t := DockerfileTemplate{
 		From:               from,
-		ContainerSourceDir: constants.ContainerSourceDir,
+		ContainerSourceDir: ContainerSourceDir,
 	}
 
 	temp, err := template.New("dockerfile").Parse(dockerfileTemplate)
