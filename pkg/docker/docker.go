@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dawidd6/deber/pkg/constants"
+	"github.com/dawidd6/deber/pkg/logger"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -124,7 +125,13 @@ func (docker *Docker) IsContainerStopped(container string) (bool, error) {
 	return false, nil
 }
 
-func (docker *Docker) BuildImage(name, dockerfile string) error {
+func (docker *Docker) BuildImage(name, from string) error {
+	dockerfile, err := dockerfileParse(from)
+	if err != nil {
+		logger.Fail()
+		return err
+	}
+
 	buffer := new(bytes.Buffer)
 	writer := tar.NewWriter(buffer)
 	header := &tar.Header{
@@ -136,7 +143,7 @@ func (docker *Docker) BuildImage(name, dockerfile string) error {
 		Remove: true,
 	}
 
-	err := writer.WriteHeader(header)
+	err = writer.WriteHeader(header)
 	if err != nil {
 		return err
 	}

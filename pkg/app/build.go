@@ -2,7 +2,6 @@ package app
 
 import (
 	"errors"
-	"github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/logger"
 	"github.com/spf13/cobra"
 )
@@ -20,13 +19,7 @@ func runBuild(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	dockerfile, err := docker.GetDockerfile(args[0], args[1])
-	if err != nil {
-		logger.Fail()
-		return err
-	}
-
-	err = dock.BuildImage(names.Image(), dockerfile)
+	err = dock.BuildImage(names.Image(), args[0]+":"+args[1])
 	if err != nil {
 		logger.Fail()
 		return err

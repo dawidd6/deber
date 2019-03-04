@@ -7,13 +7,12 @@ import (
 )
 
 type DockerfileTemplate struct {
-	Name               string
-	Tag                string
+	From               string
 	ContainerSourceDir string
 }
 
 const dockerfileTemplate = `
-FROM {{ .Name }}:{{ .Tag }}
+FROM {{ .From }}
 
 RUN apt-get update
 RUN apt-get install -y build-essential devscripts dpkg-dev debhelper equivs sudo
@@ -28,10 +27,9 @@ WORKDIR {{ .ContainerSourceDir }}
 CMD ["sleep", "inf"]
 `
 
-func GetDockerfile(os, dist string) (string, error) {
+func dockerfileParse(from string) (string, error) {
 	t := DockerfileTemplate{
-		Name:               os,
-		Tag:                dist,
+		From:               from,
 		ContainerSourceDir: constants.ContainerSourceDir,
 	}
 
