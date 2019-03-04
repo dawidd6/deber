@@ -27,32 +27,41 @@ var (
 	dock         *docker.Docker
 	names        *naming.Naming
 	verbose      bool
-	allStepsRuns map[string]func(command *cobra.Command, args []string) error
-	allSteps     []string
 	withSteps    string
 	withoutSteps string
+	steps        = []Step{
+		{
+			label: "build",
+			run:   runBuild,
+		}, {
+			label: "create",
+			run:   runCreate,
+		}, {
+			label: "start",
+			run:   runStart,
+		}, {
+			label: "package",
+			run:   runPackage,
+		}, {
+			label: "test",
+			run:   runTest,
+		}, {
+			label: "stop",
+			run:   runStop,
+		}, {
+			label: "remove",
+			run:   runRemove,
+		},
+	}
 )
 
-func init() {
-	allStepsRuns = map[string]func(command *cobra.Command, args []string) error{
-		"build":   runBuild,
-		"create":  runCreate,
-		"start":   runStart,
-		"package": runPackage,
-		"test":    runTest,
-		"stop":    runStop,
-		"remove":  runRemove,
-	}
-	allSteps = []string{
-		"build",
-		"create",
-		"start",
-		"package",
-		"test",
-		"stop",
-		"remove",
-	}
+type Step struct {
+	label    string
+	run      func(string, string) error
+	disabled bool
+}
 
+func init() {
 	cmd.Flags().BoolVarP(
 		&verbose,
 		"verbose",
@@ -62,28 +71,18 @@ func init() {
 	)
 	cmd.Flags().StringVar(
 		&withSteps,
-		"with-step",
+		"with-steps",
 		"",
 		"specify which of the steps should execute",
 	)
 	cmd.Flags().StringVar(
 		&withoutSteps,
-		"without-step",
+		"without-steps",
 		"",
 		"specify which of the steps should not execute",
 	)
 	cmd.SetHelpCommand(&cobra.Command{Hidden: true, Use: "no"})
 	cmd.SilenceErrors = true
-
-	/*cmd.AddCommand(
-		cmdBuild,
-		cmdCreate,
-		cmdStart,
-		cmdStop,
-		cmdRemove,
-		cmdPackage,
-		cmdTest,
-	)*/
 }
 
 func pre(cmd *cobra.Command, args []string) error {
@@ -116,31 +115,27 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	if withSteps != "" {
-		for a := range allSteps {
-			if !strings.Contains(withSteps, allSteps[a]) {
-				delete(allStepsRuns, allSteps[a])
-				allSteps[a] = ""
+		for i := range steps {
+			if !strings.Contains(withSteps, steps[i].label) {
+				steps[i].disabled = true
 			}
 		}
 	}
 
 	if withoutSteps != "" {
-		for a := range allSteps {
-			if strings.Contains(withoutSteps, allSteps[a]) {
-				delete(allStepsRuns, allSteps[a])
-				allSteps[a] = ""
+		for i := range steps {
+			if strings.Contains(withoutSteps, steps[i].label) {
+				steps[i].disabled = true
 			}
 		}
 	}
 
-	for _, a := range allSteps {
-		if a == "" {
-			continue
-		}
-
-		err := allStepsRuns[a](cmd, args)
-		if err != nil {
-			return err
+	for i := range steps {
+		if !steps[i].disabled {
+			err := steps[i].run(args[0], args[1])
+			if err != nil {
+				return err
+			}
 		}
 	}
 

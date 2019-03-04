@@ -2,10 +2,9 @@ package app
 
 import (
 	"github.com/dawidd6/deber/pkg/logger"
-	"github.com/spf13/cobra"
 )
 
-func runStart(cmd *cobra.Command, args []string) error {
+func runStart(os, dist string) error {
 	logger.Info("Starting container")
 
 	isContainerStarted, err := dock.IsContainerStarted(names.Container())

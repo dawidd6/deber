@@ -2,10 +2,9 @@ package app
 
 import (
 	"github.com/dawidd6/deber/pkg/logger"
-	"github.com/spf13/cobra"
 )
 
-func runRemove(cmd *cobra.Command, args []string) error {
+func runRemove(os, dist string) error {
 	logger.Info("Removing container")
 
 	isContainerCreated, err := dock.IsContainerCreated(names.Container())

@@ -2,10 +2,9 @@ package app
 
 import (
 	"github.com/dawidd6/deber/pkg/logger"
-	"github.com/spf13/cobra"
 )
 
-func runStop(cmd *cobra.Command, args []string) error {
+func runStop(os, dist string) error {
 	logger.Info("Stopping container")
 
 	isContainerStopped, err := dock.IsContainerStopped(names.Container())

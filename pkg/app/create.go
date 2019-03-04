@@ -2,10 +2,9 @@ package app
 
 import (
 	"github.com/dawidd6/deber/pkg/logger"
-	"github.com/spf13/cobra"
 )
 
-func runCreate(cmd *cobra.Command, args []string) error {
+func runCreate(os, dist string) error {
 	logger.Info("Creating container")
 
 	isContainerCreated, err := dock.IsContainerCreated(names.Container())

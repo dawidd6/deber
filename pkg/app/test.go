@@ -2,10 +2,9 @@ package app
 
 import (
 	"github.com/dawidd6/deber/pkg/logger"
-	"github.com/spf13/cobra"
 )
 
-func runTest(cmd *cobra.Command, args []string) error {
+func runTest(os, dist string) error {
 	logger.Info("Testing package")
 
 	err := dock.ExecContainer(names.Container(), "sudo", "debi")

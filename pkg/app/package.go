@@ -2,10 +2,9 @@ package app
 
 import (
 	"github.com/dawidd6/deber/pkg/logger"
-	"github.com/spf13/cobra"
 )
 
-func runPackage(cmd *cobra.Command, args []string) error {
+func runPackage(os, dist string) error {
 	logger.Info("Packaging software")
 
 	err := dock.ExecContainer(names.Container(), "sudo", "apt-get", "update")
