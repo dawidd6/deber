@@ -8,15 +8,15 @@ type Naming struct {
 	program string
 	os      string
 	dist    string
-	deb     *Debian
+	debian  *Debian
 }
 
-func NewNaming(os, dist string, deb *Debian) *Naming {
+func NewNaming(os, dist string, debian *Debian) *Naming {
 	return &Naming{
-		program: Program,
+		program: program,
 		os:      os,
 		dist:    dist,
-		deb:     deb,
+		debian:  debian,
 	}
 }
 
@@ -26,8 +26,8 @@ func (n *Naming) Container() string {
 		n.program,
 		n.os,
 		n.dist,
-		n.deb.Source,
-		n.deb.Version,
+		n.debian.Source,
+		n.debian.Version,
 	)
 }
 

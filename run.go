@@ -2,35 +2,27 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"github.com/spf13/cobra"
 	"strings"
 )
 
-func pre(cmd *cobra.Command, args []string) error {
-	var err error
-
-	LogInfo("Parsing Debian changelog")
-	debian, err = NewDebian()
-	if err != nil {
-		LogFail()
-		return err
-	}
-	LogDone()
-
-	LogInfo("Connecting with Docker")
-	docker, err = NewDocker(verbose)
-	if err != nil {
-		LogFail()
-		return err
-	}
-	LogDone()
-
-	names = NewNaming(args[0], args[1], debian)
-
-	return nil
-}
-
 func run(cmd *cobra.Command, args []string) error {
+	if stepping {
+		for i := range steps {
+			fmt.Println(steps[i].label)
+		}
+		return nil
+	}
+
+	if len(args) < 2 {
+		return errors.New("need to specify OS and DIST")
+	}
+
+	if len(args) > 2 {
+		dpkgOptions = args[2:]
+	}
+
 	if withSteps != "" && withoutSteps != "" {
 		return errors.New("can't specify with and without steps together")
 	}
@@ -51,10 +43,29 @@ func run(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	var err error
+
+	LogInfo("Parsing Debian changelog")
+	debian, err = NewDebian()
+	if err != nil {
+		LogFail()
+		return err
+	}
+	LogDone()
+
+	LogInfo("Connecting with Docker")
+	docker, err = NewDocker(verbose)
+	if err != nil {
+		LogFail()
+		return err
+	}
+	LogDone()
+
+	names = NewNaming(args[0], args[1], debian)
+
 	for i := range steps {
 		if !steps[i].disabled {
-			err := steps[i].run(args[0], args[1])
-			if err != nil {
+			if err := steps[i].run(); err != nil {
 				return err
 			}
 		}
@@ -63,7 +74,7 @@ func run(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func runBuild(os, dist string) error {
+func runBuild() error {
 	LogInfo("Building image")
 
 	isImageBuilt, err := docker.IsImageBuilt(names.Image())
@@ -76,7 +87,7 @@ func runBuild(os, dist string) error {
 		return nil
 	}
 
-	err = docker.BuildImage(names.Image(), os+":"+dist)
+	err = docker.BuildImage(names.Image(), names.os+":"+names.dist)
 	if err != nil {
 		LogFail()
 		return err
@@ -86,7 +97,7 @@ func runBuild(os, dist string) error {
 	return nil
 }
 
-func runCreate(os, dist string) error {
+func runCreate() error {
 	LogInfo("Creating container")
 
 	isContainerCreated, err := docker.IsContainerCreated(names.Container())
@@ -109,7 +120,7 @@ func runCreate(os, dist string) error {
 	return nil
 }
 
-func runStart(os, dist string) error {
+func runStart() error {
 	LogInfo("Starting container")
 
 	isContainerStarted, err := docker.IsContainerStarted(names.Container())
@@ -132,7 +143,7 @@ func runStart(os, dist string) error {
 	return nil
 }
 
-func runPackage(os, dist string) error {
+func runPackage() error {
 	LogInfo("Packaging software")
 
 	err := docker.ExecContainer(names.Container(), "sudo", "apt-get", "update")
@@ -147,7 +158,11 @@ func runPackage(os, dist string) error {
 		return err
 	}
 
-	err = docker.ExecContainer(names.Container(), "dpkg-buildpackage", "-tc")
+	command := []string{"dpkg-buildpackage", "-tc"}
+	if len(dpkgOptions) > 0 {
+		command = append(command, dpkgOptions...)
+	}
+	err = docker.ExecContainer(names.Container(), command...)
 	if err != nil {
 		LogFail()
 		return err
@@ -157,7 +172,7 @@ func runPackage(os, dist string) error {
 	return nil
 }
 
-func runTest(os, dist string) error {
+func runTest() error {
 	LogInfo("Testing package")
 
 	err := docker.ExecContainer(names.Container(), "sudo", "debi")
@@ -182,7 +197,7 @@ func runTest(os, dist string) error {
 	return nil
 }
 
-func runStop(os, dist string) error {
+func runStop() error {
 	LogInfo("Stopping container")
 
 	isContainerStopped, err := docker.IsContainerStopped(names.Container())
@@ -205,7 +220,7 @@ func runStop(os, dist string) error {
 	return nil
 }
 
-func runRemove(os, dist string) error {
+func runRemove() error {
 	LogInfo("Removing container")
 
 	isContainerCreated, err := docker.IsContainerCreated(names.Container())

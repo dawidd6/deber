@@ -2,7 +2,7 @@ package main
 
 type Step struct {
 	label    string
-	run      func(string, string) error
+	run      func() error
 	disabled bool
 }
 

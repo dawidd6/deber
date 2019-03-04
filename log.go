@@ -6,7 +6,7 @@ import (
 )
 
 func LogInfo(v interface{}) {
-	s := color.BlueString("%s:info:", Program)
+	s := color.BlueString("%s:info:", program)
 	fmt.Printf("%s %s ...", s, v)
 }
 
@@ -23,6 +23,6 @@ func LogFail() {
 }
 
 func LogError(v interface{}) {
-	s := color.RedString("%s:error:", Program)
+	s := color.RedString("%s:error:", program)
 	fmt.Println(s, v)
 }
