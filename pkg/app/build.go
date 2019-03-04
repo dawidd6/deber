@@ -1,7 +1,6 @@
 package app
 
 import (
-	"errors"
 	"github.com/dawidd6/deber/pkg/logger"
 	"github.com/spf13/cobra"
 )
@@ -23,17 +22,6 @@ func runBuild(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		logger.Fail()
 		return err
-	}
-
-	isImageBuilt, err = dock.IsImageBuilt(names.Image())
-	if err != nil {
-		logger.Fail()
-		return err
-	}
-
-	if !isImageBuilt {
-		logger.Fail()
-		return errors.New("image didn't built successfully")
 	}
 
 	logger.Done()

@@ -173,6 +173,11 @@ func (docker *Docker) BuildImage(name, from string) error {
 		return err
 	}
 
+	_, _, err = docker.client.ImageInspectWithRaw(docker.ctx, name)
+	if err != nil {
+		return errors.New("image didn't built successfully")
+	}
+
 	return nil
 }
 
