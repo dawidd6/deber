@@ -52,6 +52,7 @@ func Run(p, version, description, example string) {
 	)
 	cmd.SetHelpCommand(&cobra.Command{Hidden: true, Use: "no"})
 	cmd.SilenceErrors = true
+	cmd.SilenceUsage = true
 	cmd.DisableFlagsInUseLine = true
 
 	if err := cmd.Execute(); err != nil {
