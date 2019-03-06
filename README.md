@@ -14,7 +14,6 @@ Create Debian packages in Docker containers easily.
 
 ```bash
 go get -u github.com/dawidd6/deber
-
 ```
 
 ## Help
