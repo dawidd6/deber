@@ -1,0 +1,18 @@
+Source: deber
+Section: utils
+Priority: optional
+Maintainer: Dawid Dziurla <dawidd0811@gmail.com>
+Build-Depends: debhelper (>=11),
+                dh-golang,
+                golang-go (>=1.11),
+Standards-Version: 4.3.0
+Homepage: https://github.com/dawidd6/deber
+XS-Go-Import-Path: github.com/dawidd6/deber
+
+Package: deber
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, docker-ce|docker.io
+Description: Debian packaging with Docker
+ Utility made with simplicity in mind to provide
+ an easy way for building Debian packages in
+ Docker containers.
