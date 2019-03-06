@@ -17,10 +17,18 @@ var (
 	name *naming.Naming
 )
 
-func parse(args []string) error {
+func parse(cmd *cobra.Command, args []string) error {
 	if showStepsFlag {
 		for i := range steps {
 			fmt.Printf("%s - %s\n", steps[i].label, steps[i].description)
+		}
+		syscall.Exit(0)
+	}
+
+	if len(args) == 0 {
+		err := cmd.Help()
+		if err != nil {
+			return err
 		}
 		syscall.Exit(0)
 	}
@@ -59,7 +67,7 @@ func parse(args []string) error {
 func run(cmd *cobra.Command, args []string) error {
 	var err error
 
-	err = parse(args)
+	err = parse(cmd, args)
 	if err != nil {
 		return err
 	}
