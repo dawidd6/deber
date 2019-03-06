@@ -1,28 +1,28 @@
-package main
+package app
 
 import (
 	"fmt"
 	"github.com/fatih/color"
 )
 
-func LogInfo(v interface{}) {
+func logInfo(v interface{}) {
 	s := color.BlueString("%s:info:", program)
 	fmt.Printf("%s %s ...", s, v)
 }
 
-func LogDone() {
+func logDone() {
 	fmt.Printf("done\n")
 }
 
-func LogSkip() {
+func logSkip() {
 	fmt.Printf("skipped\n")
 }
 
-func LogFail() {
+func logFail() {
 	fmt.Printf("failed\n")
 }
 
-func LogError(v interface{}) {
+func logError(v interface{}) {
 	s := color.RedString("%s:error:", program)
 	fmt.Println(s, v)
 }

@@ -1,4 +1,4 @@
-package main
+package docker
 
 import (
 	"archive/tar"
@@ -37,7 +37,7 @@ type Docker struct {
 	writer  io.Writer
 }
 
-func NewDocker(verbose bool) (*Docker, error) {
+func New(verbose bool) (*Docker, error) {
 	cli, err := client.NewEnvClient()
 	if err != nil {
 		return nil, err

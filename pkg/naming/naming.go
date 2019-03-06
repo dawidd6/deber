@@ -1,4 +1,4 @@
-package main
+package naming
 
 import (
 	"fmt"
@@ -8,15 +8,17 @@ type Naming struct {
 	program string
 	os      string
 	dist    string
-	debian  *Debian
+	source  string
+	version string
 }
 
-func NewNaming(os, dist string, debian *Debian) *Naming {
+func New(program, os, dist, source, version string) *Naming {
 	return &Naming{
 		program: program,
 		os:      os,
 		dist:    dist,
-		debian:  debian,
+		source:  source,
+		version: version,
 	}
 }
 
@@ -26,8 +28,8 @@ func (n *Naming) Container() string {
 		n.program,
 		n.os,
 		n.dist,
-		n.debian.Source,
-		n.debian.Version,
+		n.source,
+		n.version,
 	)
 }
 
@@ -35,6 +37,14 @@ func (n *Naming) Image() string {
 	return fmt.Sprintf(
 		"%s-%s:%s",
 		n.program,
+		n.os,
+		n.dist,
+	)
+}
+
+func (n *Naming) From() string {
+	return fmt.Sprintf(
+		"%s:%s",
 		n.os,
 		n.dist,
 	)

@@ -1,15 +1,17 @@
-package main
+package app
 
 type Step struct {
-	label    string
-	run      func() error
-	disabled bool
+	label       string
+	description string
+	run         func() error
+	disabled    bool
 }
 
 var steps = []Step{
 	{
-		label: "build",
-		run:   runBuild,
+		label:       "build",
+		description: "build Docker image",
+		run:         runBuild,
 	}, {
 		label: "create",
 		run:   runCreate,

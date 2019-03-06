@@ -1,4 +1,4 @@
-package main
+package debian
 
 import (
 	"errors"
@@ -16,7 +16,7 @@ type Debian struct {
 	Tarball  string
 }
 
-func NewDebian() (*Debian, error) {
+func New() (*Debian, error) {
 	ch, err := changelog.ParseFileOne("debian/changelog")
 	if err != nil {
 		return nil, err
