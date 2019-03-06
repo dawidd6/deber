@@ -8,6 +8,7 @@ import (
 	"github.com/dawidd6/deber/pkg/naming"
 	"github.com/spf13/cobra"
 	"strings"
+	"syscall"
 )
 
 var (
@@ -21,7 +22,7 @@ func parse(args []string) error {
 		for i := range steps {
 			fmt.Printf("%s - %s\n", steps[i].label, steps[i].description)
 		}
-		return nil
+		syscall.Exit(0)
 	}
 
 	if len(args) < 2 {
