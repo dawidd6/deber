@@ -13,13 +13,16 @@ type DockerfileTemplate struct {
 const dockerfileTemplate = `
 FROM {{ .From }}
 
-RUN apt-get update
-RUN apt-get install -y build-essential devscripts dpkg-dev debhelper equivs sudo
-RUN rm /etc/apt/apt.conf.d/*
-RUN adduser --gecos '' --disabled-password --uid 1000 builder
-RUN echo "builder ALL=NOPASSWD: ALL" > /etc/sudoers
+ARG pkgs="build-essential devscripts dpkg-dev debhelper equivs sudo"
+ARG user="builder"
+ARG apty="/usr/local/bin/apty"
 
-USER builder:builder
+RUN apt-get update && apt-get install -y ${pkgs}
+RUN rm /etc/apt/apt.conf.d/*
+RUN useradd ${user} && echo "${user} ALL=NOPASSWD: ALL" > /etc/sudoers
+RUN echo "apt-get -y \$@" > ${apty} && chmod +x ${apty}
+
+USER ${user}:${user}
 
 WORKDIR {{ .ContainerSourceDir }}
 

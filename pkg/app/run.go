@@ -177,7 +177,7 @@ func runPackage() error {
 		return err
 	}
 
-	err = dock.ExecContainer(name.Container(), "sudo", "mk-build-deps", "-ri", "-t", "apt-get -y")
+	err = dock.ExecContainer(name.Container(), "sudo", "mk-build-deps", "-ri", "-t", "apty")
 	if err != nil {
 		logFail()
 		return err
@@ -200,7 +200,7 @@ func runPackage() error {
 func runTest() error {
 	logInfo("Testing package")
 
-	err := dock.ExecContainer(name.Container(), "sudo", "debi")
+	err := dock.ExecContainer(name.Container(), "sudo", "debi", "--with-depends", "--tool", "apty")
 	if err != nil {
 		logFail()
 		return err
