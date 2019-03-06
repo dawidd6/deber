@@ -4,7 +4,7 @@ import "github.com/dawidd6/deber/pkg/app"
 
 const (
 	program = "deber"
-	version = "0.1"
+	version = "0.1+git"
 	desc    = `Debian packaging with Docker`
 	example = `  basic:
     deber ubuntu xenial
