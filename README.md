@@ -7,15 +7,13 @@ Create Debian packages in Docker containers easily.
 
 ## Dependencies
 
-- **Go** 1.11 or newer
+- **Go** 1.8 or newer
 - **Docker** (daemon)
 
 ## Installation
 
 ```bash
-git clone https://github.com/dawidd6/deber
-cd deber
-go install
+go get -u github.com/dawidd6/deber
 
 ```
 
