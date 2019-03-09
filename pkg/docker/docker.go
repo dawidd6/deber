@@ -184,7 +184,7 @@ func (docker *Docker) BuildImage(name, from string) error {
 }
 
 func (docker *Docker) CreateContainer(name, image, buildDir, tarball string) error {
-	hostArchivesDir := fmt.Sprintf("/tmp/%s", name)
+	hostArchivesDir := fmt.Sprintf("/tmp/%s", image)
 	hostSourceDir := os.Getenv("PWD")
 	hostBuildDir := fmt.Sprintf("%s/../%s", hostSourceDir, buildDir)
 	srcTarball := fmt.Sprintf("%s/../%s", hostSourceDir, tarball)
