@@ -6,7 +6,6 @@ Build-Depends: debhelper (>=11),
                 dh-golang,
                 golang-go (>=1.11),
                 golang-github-docker-docker-dev,
-                golang-github-fatih-color-dev,
                 golang-github-spf13-cobra-dev,
                 golang-pault-go-debian-dev,
 Standards-Version: 4.3.0
