@@ -120,13 +120,20 @@ func runBuild() error {
 		return nil
 	}
 
+	if verboseFlag {
+		logDrop()
+	}
+
 	err = dock.BuildImage(name.Image(), name.From())
 	if err != nil {
 		logFail()
 		return err
 	}
 
-	logDone()
+	if !verboseFlag {
+		logDone()
+	}
+
 	return nil
 }
 
@@ -179,6 +186,10 @@ func runStart() error {
 func runPackage() error {
 	logInfo("Packaging software")
 
+	if verboseFlag {
+		logDrop()
+	}
+
 	err := dock.ExecContainer(name.Container(), "sudo", "apt-get", "update")
 	if err != nil {
 		logFail()
@@ -201,12 +212,19 @@ func runPackage() error {
 		return err
 	}
 
-	logDone()
+	if !verboseFlag {
+		logDone()
+	}
+
 	return nil
 }
 
 func runTest() error {
 	logInfo("Testing package")
+
+	if verboseFlag {
+		logDrop()
+	}
 
 	err := dock.ExecContainer(name.Container(), "sudo", "debi", "--with-depends", "--tool", "apty")
 	if err != nil {
@@ -226,7 +244,10 @@ func runTest() error {
 		return err
 	}
 
-	logDone()
+	if !verboseFlag {
+		logDone()
+	}
+
 	return nil
 }
 

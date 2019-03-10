@@ -22,6 +22,10 @@ func logFail() {
 	fmt.Printf("failed\n")
 }
 
+func logDrop() {
+	fmt.Printf("\n")
+}
+
 func logError(v interface{}) {
 	s := color.RedString("%s:error:", program)
 	fmt.Println(s, v)
