@@ -262,13 +262,17 @@ func (docker *Docker) ExecContainer(container string, cmd ...string) error {
 		AttachStderr: true,
 		Tty:          true,
 	}
+	check := types.ExecStartCheck{
+		Tty:    true,
+		Detach: false,
+	}
 
 	response, err := docker.client.ContainerExecCreate(docker.ctx, container, config)
 	if err != nil {
 		return err
 	}
 
-	hijack, err := docker.client.ContainerExecAttach(docker.ctx, response.ID, config)
+	hijack, err := docker.client.ContainerExecAttach(docker.ctx, response.ID, check)
 	if err != nil {
 		return err
 	}
