@@ -10,6 +10,7 @@ var (
 	program string
 
 	verboseFlag      bool
+	networkFlag      bool
 	showStepsFlag    bool
 	withStepsFlag    string
 	withoutStepsFlag string
@@ -32,6 +33,13 @@ func Run(p, version, description, example string) {
 		"v",
 		false,
 		"show more output",
+	)
+	cmd.Flags().BoolVarP(
+		&networkFlag,
+		"network",
+		"n",
+		false,
+		"enable network in container during packaging step",
 	)
 	cmd.Flags().BoolVar(
 		&showStepsFlag,

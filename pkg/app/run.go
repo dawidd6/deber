@@ -202,14 +202,31 @@ func runPackage() error {
 		return err
 	}
 
+	networks := []string{""}
 	command := []string{"dpkg-buildpackage", "-tc"}
+
 	if len(dpkgOptions) > 0 {
 		command = append(command, dpkgOptions...)
 	}
+
+	if !networkFlag {
+		networks, err = dock.DisconnectAllNetworks(name.Container())
+		if err != nil {
+			return err
+		}
+	}
+
 	err = dock.ExecContainer(name.Container(), command...)
 	if err != nil {
 		logFail()
 		return err
+	}
+
+	if !networkFlag {
+		err = dock.ConnectNetworks(name.Container(), networks)
+		if err != nil {
+			return err
+		}
 	}
 
 	if !verboseFlag {
