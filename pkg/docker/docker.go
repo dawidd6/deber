@@ -13,6 +13,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -24,7 +25,7 @@ const (
 	ContainerStatePaused     = "paused"
 	ContainerStateDead       = "dead"
 
-	ContainerRepoList    = "/etc/apt/sources.list.d/repo.list"
+	ContainerRepoDir     = "/repo"
 	ContainerBuildDir    = "/build"
 	ContainerSourceDir   = "/build/source"
 	ContainerArchivesDir = "/var/cache/apt/archives"
@@ -183,33 +184,56 @@ func (docker *Docker) BuildImage(name, from string) error {
 	return nil
 }
 
-func (docker *Docker) CreateContainer(name, image, buildDir, tarball string) error {
-	hostArchivesDir := fmt.Sprintf("/tmp/%s", image)
-	hostSourceDir := os.Getenv("PWD")
-	hostBuildDir := fmt.Sprintf("%s/../%s", hostSourceDir, buildDir)
-	srcTarball := fmt.Sprintf("%s/../%s", hostSourceDir, tarball)
-	dstTarball := fmt.Sprintf("%s/%s", hostBuildDir, tarball)
+func (docker *Docker) CreateContainer(name, image, buildDir, repoDir, tarball string) error {
 	hostConfig := &container.HostConfig{
-		Mounts: []mount.Mount{
-			{
-				Type:   mount.TypeBind,
-				Source: hostArchivesDir,
-				Target: ContainerArchivesDir,
-			}, {
-				Type:   mount.TypeBind,
-				Source: hostSourceDir,
-				Target: ContainerSourceDir,
-			}, {
-				Type:   mount.TypeBind,
-				Source: hostBuildDir,
-				Target: ContainerBuildDir,
-			},
-		},
+		Mounts: []mount.Mount{},
 	}
 	config := &container.Config{
 		Image: image,
 	}
 
+	// archives
+	hostArchivesDir := fmt.Sprintf("/tmp/%s", image)
+	mountArchives := mount.Mount{
+		Type:   mount.TypeBind,
+		Source: hostArchivesDir,
+		Target: ContainerArchivesDir,
+	}
+	hostConfig.Mounts = append(hostConfig.Mounts, mountArchives)
+
+	// source
+	hostSourceDir := os.Getenv("PWD")
+	mountSource := mount.Mount{
+		Type:   mount.TypeBind,
+		Source: hostSourceDir,
+		Target: ContainerSourceDir,
+	}
+	hostConfig.Mounts = append(hostConfig.Mounts, mountSource)
+
+	// build
+	hostBuildDir := fmt.Sprintf("%s/../%s", hostSourceDir, buildDir)
+	mountBuild := mount.Mount{
+		Type:   mount.TypeBind,
+		Source: hostBuildDir,
+		Target: ContainerBuildDir,
+	}
+	hostConfig.Mounts = append(hostConfig.Mounts, mountBuild)
+
+	// repo
+	if repoDir != "" {
+		hostRepoDir, err := filepath.Abs(repoDir)
+		if err != nil {
+			return err
+		}
+		mountRepo := mount.Mount{
+			Type:   mount.TypeBind,
+			Source: hostRepoDir,
+			Target: ContainerRepoDir,
+		}
+		hostConfig.Mounts = append(hostConfig.Mounts, mountRepo)
+	}
+
+	// mkdir
 	for _, mnt := range hostConfig.Mounts {
 		err := os.MkdirAll(mnt.Source, os.ModePerm)
 		if err != nil {
@@ -217,6 +241,9 @@ func (docker *Docker) CreateContainer(name, image, buildDir, tarball string) err
 		}
 	}
 
+	// tarball
+	srcTarball := fmt.Sprintf("%s/../%s", hostSourceDir, tarball)
+	dstTarball := fmt.Sprintf("%s/%s", hostBuildDir, tarball)
 	if tarball != "" {
 		buffer, err := ioutil.ReadFile(srcTarball)
 		if err != nil {

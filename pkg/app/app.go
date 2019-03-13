@@ -14,6 +14,7 @@ var (
 	showStepsFlag    bool
 	withStepsFlag    string
 	withoutStepsFlag string
+	repoFlag         string
 	dpkgOptions      []string
 )
 
@@ -58,6 +59,11 @@ func Run(p, version, description, example string) {
 		"",
 		"specify which of the steps should not execute",
 	)
+	cmd.Flags().StringVar(
+		&repoFlag,
+		"repo",
+		"",
+		"specify a local repository to be mounted in container")
 	cmd.SetHelpCommand(&cobra.Command{Hidden: true, Use: "no"})
 	cmd.SilenceErrors = true
 	cmd.SilenceUsage = true

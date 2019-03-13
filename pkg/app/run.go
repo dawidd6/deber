@@ -150,7 +150,7 @@ func runCreate() error {
 		return nil
 	}
 
-	err = dock.CreateContainer(name.Container(), name.Image(), name.BuildDir(), deb.Tarball)
+	err = dock.CreateContainer(name.Container(), name.Image(), name.BuildDir(), repoFlag, deb.Tarball)
 	if err != nil {
 		logFail()
 		return err
