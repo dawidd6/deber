@@ -245,12 +245,7 @@ func (docker *Docker) CreateContainer(name, image, buildDir, repoDir, tarball st
 	srcTarball := fmt.Sprintf("%s/../%s", hostSourceDir, tarball)
 	dstTarball := fmt.Sprintf("%s/%s", hostBuildDir, tarball)
 	if tarball != "" {
-		buffer, err := ioutil.ReadFile(srcTarball)
-		if err != nil {
-			return err
-		}
-
-		err = ioutil.WriteFile(dstTarball, buffer, 0664)
+		err := os.Rename(srcTarball, dstTarball)
 		if err != nil {
 			return err
 		}
