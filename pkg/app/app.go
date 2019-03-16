@@ -48,21 +48,24 @@ func Run(p, version, description string) {
 		"show-steps",
 		false,
 		"show available steps in order")
-	cmd.Flags().StringVar(
+	cmd.Flags().StringVarP(
 		&withSteps,
 		"with-steps",
+		"i",
 		"",
 		"specify which of the steps should execute",
 	)
-	cmd.Flags().StringVar(
+	cmd.Flags().StringVarP(
 		&withoutSteps,
 		"without-steps",
+		"e",
 		"",
 		"specify which of the steps should not execute",
 	)
-	cmd.Flags().StringVar(
+	cmd.Flags().StringVarP(
 		&repo,
 		"repo",
+		"r",
 		"",
 		"specify a local repository to be mounted in container")
 	cmd.Flags().StringVar(
