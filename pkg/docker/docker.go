@@ -11,7 +11,6 @@ import (
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -36,6 +35,7 @@ type Docker struct {
 	ctx     context.Context
 	verbose bool
 	writer  io.Writer
+	buffer  *bytes.Buffer
 }
 
 func New(verbose bool) (*Docker, error) {
@@ -44,9 +44,16 @@ func New(verbose bool) (*Docker, error) {
 		return nil, err
 	}
 
-	writer := ioutil.Discard
+	var (
+		writer io.Writer
+		buffer *bytes.Buffer
+	)
+
 	if verbose {
 		writer = os.Stdout
+	} else {
+		buffer = new(bytes.Buffer)
+		writer = buffer
 	}
 
 	return &Docker{
@@ -54,6 +61,7 @@ func New(verbose bool) (*Docker, error) {
 		ctx:     context.Background(),
 		verbose: verbose,
 		writer:  writer,
+		buffer:  buffer,
 	}, nil
 }
 
@@ -178,6 +186,9 @@ func (docker *Docker) BuildImage(name, from string) error {
 
 	_, _, err = docker.client.ImageInspectWithRaw(docker.ctx, name)
 	if err != nil {
+		if !docker.verbose {
+			fmt.Println(docker.buffer.String())
+		}
 		return errors.New("image didn't built successfully")
 	}
 
@@ -343,6 +354,9 @@ func (docker *Docker) ExecContainer(container string, cmd ...string) error {
 	}
 
 	if inspect.ExitCode != 0 {
+		if !docker.verbose {
+			fmt.Println(docker.buffer.String())
+		}
 		return errors.New("command exited with non-zero status")
 	}
 
