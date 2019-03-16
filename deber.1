@@ -1,0 +1,157 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "DEBER" "1" "March 2019" "" ""
+.
+.SH "NAME"
+\fBdeber\fR \- Debian packaging with Docker
+.
+.SH "SYNOPSIS"
+\fBdeber\fR [flags]
+.
+.SH "DESCRIPTION"
+A normal paragraph\. This can span multiple lines and is terminated with two or more line endings just like Markdown\.
+.
+.SH "OPTIONS"
+.
+.TP
+\fB\-d\fR, \fB\-\-dist\fR \fIstring\fR
+specify which Distribution to use (default "unstable")
+.
+.TP
+\fB\-\-dpkg\-buildpackage\-flags\fR \fIstring\fR
+specify flags passed to dpkg\-buildpackage (default "\-tc")
+.
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+help for deber
+.
+.TP
+\fB\-\-lintian\-flags\fR \fIstring\fR
+specify flags passed to lintian (default "\-i")
+.
+.TP
+\fB\-n\fR, \fB\-\-network\fR
+enable network in container during packaging step
+.
+.TP
+\fB\-o\fR, \fB\-\-os\fR \fIstring\fR
+specify which OS to use (default "debian")
+.
+.TP
+\fB\-r\fR, \fB\-\-repo\fR \fIstring\fR
+specify a local repository to be mounted in container
+.
+.TP
+\fB\-\-show\-steps\fR
+show available steps in order
+.
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+show more output
+.
+.TP
+\fB\-\-version\fR
+version for deber
+.
+.TP
+\fB\-i\fR, \fB\-\-with\-steps\fR \fIstring\fR
+specify which of the steps should execute
+.
+.TP
+\fB\-e\fR, \fB\-\-without\-steps\fR \fIstring\fR
+specify which of the steps should not execute
+.
+.SH "EXAMPLES"
+Using deber with gbp:
+.
+.IP "" 4
+.
+.nf
+
+$ gbp buildpackage \-\-git\-builder deber
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Specifying different OS and Distribution:
+.
+.IP "" 4
+.
+.nf
+
+$ deber \-\-os ubuntu \-\-dist bionic
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Execute only selected steps:
+.
+.IP "" 4
+.
+.nf
+
+$ deber \-\-with\-steps build,create,start
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Execute all steps except a few:
+.
+.IP "" 4
+.
+.nf
+
+$ deber \-\-without\-steps stop,remove
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Build package with custom dpkg\-buildpackage flags:
+.
+.IP "" 4
+.
+.nf
+
+$ deber \-\-dpkg\-buildpackage\-flags "\-nc \-S"
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Test package with custom lintian flags:
+.
+.IP "" 4
+.
+.nf
+
+$ deber \-\-lintian\-flags "\-i \-I"
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Mount local repo and use it in container:
+.
+.IP "" 4
+.
+.nf
+
+$ deber \-\-repo $HOME/repo/unstable
+.
+.fi
+.
+.IP "" 0
+.
+.SH "SEE ALSO"
+gbp(1), gbp\-buildpackage(1), lintian(1)
