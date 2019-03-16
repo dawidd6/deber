@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"github.com/spf13/cobra"
 	"syscall"
 )
@@ -9,65 +8,90 @@ import (
 var (
 	program string
 
-	verboseFlag      bool
-	networkFlag      bool
-	showStepsFlag    bool
-	withStepsFlag    string
-	withoutStepsFlag string
-	repoFlag         string
-	dpkgOptions      []string
+	verbose      bool
+	network      bool
+	showSteps    bool
+	withSteps    string
+	withoutSteps string
+	repo         string
+	os           string
+	dist         string
+	dpkgFlags    string
+	lintianFlags string
 )
 
-func Run(p, version, description, example string) {
+func Run(p, version, description string) {
 	program = p
 
 	cmd := &cobra.Command{
-		Use:     fmt.Sprintf("%s OS DIST [flags] [-- dpkg-buildpackage options]", program),
+		Use:     program,
 		Version: version,
 		Short:   description,
-		Example: example,
 		RunE:    run,
 	}
 	cmd.Flags().BoolVarP(
-		&verboseFlag,
+		&verbose,
 		"verbose",
 		"v",
 		false,
 		"show more output",
 	)
 	cmd.Flags().BoolVarP(
-		&networkFlag,
+		&network,
 		"network",
 		"n",
 		false,
 		"enable network in container during packaging step",
 	)
 	cmd.Flags().BoolVar(
-		&showStepsFlag,
+		&showSteps,
 		"show-steps",
 		false,
 		"show available steps in order")
 	cmd.Flags().StringVar(
-		&withStepsFlag,
+		&withSteps,
 		"with-steps",
 		"",
 		"specify which of the steps should execute",
 	)
 	cmd.Flags().StringVar(
-		&withoutStepsFlag,
+		&withoutSteps,
 		"without-steps",
 		"",
 		"specify which of the steps should not execute",
 	)
 	cmd.Flags().StringVar(
-		&repoFlag,
+		&repo,
 		"repo",
 		"",
 		"specify a local repository to be mounted in container")
+	cmd.Flags().StringVar(
+		&dpkgFlags,
+		"dpkg-buildpackage-flags",
+		"-tc",
+		"specify flags passed to dpkg-buildpackage")
+	cmd.Flags().StringVar(
+		&lintianFlags,
+		"lintian-flags",
+		"-i",
+		"specify flags passed to lintian")
+	cmd.Flags().StringVarP(
+		&os,
+		"os",
+		"o",
+		"debian",
+		"specify which OS to use",
+	)
+	cmd.Flags().StringVarP(
+		&dist,
+		"dist",
+		"d",
+		"unstable",
+		"specify which Distribution to use",
+	)
 	cmd.SetHelpCommand(&cobra.Command{Hidden: true, Use: "no"})
 	cmd.SilenceErrors = true
 	cmd.SilenceUsage = true
-	cmd.DisableFlagsInUseLine = true
 
 	if err := cmd.Execute(); err != nil {
 		logError(err)

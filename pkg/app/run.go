@@ -18,44 +18,28 @@ var (
 )
 
 func parse(cmd *cobra.Command, args []string) error {
-	if showStepsFlag {
+	if showSteps {
 		for i := range steps {
 			fmt.Printf("%s - %s\n", steps[i].label, steps[i].description)
 		}
 		syscall.Exit(0)
 	}
 
-	if len(args) == 0 {
-		err := cmd.Help()
-		if err != nil {
-			return err
-		}
-		syscall.Exit(0)
-	}
-
-	if len(args) < 2 {
-		return errors.New("need to specify OS and DIST")
-	}
-
-	if len(args) > 2 {
-		dpkgOptions = args[2:]
-	}
-
-	if withStepsFlag != "" && withoutStepsFlag != "" {
+	if withSteps != "" && withoutSteps != "" {
 		return errors.New("can't specify with and without steps together")
 	}
 
-	if withStepsFlag != "" {
+	if withSteps != "" {
 		for i := range steps {
-			if !strings.Contains(withStepsFlag, steps[i].label) {
+			if !strings.Contains(withSteps, steps[i].label) {
 				steps[i].disabled = true
 			}
 		}
 	}
 
-	if withoutStepsFlag != "" {
+	if withoutSteps != "" {
 		for i := range steps {
-			if strings.Contains(withoutStepsFlag, steps[i].label) {
+			if strings.Contains(withoutSteps, steps[i].label) {
 				steps[i].disabled = true
 			}
 		}
@@ -81,7 +65,7 @@ func run(cmd *cobra.Command, args []string) error {
 	logDone()
 
 	logInfo("Connecting with Docker")
-	dock, err = docker.New(verboseFlag)
+	dock, err = docker.New(verbose)
 	if err != nil {
 		logFail()
 		return err
@@ -90,8 +74,8 @@ func run(cmd *cobra.Command, args []string) error {
 
 	name = naming.New(
 		program,
-		args[0],
-		args[1],
+		os,
+		dist,
 		deb.Source,
 		deb.Version,
 	)
@@ -120,7 +104,7 @@ func runBuild() error {
 		return nil
 	}
 
-	if verboseFlag {
+	if verbose {
 		logDrop()
 	}
 
@@ -130,7 +114,7 @@ func runBuild() error {
 		return err
 	}
 
-	if !verboseFlag {
+	if !verbose {
 		logDone()
 	}
 
@@ -150,7 +134,7 @@ func runCreate() error {
 		return nil
 	}
 
-	err = dock.CreateContainer(name.Container(), name.Image(), name.BuildDir(), repoFlag, deb.Tarball)
+	err = dock.CreateContainer(name.Container(), name.Image(), name.BuildDir(), repo, deb.Tarball)
 	if err != nil {
 		logFail()
 		return err
@@ -186,7 +170,7 @@ func runStart() error {
 func runPackage() error {
 	logInfo("Packaging software")
 
-	if verboseFlag {
+	if verbose {
 		logDrop()
 	}
 
@@ -203,33 +187,29 @@ func runPackage() error {
 	}
 
 	networks := []string{""}
-	command := []string{"dpkg-buildpackage", "-tc"}
-
-	if len(dpkgOptions) > 0 {
-		command = append(command, dpkgOptions...)
-	}
-
-	if !networkFlag {
+	if !network {
 		networks, err = dock.DisconnectAllNetworks(name.Container())
 		if err != nil {
 			return err
 		}
 	}
 
+	flags := strings.Split(dpkgFlags, " ")
+	command := append([]string{"dpkg-buildpackage"}, flags...)
 	err = dock.ExecContainer(name.Container(), command...)
 	if err != nil {
 		logFail()
 		return err
 	}
 
-	if !networkFlag {
+	if !network {
 		err = dock.ConnectNetworks(name.Container(), networks)
 		if err != nil {
 			return err
 		}
 	}
 
-	if !verboseFlag {
+	if !verbose {
 		logDone()
 	}
 
@@ -239,7 +219,7 @@ func runPackage() error {
 func runTest() error {
 	logInfo("Testing package")
 
-	if verboseFlag {
+	if verbose {
 		logDrop()
 	}
 
@@ -255,13 +235,15 @@ func runTest() error {
 		return err
 	}
 
-	err = dock.ExecContainer(name.Container(), "lintian")
+	flags := strings.Split(lintianFlags, " ")
+	command := append([]string{"lintian"}, flags...)
+	err = dock.ExecContainer(name.Container(), command...)
 	if err != nil {
 		logFail()
 		return err
 	}
 
-	if !verboseFlag {
+	if !verbose {
 		logDone()
 	}
 
