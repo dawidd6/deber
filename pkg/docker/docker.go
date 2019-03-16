@@ -39,7 +39,7 @@ type Docker struct {
 }
 
 func New(verbose bool) (*Docker, error) {
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return nil, err
 	}
