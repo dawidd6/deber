@@ -8,7 +8,6 @@ import (
 var (
 	program string
 
-	verbose      bool
 	network      bool
 	showSteps    bool
 	withSteps    string
@@ -29,13 +28,6 @@ func Run(p, version, description string) {
 		Short:   description,
 		RunE:    run,
 	}
-	cmd.Flags().BoolVarP(
-		&verbose,
-		"verbose",
-		"v",
-		false,
-		"show more output",
-	)
 	cmd.Flags().BoolVarP(
 		&network,
 		"network",

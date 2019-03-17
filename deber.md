@@ -37,9 +37,6 @@ Docker containers.
  * `--show-steps` :
   show available steps in order
  
- * `-v`, `--verbose` :
-  show more output
- 
  * `--version` :
   version for deber
  

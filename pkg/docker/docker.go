@@ -35,37 +35,19 @@ const (
 )
 
 type Docker struct {
-	client  *client.Client
-	ctx     context.Context
-	verbose bool
-	writer  io.Writer
-	buffer  *bytes.Buffer
+	client *client.Client
+	ctx    context.Context
 }
 
-func New(verbose bool) (*Docker, error) {
+func New() (*Docker, error) {
 	cli, err := client.NewClientWithOpts(client.WithVersion(ApiVersion))
 	if err != nil {
 		return nil, err
 	}
 
-	var (
-		writer io.Writer
-		buffer *bytes.Buffer
-	)
-
-	if verbose {
-		writer = os.Stdout
-	} else {
-		buffer = new(bytes.Buffer)
-		writer = buffer
-	}
-
 	return &Docker{
-		client:  cli,
-		ctx:     context.Background(),
-		verbose: verbose,
-		writer:  writer,
-		buffer:  buffer,
+		client: cli,
+		ctx:    context.Background(),
 	}, nil
 }
 
@@ -178,8 +160,8 @@ func (docker *Docker) BuildImage(name, from string) error {
 		return err
 	}
 
-	termFd, isTerm := term.GetFdInfo(docker.writer)
-	err = jsonmessage.DisplayJSONMessagesStream(response.Body, docker.writer, termFd, isTerm, nil)
+	termFd, isTerm := term.GetFdInfo(os.Stdout)
+	err = jsonmessage.DisplayJSONMessagesStream(response.Body, os.Stdout, termFd, isTerm, nil)
 	if err != nil {
 		return err
 	}
@@ -191,9 +173,6 @@ func (docker *Docker) BuildImage(name, from string) error {
 
 	_, _, err = docker.client.ImageInspectWithRaw(docker.ctx, name)
 	if err != nil {
-		if !docker.verbose {
-			fmt.Println(docker.buffer.String())
-		}
 		return errors.New("image didn't built successfully")
 	}
 
@@ -346,7 +325,7 @@ func (docker *Docker) ExecContainer(container string, cmd ...string) error {
 		return err
 	}
 
-	_, err = io.Copy(docker.writer, hijack.Reader)
+	_, err = io.Copy(os.Stdout, hijack.Reader)
 	if err != nil {
 		return err
 	}
@@ -359,9 +338,6 @@ func (docker *Docker) ExecContainer(container string, cmd ...string) error {
 	}
 
 	if inspect.ExitCode != 0 {
-		if !docker.verbose {
-			fmt.Println(docker.buffer.String())
-		}
 		return errors.New("command exited with non-zero status")
 	}
 

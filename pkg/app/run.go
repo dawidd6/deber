@@ -59,18 +59,14 @@ func run(cmd *cobra.Command, args []string) error {
 	logInfo("Parsing Debian changelog")
 	deb, err = debian.New()
 	if err != nil {
-		logFail()
 		return err
 	}
-	logDone()
 
 	logInfo("Connecting with Docker")
-	dock, err = docker.New(verbose)
+	dock, err = docker.New()
 	if err != nil {
-		logFail()
 		return err
 	}
-	logDone()
 
 	name = naming.New(
 		program,
@@ -96,26 +92,15 @@ func runBuild() error {
 
 	isImageBuilt, err := dock.IsImageBuilt(name.Image())
 	if err != nil {
-		logFail()
 		return err
 	}
 	if isImageBuilt {
-		logSkip()
 		return nil
-	}
-
-	if verbose {
-		logDrop()
 	}
 
 	err = dock.BuildImage(name.Image(), name.From())
 	if err != nil {
-		logFail()
 		return err
-	}
-
-	if !verbose {
-		logDone()
 	}
 
 	return nil
@@ -126,21 +111,17 @@ func runCreate() error {
 
 	isContainerCreated, err := dock.IsContainerCreated(name.Container())
 	if err != nil {
-		logFail()
 		return err
 	}
 	if isContainerCreated {
-		logSkip()
 		return nil
 	}
 
 	err = dock.CreateContainer(name.Container(), name.Image(), name.BuildDir(), repo, deb.Tarball)
 	if err != nil {
-		logFail()
 		return err
 	}
 
-	logDone()
 	return nil
 }
 
@@ -149,40 +130,30 @@ func runStart() error {
 
 	isContainerStarted, err := dock.IsContainerStarted(name.Container())
 	if err != nil {
-		logFail()
 		return err
 	}
 	if isContainerStarted {
-		logSkip()
 		return nil
 	}
 
 	err = dock.StartContainer(name.Container())
 	if err != nil {
-		logFail()
 		return err
 	}
 
-	logDone()
 	return nil
 }
 
 func runPackage() error {
 	logInfo("Packaging software")
 
-	if verbose {
-		logDrop()
-	}
-
 	err := dock.ExecContainer(name.Container(), "sudo", "apt-get", "update")
 	if err != nil {
-		logFail()
 		return err
 	}
 
 	err = dock.ExecContainer(name.Container(), "sudo", "mk-build-deps", "-ri", "-t", "apty")
 	if err != nil {
-		logFail()
 		return err
 	}
 
@@ -198,7 +169,6 @@ func runPackage() error {
 	command := append([]string{"dpkg-buildpackage"}, flags...)
 	err = dock.ExecContainer(name.Container(), command...)
 	if err != nil {
-		logFail()
 		return err
 	}
 
@@ -209,29 +179,19 @@ func runPackage() error {
 		}
 	}
 
-	if !verbose {
-		logDone()
-	}
-
 	return nil
 }
 
 func runTest() error {
 	logInfo("Testing package")
 
-	if verbose {
-		logDrop()
-	}
-
 	err := dock.ExecContainer(name.Container(), "sudo", "debi", "--with-depends", "--tool", "apty")
 	if err != nil {
-		logFail()
 		return err
 	}
 
 	err = dock.ExecContainer(name.Container(), "debc")
 	if err != nil {
-		logFail()
 		return err
 	}
 
@@ -239,12 +199,7 @@ func runTest() error {
 	command := append([]string{"lintian"}, flags...)
 	err = dock.ExecContainer(name.Container(), command...)
 	if err != nil {
-		logFail()
 		return err
-	}
-
-	if !verbose {
-		logDone()
 	}
 
 	return nil
@@ -255,21 +210,17 @@ func runStop() error {
 
 	isContainerStopped, err := dock.IsContainerStopped(name.Container())
 	if err != nil {
-		logFail()
 		return err
 	}
 	if isContainerStopped {
-		logSkip()
 		return nil
 	}
 
 	err = dock.StopContainer(name.Container())
 	if err != nil {
-		logFail()
 		return err
 	}
 
-	logDone()
 	return nil
 }
 
@@ -278,20 +229,16 @@ func runRemove() error {
 
 	isContainerCreated, err := dock.IsContainerCreated(name.Container())
 	if err != nil {
-		logFail()
 		return err
 	}
 	if !isContainerCreated {
-		logSkip()
 		return nil
 	}
 
 	err = dock.RemoveContainer(name.Container())
 	if err != nil {
-		logFail()
 		return err
 	}
 
-	logDone()
 	return nil
 }

@@ -7,23 +7,7 @@ import (
 func logInfo(v interface{}) {
 	blue := "\033[0;34m"
 	normal := "\033[0m"
-	fmt.Printf("%s%s:info:%s %s ...", blue, program, normal, v)
-}
-
-func logDone() {
-	fmt.Printf("done\n")
-}
-
-func logSkip() {
-	fmt.Printf("skipped\n")
-}
-
-func logFail() {
-	fmt.Printf("failed\n")
-}
-
-func logDrop() {
-	fmt.Printf("\n")
+	fmt.Printf("%s%s:info:%s %s ...\n", blue, program, normal, v)
 }
 
 func logError(v interface{}) {
