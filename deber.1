@@ -10,7 +10,7 @@
 \fBdeber\fR [flags]
 .
 .SH "DESCRIPTION"
-A normal paragraph\. This can span multiple lines and is terminated with two or more line endings just like Markdown\.
+Utility made with simplicity in mind to provide an easy way for building Debian packages in Docker containers\.
 .
 .SH "OPTIONS"
 .
@@ -47,10 +47,6 @@ specify a local repository to be mounted in container
 show available steps in order
 .
 .TP
-\fB\-v\fR, \fB\-\-verbose\fR
-show more output
-.
-.TP
 \fB\-\-version\fR
 version for deber
 .
@@ -70,6 +66,19 @@ Using deber with gbp:
 .nf
 
 $ gbp buildpackage \-\-git\-builder deber
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Using deber (with flags) with gbp:
+.
+.IP "" 4
+.
+.nf
+
+$ gbp buildpackage \-\-git\-builder deber \-\-os debian \-\-dist buster
 .
 .fi
 .
