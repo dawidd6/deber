@@ -1,5 +1,18 @@
-container:
-  image: golang:1.11.4
-
 install_task:
+  container:
+    image: golang:1.11.4
   install_script: go install
+
+package_task:
+  container:
+    image: debian:unstable
+  package_script:
+    - apt-get update
+    - apt-get install -y dpkg-dev devscripts debhelper golang-go equivs
+    - echo "apt-get -y \$@" > /bin/apty
+    - chmod +x /bin/apty
+    - mk-build-deps -ri -t apty
+    - dpkg-buildpackage
+    - debi --with-depends --tool apty
+    - debc
+    - lintian -i -I
