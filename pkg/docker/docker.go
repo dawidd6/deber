@@ -10,6 +10,8 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/jsonmessage"
+	"github.com/docker/docker/pkg/term"
 	"io"
 	"os"
 	"path/filepath"
@@ -17,6 +19,8 @@ import (
 )
 
 const (
+	ApiVersion = "1.30"
+
 	ContainerStateRunning    = "running"
 	ContainerStateCreated    = "created"
 	ContainerStateExited     = "exited"
@@ -39,7 +43,7 @@ type Docker struct {
 }
 
 func New(verbose bool) (*Docker, error) {
-	cli, err := client.NewClientWithOpts(client.FromEnv)
+	cli, err := client.NewClientWithOpts(client.WithVersion(ApiVersion))
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +178,8 @@ func (docker *Docker) BuildImage(name, from string) error {
 		return err
 	}
 
-	_, err = io.Copy(docker.writer, response.Body)
+	termFd, isTerm := term.GetFdInfo(docker.writer)
+	err = jsonmessage.DisplayJSONMessagesStream(response.Body, docker.writer, termFd, isTerm, nil)
 	if err != nil {
 		return err
 	}
