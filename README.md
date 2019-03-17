@@ -7,9 +7,9 @@ Create Debian packages in Docker containers easily.
 
 ## Dependencies
 
-Name | Version | Notes
-:---:|:---:|:---:
-**Go** | `1.8` | 
+Name | Min Version | Notes
+---|:---:|:---:
+**Go** | `1.8` | compiler version
 **Docker** | `1.30` | only daemon is required, version of API
 
 ## Installation
