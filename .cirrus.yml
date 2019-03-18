@@ -13,6 +13,6 @@ package_task:
     - chmod +x /bin/apty
     - mk-build-deps -ri -t apty
     - dpkg-buildpackage
-    - debi --with-depends --tool apty
     - debc
+    - debi --with-depends --tool apty
     - lintian -i -I

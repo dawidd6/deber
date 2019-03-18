@@ -185,12 +185,12 @@ func runPackage() error {
 func runTest() error {
 	logInfo("Testing package")
 
-	err := dock.ExecContainer(name.Container(), "sudo", "debi", "--with-depends", "--tool", "apty")
+	err := dock.ExecContainer(name.Container(), "debc")
 	if err != nil {
 		return err
 	}
 
-	err = dock.ExecContainer(name.Container(), "debc")
+	err = dock.ExecContainer(name.Container(), "sudo", "debi", "--with-depends", "--tool", "apty")
 	if err != nil {
 		return err
 	}
