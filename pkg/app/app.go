@@ -2,19 +2,20 @@ package app
 
 import (
 	"github.com/spf13/cobra"
-	"syscall"
+	"os"
+	"time"
 )
 
 var (
 	program string
 
+	update       time.Duration
 	network      bool
 	showSteps    bool
 	withSteps    string
 	withoutSteps string
 	repo         string
-	os           string
-	dist         string
+	image        string
 	dpkgFlags    string
 	lintianFlags string
 )
@@ -71,18 +72,18 @@ func Run(p, version, description string) {
 		"-i",
 		"specify flags passed to lintian")
 	cmd.Flags().StringVarP(
-		&os,
-		"os",
-		"o",
-		"debian",
-		"specify which OS to use",
+		&image,
+		"image",
+		"m",
+		"debian:unstable",
+		"specify which Docker image to use",
 	)
-	cmd.Flags().StringVarP(
-		&dist,
-		"dist",
-		"d",
-		"unstable",
-		"specify which Distribution to use",
+	cmd.Flags().DurationVarP(
+		&update,
+		"update-after",
+		"u",
+		time.Minute*30,
+		"perform apt cache update after specified interval",
 	)
 	cmd.SetHelpCommand(&cobra.Command{Hidden: true, Use: "no"})
 	cmd.SilenceErrors = true
@@ -90,6 +91,6 @@ func Run(p, version, description string) {
 
 	if err := cmd.Execute(); err != nil {
 		logError(err)
-		syscall.Exit(1)
+		os.Exit(1)
 	}
 }
