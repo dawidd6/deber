@@ -292,37 +292,6 @@ func (docker *Docker) RemoveContainer(container string) error {
 	return docker.client.ContainerRemove(docker.ctx, container, options)
 }
 
-func (docker *Docker) DisconnectAllNetworks(container string) ([]string, error) {
-	networks := make([]string, 0)
-
-	json, err := docker.client.ContainerInspect(docker.ctx, container)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, net := range json.NetworkSettings.Networks {
-		err := docker.client.NetworkDisconnect(docker.ctx, net.NetworkID, container, false)
-		if err != nil {
-			return nil, err
-		}
-
-		networks = append(networks, net.NetworkID)
-	}
-
-	return networks, nil
-}
-
-func (docker *Docker) ConnectNetworks(container string, networks []string) error {
-	for _, net := range networks {
-		err := docker.client.NetworkConnect(docker.ctx, net, container, nil)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (docker *Docker) ExecContainer(container string, cmd ...string) error {
 	config := types.ExecConfig{
 		Cmd:          cmd,

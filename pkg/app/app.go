@@ -10,7 +10,6 @@ var (
 	program string
 
 	update       time.Duration
-	network      bool
 	showSteps    bool
 	withSteps    string
 	withoutSteps string
@@ -29,13 +28,6 @@ func Run(p, version, description string) {
 		Short:   description,
 		RunE:    run,
 	}
-	cmd.Flags().BoolVarP(
-		&network,
-		"network",
-		"n",
-		false,
-		"enable network in container during packaging step",
-	)
 	cmd.Flags().BoolVar(
 		&showSteps,
 		"show-steps",
