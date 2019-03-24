@@ -15,48 +15,136 @@ Utility made with simplicity in mind to provide an easy way for building Debian 
 .SH "OPTIONS"
 .
 .TP
-\fB\-d\fR, \fB\-\-dist\fR \fIstring\fR
-specify which Distribution to use (default "unstable")
+\fB\-h\fR, \fB\-\-help\fR
+help for deber
 .
 .TP
 \fB\-\-dpkg\-buildpackage\-flags\fR \fIstring\fR
 specify flags passed to dpkg\-buildpackage (default "\-tc")
 .
 .TP
-\fB\-h\fR, \fB\-\-help\fR
-help for deber
-.
-.TP
 \fB\-\-lintian\-flags\fR \fIstring\fR
 specify flags passed to lintian (default "\-i")
 .
 .TP
-\fB\-n\fR, \fB\-\-network\fR
-enable network in container during packaging step
+\fB\-u\fR, \fB\-\-update\-after\fR \fIstring\fR
+perform apt cache update after specified interval (default 30m0s)
 .
 .TP
-\fB\-o\fR, \fB\-\-os\fR \fIstring\fR
-specify which OS to use (default "debian")
+\fB\-f\fR, \fB\-\-from\fR \fIstring\fR
+specify which Docker image to use (default "debian:unstable")
 .
 .TP
 \fB\-r\fR, \fB\-\-repo\fR \fIstring\fR
 specify a local repository to be mounted in container
 .
 .TP
-\fB\-\-show\-steps\fR
-show available steps in order
+\fB\-c\fR, \fB\-\-clean\fR
+stop and remove uncleaned container
 .
 .TP
 \fB\-\-version\fR
 version for deber
 .
-.TP
-\fB\-i\fR, \fB\-\-with\-steps\fR \fIstring\fR
-specify which of the steps should execute
+.SH "STEPS"
+The following steps are executed (in that exact order):
 .
-.TP
-\fB\-e\fR, \fB\-\-without\-steps\fR \fIstring\fR
-specify which of the steps should not execute
+.P
+\fBbuild\fR
+.
+.IP "" 4
+.
+.nf
+
+Build Docker image\. This step is skipped if an image is already built\.
+.
+.fi
+.
+.IP "" 0
+.
+.P
+\fBcreate\fR
+.
+.IP "" 4
+.
+.nf
+
+  Create Docker container\.
+.
+.fi
+.
+.IP "" 0
+.
+.P
+\fBstart\fR
+.
+.IP "" 4
+.
+.nf
+
+  Start Docker container\.
+.
+.fi
+.
+.IP "" 0
+.
+.P
+\fBpackage\fR
+.
+.IP "" 4
+.
+.nf
+
+  Run series of commands in Docker container:
+   \- apt\-get update
+   \- mk\-build\-deps
+   \- dpkg\-buildpackage
+.
+.fi
+.
+.IP "" 0
+.
+.P
+\fBtest\fR
+.
+.IP "" 4
+.
+.nf
+
+  Run series of commands in Docker container:
+   \- debc
+   \- debi
+   \- lintian
+.
+.fi
+.
+.IP "" 0
+.
+.P
+\fBstop\fR
+.
+.IP "" 4
+.
+.nf
+
+  Stop Docker container\.
+.
+.fi
+.
+.IP "" 0
+.
+.P
+\fBremove\fR
+.
+.IP "" 4
+.
+.nf
+
+  Remove Docker container\.
+.
+.fi
+.
+.IP "" 0
 .
 .SH "EXAMPLES"
 Using deber with gbp:
@@ -78,7 +166,7 @@ Using deber (with flags) with gbp:
 .
 .nf
 
-$ gbp buildpackage \-\-git\-builder deber \-\-os debian \-\-dist buster
+$ gbp buildpackage \-\-git\-builder deber \-\-from debian:buster
 .
 .fi
 .
@@ -91,33 +179,7 @@ Specifying different OS and Distribution:
 .
 .nf
 
-$ deber \-\-os ubuntu \-\-dist bionic
-.
-.fi
-.
-.IP "" 0
-.
-.P
-Execute only selected steps:
-.
-.IP "" 4
-.
-.nf
-
-$ deber \-\-with\-steps build,create,start
-.
-.fi
-.
-.IP "" 0
-.
-.P
-Execute all steps except a few:
-.
-.IP "" 4
-.
-.nf
-
-$ deber \-\-without\-steps stop,remove
+$ deber \-\-from ubuntu:bionic
 .
 .fi
 .
@@ -157,6 +219,19 @@ Mount local repo and use it in container:
 .nf
 
 $ deber \-\-repo $HOME/repo/unstable
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Update apt cache now:
+.
+.IP "" 4
+.
+.nf
+
+$ deber \-\-update\-after 0
 .
 .fi
 .
