@@ -10,11 +10,8 @@ var (
 	program string
 
 	update       time.Duration
-	showSteps    bool
-	withSteps    string
-	withoutSteps string
 	repo         string
-	image        string
+	from         string
 	dpkgFlags    string
 	lintianFlags string
 )
@@ -28,25 +25,6 @@ func Run(p, version, description string) {
 		Short:   description,
 		RunE:    run,
 	}
-	cmd.Flags().BoolVar(
-		&showSteps,
-		"show-steps",
-		false,
-		"show available steps in order")
-	cmd.Flags().StringVarP(
-		&withSteps,
-		"with-steps",
-		"i",
-		"",
-		"specify which of the steps should execute",
-	)
-	cmd.Flags().StringVarP(
-		&withoutSteps,
-		"without-steps",
-		"e",
-		"",
-		"specify which of the steps should not execute",
-	)
 	cmd.Flags().StringVarP(
 		&repo,
 		"repo",
@@ -64,9 +42,9 @@ func Run(p, version, description string) {
 		"-i",
 		"specify flags passed to lintian")
 	cmd.Flags().StringVarP(
-		&image,
-		"image",
-		"m",
+		&from,
+		"from",
+		"f",
 		"debian:unstable",
 		"specify which Docker image to use",
 	)

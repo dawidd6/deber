@@ -2,6 +2,7 @@ package docker
 
 import (
 	"bytes"
+	"github.com/dawidd6/deber/pkg/naming"
 	"text/template"
 )
 
@@ -40,8 +41,8 @@ CMD ["sleep", "inf"]
 func dockerfileParse(from string) (string, error) {
 	t := DockerfileTemplate{
 		From:               from,
-		ContainerSourceDir: ContainerSourceDir,
-		ContainerRepoDir:   ContainerRepoDir,
+		ContainerSourceDir: naming.ContainerSourceDir,
+		ContainerRepoDir:   naming.ContainerRepoDir,
 	}
 
 	temp, err := template.New("dockerfile").Parse(dockerfileTemplate)

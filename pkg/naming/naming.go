@@ -2,7 +2,15 @@ package naming
 
 import (
 	"fmt"
+	"os"
 	"strings"
+)
+
+const (
+	ContainerRepoDir   = "/repo"
+	ContainerBuildDir  = "/build"
+	ContainerSourceDir = "/build/source"
+	ContainerCacheDir  = "/var/cache/apt"
 )
 
 func Container(program, image, source, version string) string {
@@ -28,5 +36,40 @@ func Image(program, image string) string {
 		"%s-%s",
 		program,
 		image,
+	)
+}
+
+func HostCacheDir(image string) string {
+	return fmt.Sprintf(
+		"/tmp/%s",
+		image,
+	)
+}
+
+func HostSourceDir() string {
+	return os.Getenv("PWD")
+}
+
+func HostBuildDir(container string) string {
+	return fmt.Sprintf(
+		"%s/../%s",
+		HostSourceDir(),
+		container,
+	)
+}
+
+func SourceTarball(tarball string) string {
+	return fmt.Sprintf(
+		"%s/../%s",
+		HostSourceDir(),
+		tarball,
+	)
+}
+
+func TargetTarball(container, tarball string) string {
+	return fmt.Sprintf(
+		"%s/%s",
+		HostBuildDir(container),
+		tarball,
 	)
 }

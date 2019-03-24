@@ -1,10 +1,9 @@
 package app
 
 import (
-	"errors"
 	"fmt"
-	"github.com/dawidd6/deber/pkg/debian"
-	"github.com/dawidd6/deber/pkg/docker"
+	deb "github.com/dawidd6/deber/pkg/debian"
+	doc "github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/naming"
 	"github.com/spf13/cobra"
 	"os"
@@ -13,82 +12,52 @@ import (
 )
 
 var (
-	deb  *debian.Debian
-	dock *docker.Docker
-
-	deContainer string
-	deImage     string
+	container string
+	image     string
 )
-
-func parse(cmd *cobra.Command, args []string) error {
-	if showSteps {
-		for i := range steps {
-			fmt.Printf("%s - %s\n", steps[i].label, steps[i].description)
-		}
-		os.Exit(0)
-	}
-
-	if withSteps != "" && withoutSteps != "" {
-		return errors.New("can't specify with and without steps together")
-	}
-
-	if withSteps != "" {
-		for i := range steps {
-			if !strings.Contains(withSteps, steps[i].label) {
-				steps[i].disabled = true
-			}
-		}
-	}
-
-	if withoutSteps != "" {
-		for i := range steps {
-			if strings.Contains(withoutSteps, steps[i].label) {
-				steps[i].disabled = true
-			}
-		}
-	}
-
-	return nil
-}
 
 func run(cmd *cobra.Command, args []string) error {
 	var err error
 
-	err = parse(cmd, args)
-	if err != nil {
-		return err
-	}
-
 	logInfo("Parsing Debian changelog")
-	deb, err = debian.New()
+	debian, err := deb.New()
 	if err != nil {
 		return err
 	}
 
 	logInfo("Connecting with Docker")
-	dock, err = docker.New()
+	docker, err := doc.New()
 	if err != nil {
 		return err
 	}
 
-	deContainer = naming.Container(program, image, deb.Source, deb.Version)
-	deImage = naming.Image(program, image)
+	container = naming.Container(program, from, debian.Source, debian.Version)
+	image = naming.Image(program, from)
+
+	steps := []func(*doc.Docker, *deb.Debian) error{
+		runBuild,
+		runCreate,
+		runStart,
+		runPackage,
+		runTest,
+		runStop,
+		runRemove,
+	}
 
 	for i := range steps {
-		if !steps[i].disabled {
-			if err := steps[i].run(); err != nil {
-				return err
-			}
+		err := steps[i](docker, debian)
+		if err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-func runBuild() error {
+func runBuild(docker *doc.Docker, debian *deb.Debian) error {
 	logInfo("Building image")
 
-	isImageBuilt, err := dock.IsImageBuilt(deImage)
+	isImageBuilt, err := docker.IsImageBuilt(image)
 	if err != nil {
 		return err
 	}
@@ -96,7 +65,7 @@ func runBuild() error {
 		return nil
 	}
 
-	err = dock.BuildImage(deImage, image)
+	err = docker.BuildImage(image, from)
 	if err != nil {
 		return err
 	}
@@ -104,10 +73,10 @@ func runBuild() error {
 	return nil
 }
 
-func runCreate() error {
+func runCreate(docker *doc.Docker, debian *deb.Debian) error {
 	logInfo("Creating container")
 
-	isContainerCreated, err := dock.IsContainerCreated(deContainer)
+	isContainerCreated, err := docker.IsContainerCreated(container)
 	if err != nil {
 		return err
 	}
@@ -115,7 +84,7 @@ func runCreate() error {
 		return nil
 	}
 
-	err = dock.CreateContainer(deContainer, deImage, repo, deb.Tarball)
+	err = docker.CreateContainer(container, image, repo, debian.Tarball)
 	if err != nil {
 		return err
 	}
@@ -123,10 +92,10 @@ func runCreate() error {
 	return nil
 }
 
-func runStart() error {
+func runStart(docker *doc.Docker, debian *deb.Debian) error {
 	logInfo("Starting container")
 
-	isContainerStarted, err := dock.IsContainerStarted(deContainer)
+	isContainerStarted, err := docker.IsContainerStarted(container)
 	if err != nil {
 		return err
 	}
@@ -134,7 +103,7 @@ func runStart() error {
 		return nil
 	}
 
-	err = dock.StartContainer(deContainer)
+	err = docker.StartContainer(container)
 	if err != nil {
 		return err
 	}
@@ -142,13 +111,13 @@ func runStart() error {
 	return nil
 }
 
-func runPackage() error {
+func runPackage(docker *doc.Docker, debian *deb.Debian) error {
 	logInfo("Packaging software")
 
-	file := fmt.Sprintf("%s/last-updated", docker.HostCacheDir(deImage))
+	file := fmt.Sprintf("%s/last-updated", naming.HostCacheDir(image))
 	info, err := os.Stat(file)
 	if info == nil || time.Now().Sub(info.ModTime()).Seconds() > update.Seconds() {
-		err = dock.ExecContainer(deContainer, "sudo", "apt-get", "update")
+		err = docker.ExecContainer(container, "sudo", "apt-get", "update")
 		if err != nil {
 			return err
 		}
@@ -159,14 +128,14 @@ func runPackage() error {
 		}
 	}
 
-	err = dock.ExecContainer(deContainer, "sudo", "mk-build-deps", "-ri", "-t", "apty")
+	err = docker.ExecContainer(container, "sudo", "mk-build-deps", "-ri", "-t", "apty")
 	if err != nil {
 		return err
 	}
 
 	flags := strings.Split(dpkgFlags, " ")
 	command := append([]string{"dpkg-buildpackage"}, flags...)
-	err = dock.ExecContainer(deContainer, command...)
+	err = docker.ExecContainer(container, command...)
 	if err != nil {
 		return err
 	}
@@ -174,22 +143,22 @@ func runPackage() error {
 	return nil
 }
 
-func runTest() error {
+func runTest(docker *doc.Docker, debian *deb.Debian) error {
 	logInfo("Testing package")
 
-	err := dock.ExecContainer(deContainer, "debc")
+	err := docker.ExecContainer(container, "debc")
 	if err != nil {
 		return err
 	}
 
-	err = dock.ExecContainer(deContainer, "sudo", "debi", "--with-depends", "--tool", "apty")
+	err = docker.ExecContainer(container, "sudo", "debi", "--with-depends", "--tool", "apty")
 	if err != nil {
 		return err
 	}
 
 	flags := strings.Split(lintianFlags, " ")
 	command := append([]string{"lintian"}, flags...)
-	err = dock.ExecContainer(deContainer, command...)
+	err = docker.ExecContainer(container, command...)
 	if err != nil {
 		return err
 	}
@@ -197,10 +166,10 @@ func runTest() error {
 	return nil
 }
 
-func runStop() error {
+func runStop(docker *doc.Docker, debian *deb.Debian) error {
 	logInfo("Stopping container")
 
-	isContainerStopped, err := dock.IsContainerStopped(deContainer)
+	isContainerStopped, err := docker.IsContainerStopped(container)
 	if err != nil {
 		return err
 	}
@@ -208,7 +177,7 @@ func runStop() error {
 		return nil
 	}
 
-	err = dock.StopContainer(deContainer)
+	err = docker.StopContainer(container)
 	if err != nil {
 		return err
 	}
@@ -216,10 +185,10 @@ func runStop() error {
 	return nil
 }
 
-func runRemove() error {
+func runRemove(docker *doc.Docker, debian *deb.Debian) error {
 	logInfo("Removing container")
 
-	isContainerCreated, err := dock.IsContainerCreated(deContainer)
+	isContainerCreated, err := docker.IsContainerCreated(container)
 	if err != nil {
 		return err
 	}
@@ -227,7 +196,7 @@ func runRemove() error {
 		return nil
 	}
 
-	err = dock.RemoveContainer(deContainer)
+	err = docker.RemoveContainer(container)
 	if err != nil {
 		return err
 	}

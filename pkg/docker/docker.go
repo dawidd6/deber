@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
+	"github.com/dawidd6/deber/pkg/naming"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -27,11 +27,6 @@ const (
 	ContainerStateRestarting = "restarting"
 	ContainerStatePaused     = "paused"
 	ContainerStateDead       = "dead"
-
-	ContainerRepoDir   = "/repo"
-	ContainerBuildDir  = "/build"
-	ContainerSourceDir = "/build/source"
-	ContainerCacheDir  = "/var/cache/apt"
 )
 
 type Docker struct {
@@ -179,56 +174,21 @@ func (docker *Docker) BuildImage(name, from string) error {
 	return nil
 }
 
-func HostCacheDir(image string) string {
-	return fmt.Sprintf(
-		"/tmp/%s",
-		image,
-	)
-}
-
-func HostSourceDir() string {
-	return os.Getenv("PWD")
-}
-
-func HostBuildDir(container string) string {
-	return fmt.Sprintf(
-		"%s/../%s",
-		HostSourceDir(),
-		container,
-	)
-}
-
-func SourceTarball(tarball string) string {
-	return fmt.Sprintf(
-		"%s/../%s",
-		HostSourceDir(),
-		tarball,
-	)
-}
-
-func TargetTarball(container, tarball string) string {
-	return fmt.Sprintf(
-		"%s/%s",
-		HostBuildDir(container),
-		tarball,
-	)
-}
-
 func (docker *Docker) CreateContainer(name, image, repo, tarball string) error {
 	hostConfig := &container.HostConfig{
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
-				Source: HostCacheDir(image),
-				Target: ContainerCacheDir,
+				Source: naming.HostCacheDir(image),
+				Target: naming.ContainerCacheDir,
 			}, {
 				Type:   mount.TypeBind,
-				Source: HostSourceDir(),
-				Target: ContainerSourceDir,
+				Source: naming.HostSourceDir(),
+				Target: naming.ContainerSourceDir,
 			}, {
 				Type:   mount.TypeBind,
-				Source: HostBuildDir(name),
-				Target: ContainerBuildDir,
+				Source: naming.HostBuildDir(name),
+				Target: naming.ContainerBuildDir,
 			},
 		},
 	}
@@ -245,7 +205,7 @@ func (docker *Docker) CreateContainer(name, image, repo, tarball string) error {
 		mnt := mount.Mount{
 			Type:   mount.TypeBind,
 			Source: repo,
-			Target: ContainerRepoDir,
+			Target: naming.ContainerRepoDir,
 		}
 		hostConfig.Mounts = append(hostConfig.Mounts, mnt)
 	}
@@ -260,7 +220,9 @@ func (docker *Docker) CreateContainer(name, image, repo, tarball string) error {
 
 	// tarball
 	if tarball != "" {
-		err := os.Rename(SourceTarball(tarball), TargetTarball(name, tarball))
+		source := naming.SourceTarball(tarball)
+		target := naming.TargetTarball(name, tarball)
+		err := os.Rename(source, target)
 		if err != nil {
 			return err
 		}
