@@ -10,6 +10,7 @@ var (
 	program string
 
 	update       time.Duration
+	clean        bool
 	repo         string
 	from         string
 	dpkgFlags    string
@@ -25,6 +26,12 @@ func Run(p, version, description string) {
 		Short:   description,
 		RunE:    run,
 	}
+	cmd.Flags().BoolVarP(
+		&clean,
+		"clean",
+		"c",
+		false,
+		"stop and remove uncleaned container")
 	cmd.Flags().StringVarP(
 		&repo,
 		"repo",

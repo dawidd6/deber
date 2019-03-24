@@ -108,14 +108,14 @@ func (docker *Docker) IsContainerStopped(container string) (bool, error) {
 	for i := range list {
 		for j := range list[i].Names {
 			if list[i].Names[j] == "/"+container {
-				if list[i].State != ContainerStateRunning {
-					return true, nil
+				if list[i].State == ContainerStateRunning {
+					return false, nil
 				}
 			}
 		}
 	}
 
-	return false, nil
+	return true, nil
 }
 
 func (docker *Docker) BuildImage(name, from string) error {

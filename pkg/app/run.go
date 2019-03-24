@@ -44,6 +44,20 @@ func run(cmd *cobra.Command, args []string) error {
 		runRemove,
 	}
 
+	if clean {
+		err := runStop(docker, debian)
+		if err != nil {
+			return err
+		}
+
+		err = runRemove(docker, debian)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
 	for i := range steps {
 		err := steps[i](docker, debian)
 		if err != nil {
@@ -171,6 +185,7 @@ func runStop(docker *doc.Docker, debian *deb.Debian) error {
 
 	isContainerStopped, err := docker.IsContainerStopped(container)
 	if err != nil {
+
 		return err
 	}
 	if isContainerStopped {
