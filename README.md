@@ -5,6 +5,10 @@
 
 Create Debian packages in Docker containers easily.
 
+## Screencast
+
+[![asciicast](https://asciinema.org/a/236225.svg)](https://asciinema.org/a/236225)
+
 ## Dependencies
 
 Name | Min Version | Notes
