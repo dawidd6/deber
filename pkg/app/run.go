@@ -17,8 +17,6 @@ var (
 )
 
 func run(cmd *cobra.Command, args []string) error {
-	var err error
-
 	logInfo("Parsing Debian changelog")
 	debian, err := deb.New()
 	if err != nil {
