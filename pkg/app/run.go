@@ -128,7 +128,7 @@ func runPackage(docker *doc.Docker, debian *deb.Debian) error {
 
 	file := fmt.Sprintf("%s/last-updated", naming.HostCacheDir(image))
 	info, err := os.Stat(file)
-	if info == nil || time.Now().Sub(info.ModTime()).Seconds() > update.Seconds() {
+	if info == nil || repo != "" || time.Now().Sub(info.ModTime()).Seconds() > update.Seconds() {
 		err = docker.ExecContainer(container, "sudo", "apt-get", "update")
 		if err != nil {
 			return err
