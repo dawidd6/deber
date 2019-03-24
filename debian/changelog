@@ -1,11 +1,5 @@
-deber (0.2) unstable; urgency=medium
+deber (0.3) unstable; urgency=medium
 
-  * New Release.
+  * New Release
 
- -- Dawid Dziurla <dawidd0811@gmail.com>  Sun, 17 Mar 2019 17:20:39 +0100
-
-deber (0.1) unstable; urgency=medium
-
-  * Initial Release.
-
- -- Dawid Dziurla <dawidd0811@gmail.com>  Wed, 06 Mar 2019 13:41:06 +0100
+ -- Dawid Dziurla <dawidd0811@gmail.com>  Sun, 24 Mar 2019 23:16:59 +0100

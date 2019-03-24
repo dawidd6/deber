@@ -1,21 +1,25 @@
 Source: deber
-Section: utils
+Section: devel
 Priority: optional
 Maintainer: Dawid Dziurla <dawidd0811@gmail.com>
-Build-Depends: debhelper (>=11),
-                dh-golang,
-                golang-go (>=1.11),
-                golang-github-docker-docker-dev,
-                golang-github-spf13-cobra-dev,
-                golang-pault-go-debian-dev,
+Rules-Requires-Root: no
+Build-Depends:
+ debhelper (>= 11),
+ dh-golang,
+ golang-any,
+ golang-github-docker-docker-dev,
+ golang-github-spf13-cobra-dev,
+ golang-pault-go-debian-dev,
 Standards-Version: 4.3.0
 Homepage: https://github.com/dawidd6/deber
 XS-Go-Import-Path: github.com/dawidd6/deber
+Testsuite: autopkgtest-pkg-go
 
 Package: deber
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, docker-ce|docker.io
+Built-Using: ${misc:Built-Using}
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
 Description: Debian packaging with Docker
- Utility made with simplicity in mind to provide
- an easy way for building Debian packages in
- Docker containers.
+ Create Debian packages in Docker containers easily.
