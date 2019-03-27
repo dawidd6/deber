@@ -41,8 +41,7 @@ CMD ["sleep", "inf"]
 func dockerfileParse(from string) (string, error) {
 	t := DockerfileTemplate{
 		From:               from,
-		ContainerSourceDir: naming.ContainerSourceDir,
-		ContainerRepoDir:   naming.ContainerRepoDir,
+		ContainerSourceDir: naming.ContainerSourceInputDir,
 	}
 
 	temp, err := template.New("dockerfile").Parse(dockerfileTemplate)

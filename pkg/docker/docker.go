@@ -14,7 +14,6 @@ import (
 	"github.com/docker/docker/pkg/term"
 	"io"
 	"os"
-	"path/filepath"
 	"time"
 )
 
@@ -174,40 +173,30 @@ func (docker *Docker) BuildImage(name, from string) error {
 	return nil
 }
 
-func (docker *Docker) CreateContainer(name, image, repo, tarball string) error {
+func (docker *Docker) CreateContainer(name *naming.Naming) error {
 	hostConfig := &container.HostConfig{
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
-				Source: naming.HostCacheDir(image),
-				Target: naming.ContainerCacheDir,
+				Source: name.HostBuildCacheDir(),
+				Target: naming.ContainerBuildCacheDir,
 			}, {
 				Type:   mount.TypeBind,
-				Source: naming.HostSourceDir(),
-				Target: naming.ContainerSourceDir,
+				Source: name.HostSourceInputDir(),
+				Target: naming.ContainerSourceInputDir,
 			}, {
 				Type:   mount.TypeBind,
-				Source: naming.HostBuildDir(name),
-				Target: naming.ContainerBuildDir,
+				Source: name.HostBuildOutputDir(),
+				Target: naming.ContainerBuildOutputDir,
+			}, {
+				Type:   mount.TypeBind,
+				Source: name.HostArchiveFromDir(),
+				Target: naming.ContainerArchiveFromDir,
 			},
 		},
 	}
 	config := &container.Config{
-		Image: image,
-	}
-
-	// repo
-	if repo != "" {
-		repo, err := filepath.Abs(repo)
-		if err != nil {
-			return err
-		}
-		mnt := mount.Mount{
-			Type:   mount.TypeBind,
-			Source: repo,
-			Target: naming.ContainerRepoDir,
-		}
-		hostConfig.Mounts = append(hostConfig.Mounts, mnt)
+		Image: name.Image(),
 	}
 
 	// mkdir
@@ -218,17 +207,7 @@ func (docker *Docker) CreateContainer(name, image, repo, tarball string) error {
 		}
 	}
 
-	// tarball
-	if tarball != "" {
-		source := naming.SourceTarball(tarball)
-		target := naming.TargetTarball(name, tarball)
-		err := os.Rename(source, target)
-		if err != nil {
-			return err
-		}
-	}
-
-	_, err := docker.client.ContainerCreate(docker.ctx, config, hostConfig, nil, name)
+	_, err := docker.client.ContainerCreate(docker.ctx, config, hostConfig, nil, name.Container())
 	if err != nil {
 		return err
 	}

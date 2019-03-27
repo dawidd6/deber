@@ -1,13 +1,14 @@
 package app
 
 import (
+	"github.com/dawidd6/deber/pkg/logger"
 	"github.com/spf13/cobra"
 	"os"
 	"time"
 )
 
 var (
-	program string
+	log *logger.Logger
 
 	update       time.Duration
 	clean        bool
@@ -17,8 +18,8 @@ var (
 	lintianFlags string
 )
 
-func Run(p, version, description string) {
-	program = p
+func Run(program, version, description string) {
+	log = logger.New(program)
 
 	cmd := &cobra.Command{
 		Use:     program,
@@ -66,8 +67,9 @@ func Run(p, version, description string) {
 	cmd.SilenceErrors = true
 	cmd.SilenceUsage = true
 
-	if err := cmd.Execute(); err != nil {
-		logError(err)
+	err := cmd.Execute()
+	if err != nil {
+		log.Error(err)
 		os.Exit(1)
 	}
 }
