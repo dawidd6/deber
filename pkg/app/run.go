@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	doc "github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/naming"
@@ -8,10 +9,38 @@ import (
 	"os"
 	"pault.ag/go/debian/changelog"
 	"strings"
-	"time"
 )
 
 func run(cmd *cobra.Command, args []string) error {
+	steps := map[string]func(*doc.Docker, *naming.Naming) error{
+		"build":   runBuild,
+		"create":  runCreate,
+		"start":   runStart,
+		"tarball": runTarball,
+		"scan":    runScan,
+		"update":  runUpdate,
+		"deps":    runDeps,
+		"package": runPackage,
+		"test":    runTest,
+		"stop":    runStop,
+		"remove":  runRemove,
+		"archive": runArchive,
+	}
+	keys := []string{
+		"build",
+		"create",
+		"start",
+		"tarball",
+		"scan",
+		"update",
+		"deps",
+		"package",
+		"test",
+		"stop",
+		"remove",
+		"archive",
+	}
+
 	log.Info("Parsing Debian changelog")
 	debian, err := changelog.ParseFileOne("debian/changelog")
 	if err != nil {
@@ -31,41 +60,39 @@ func run(cmd *cobra.Command, args []string) error {
 
 	name := naming.New(
 		cmd.Use,
-		from,
+		debian.Target,
 		debian.Source,
 		debian.Version.String(),
 		tarball,
 	)
 
-	steps := []func(*doc.Docker, *naming.Naming) error{
-		runBuild,
-		runCreate,
-		runStart,
-		runPackage,
-		runTest,
-		runStop,
-		runRemove,
-		runMove,
+	if include != "" && exclude != "" {
+		return errors.New("can't specify --include and --exclude together")
 	}
 
-	if clean {
-		err := runStop(docker, name)
-		if err != nil {
-			return err
+	if include != "" {
+		for key := range steps {
+			if !strings.Contains(include, key) {
+				delete(steps, key)
+			}
 		}
-
-		err = runRemove(docker, name)
-		if err != nil {
-			return err
-		}
-
-		return nil
 	}
 
-	for i := range steps {
-		err := steps[i](docker, name)
-		if err != nil {
-			return err
+	if exclude != "" {
+		for key := range steps {
+			if strings.Contains(exclude, key) {
+				delete(steps, key)
+			}
+		}
+	}
+
+	for i := range keys {
+		f, ok := steps[keys[i]]
+		if ok {
+			err := f(docker, name)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -81,6 +108,31 @@ func runBuild(docker *doc.Docker, name *naming.Naming) error {
 	}
 	if isImageBuilt {
 		return nil
+	}
+
+	// TODO strip -security suffix, because there are no images available like this
+	from := ""
+
+	for _, o := range []string{"debian", "ubuntu"} {
+		tags, err := doc.GetTags(o)
+		if err != nil {
+			return err
+		}
+
+		for _, tag := range tags {
+			if tag.Name == name.Dist() {
+				from = fmt.Sprintf("%s:%s", o, name.Dist())
+				break
+			}
+		}
+
+		if from != "" {
+			break
+		}
+	}
+
+	if from == "" {
+		return errors.New("dist image not found")
 	}
 
 	err = docker.BuildImage(name.Image(), from)
@@ -129,8 +181,8 @@ func runStart(docker *doc.Docker, name *naming.Naming) error {
 	return nil
 }
 
-func runPackage(docker *doc.Docker, name *naming.Naming) error {
-	log.Info("Packaging software")
+func runTarball(docker *doc.Docker, name *naming.Naming) error {
+	log.Info("Moving tarball")
 
 	if name.Tarball() != "" {
 		err := os.Rename(name.HostSourceSourceTarballFile(), name.HostBuildTargetTarballFile())
@@ -139,23 +191,52 @@ func runPackage(docker *doc.Docker, name *naming.Naming) error {
 		}
 	}
 
-	file := fmt.Sprintf("%s/last-updated", name.HostBuildCacheDir())
-	info, err := os.Stat(file)
-	if info == nil || repo != "" || time.Now().Sub(info.ModTime()).Seconds() > update.Seconds() {
-		err = docker.ExecContainer(name.Container(), "sudo", "apt-get", "update")
-		if err != nil {
-			return err
-		}
+	return nil
+}
 
+func runScan(docker *doc.Docker, name *naming.Naming) error {
+	log.Info("Scanning archive")
+
+	err := docker.ExecContainer(name.Container(), "scan")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func runUpdate(docker *doc.Docker, name *naming.Naming) error {
+	log.Info("Updating cache")
+
+	err := docker.ExecContainer(name.Container(), "sudo", "apt-get", "update")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func runDeps(docker *doc.Docker, name *naming.Naming) error {
+	log.Info("Installing dependencies")
+
+	err := docker.ExecContainer(name.Container(), "sudo", "mk-build-deps", "-ri", "-t", "apty")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func runPackage(docker *doc.Docker, name *naming.Naming) error {
+	log.Info("Packaging software")
+
+	file := fmt.Sprintf("%s/%s", name.HostArchiveFromDir(), "Packages")
+	info, err := os.Stat(file)
+	if info == nil {
 		_, err := os.Create(file)
 		if err != nil {
 			return err
 		}
-	}
-
-	err = docker.ExecContainer(name.Container(), "sudo", "mk-build-deps", "-ri", "-t", "apty")
-	if err != nil {
-		return err
 	}
 
 	flags := strings.Split(dpkgFlags, " ")
@@ -230,8 +311,8 @@ func runRemove(docker *doc.Docker, name *naming.Naming) error {
 	return nil
 }
 
-func runMove(docker *doc.Docker, name *naming.Naming) error {
-	log.Info("Moving output")
+func runArchive(docker *doc.Docker, name *naming.Naming) error {
+	log.Info("Archiving build")
 
 	info, err := os.Stat(name.HostArchiveFromOutputDir())
 	if info != nil {

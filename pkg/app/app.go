@@ -4,16 +4,13 @@ import (
 	"github.com/dawidd6/deber/pkg/logger"
 	"github.com/spf13/cobra"
 	"os"
-	"time"
 )
 
 var (
 	log *logger.Logger
 
-	update       time.Duration
-	clean        bool
-	repo         string
-	from         string
+	include      string
+	exclude      string
 	dpkgFlags    string
 	lintianFlags string
 )
@@ -27,42 +24,33 @@ func Run(program, version, description string) {
 		Short:   description,
 		RunE:    run,
 	}
-	cmd.Flags().BoolVarP(
-		&clean,
-		"clean",
-		"c",
-		false,
-		"stop and remove uncleaned container")
 	cmd.Flags().StringVarP(
-		&repo,
-		"repo",
-		"r",
+		&include,
+		"include",
+		"i",
 		"",
-		"specify a local repository to be mounted in container")
+		"which steps to run only",
+	)
+	cmd.Flags().StringVarP(
+		&exclude,
+		"exclude",
+		"e",
+		"",
+		"which steps to exclude from complete set",
+	)
 	cmd.Flags().StringVar(
 		&dpkgFlags,
 		"dpkg-buildpackage-flags",
 		"-tc",
-		"specify flags passed to dpkg-buildpackage")
+		"specify flags passed to dpkg-buildpackage",
+	)
 	cmd.Flags().StringVar(
 		&lintianFlags,
 		"lintian-flags",
 		"-i",
-		"specify flags passed to lintian")
-	cmd.Flags().StringVarP(
-		&from,
-		"from",
-		"f",
-		"debian:unstable",
-		"specify which Docker image to use",
+		"specify flags passed to lintian",
 	)
-	cmd.Flags().DurationVarP(
-		&update,
-		"update-after",
-		"u",
-		time.Minute*30,
-		"perform apt cache update after specified interval",
-	)
+
 	cmd.SetHelpCommand(&cobra.Command{Hidden: true, Use: "no"})
 	cmd.SilenceErrors = true
 	cmd.SilenceUsage = true

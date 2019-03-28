@@ -2,46 +2,39 @@ package docker
 
 import (
 	"bytes"
-	"github.com/dawidd6/deber/pkg/naming"
 	"text/template"
 )
 
 type DockerfileTemplate struct {
-	From               string
-	ContainerSourceDir string
-	ContainerRepoDir   string
+	From string
 }
 
 const dockerfileTemplate = `
 FROM {{ .From }}
 
-ARG pkgs="build-essential devscripts dpkg-dev debhelper equivs sudo"
-ARG user="builder"
-ARG apty="/usr/local/bin/apty"
-ARG sources="/etc/apt/sources.list.d/repo.list"
-
 RUN apt-get update && \
-    apt-get install -y ${pkgs} && \
+    apt-get install -y build-essential devscripts dpkg-dev debhelper equivs sudo && \
     rm /etc/apt/apt.conf.d/*
-RUN useradd ${user} && \
-    echo "${user} ALL=NOPASSWD: ALL" > /etc/sudoers
-RUN echo "apt-get -y \$@" > ${apty} && \
-    chmod +x ${apty}
-RUN mkdir -p {{ .ContainerRepoDir }} && \
-    touch {{ .ContainerRepoDir }}/Packages && \
-    echo "deb [trusted=yes] file://{{ .ContainerRepoDir }} ./" > ${sources}
+RUN useradd builder && \
+    echo "builder ALL=NOPASSWD: ALL" > /etc/sudoers
+RUN printf '#!/bin/bash\napt-get -y $@\n' > /bin/apty && \
+	chmod +x /bin/apty
+RUN printf '#!/bin/bash\ncd /archive\ndpkg-scanpackages . > Packages\n' > /bin/scan && \
+	chmod +x /bin/scan
+RUN mkdir -p /archive && \
+    touch /archive/Packages && \
+    echo "deb [trusted=yes] file:///archive ./" > /etc/apt/sources.list.d/a.list
 
-USER ${user}:${user}
+USER builder:builder
 
-WORKDIR {{ .ContainerSourceDir }}
+WORKDIR /build/source
 
 CMD ["sleep", "inf"]
 `
 
 func dockerfileParse(from string) (string, error) {
 	t := DockerfileTemplate{
-		From:               from,
-		ContainerSourceDir: naming.ContainerSourceInputDir,
+		From: from,
 	}
 
 	temp, err := template.New("dockerfile").Parse(dockerfileTemplate)

@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 )
 
-func getTarball(source, version string) (string, error) {
+func getTarball(pkg, version string) (string, error) {
 	compressions := []string{".gz", ".xz"}
-	tarball := fmt.Sprintf("%s_%s.orig.tar", source, version)
+	tarball := fmt.Sprintf("%s_%s.orig.tar", pkg, version)
 
 	path, err := filepath.Abs(fmt.Sprintf("../%s", tarball))
 	if err != nil {

@@ -15,17 +15,17 @@ const (
 
 type Naming struct {
 	program string
-	from    string
-	source  string
+	pkg     string
+	dist    string
 	version string
 	tarball string
 }
 
-func New(program, from, source, version, tarball string) *Naming {
+func New(program, dist, pkg, version, tarball string) *Naming {
 	return &Naming{
 		program: program,
-		from:    from,
-		source:  source,
+		pkg:     pkg,
+		dist:    dist,
 		version: version,
 		tarball: tarball,
 	}
@@ -33,35 +33,36 @@ func New(program, from, source, version, tarball string) *Naming {
 
 func (n *Naming) Container() string {
 	version := n.version
-	from := n.from
 
 	// Docker allows only [a-zA-Z0-9][a-zA-Z0-9_.-]
 	// and Debian versioning allows these characters
 	version = strings.Replace(version, "~", "-", -1)
 	version = strings.Replace(version, ":", "-", -1)
 	version = strings.Replace(version, "+", "-", -1)
-	from = strings.Replace(from, ":", "-", -1)
-	from = strings.Replace(from, "/", "-", -1)
 
 	return fmt.Sprintf(
 		"%s_%s_%s_%s",
 		n.program,
-		from,
-		n.source,
+		n.dist,
+		n.pkg,
 		version,
 	)
 }
 
 func (n *Naming) Image() string {
 	return fmt.Sprintf(
-		"%s-%s",
+		"%s:%s",
 		n.program,
-		n.from,
+		n.dist,
 	)
 }
 
 func (n *Naming) Tarball() string {
 	return n.tarball
+}
+
+func (n *Naming) Dist() string {
+	return n.dist
 }
 
 // SOURCE
@@ -106,7 +107,7 @@ func (n *Naming) HostArchiveFromDir() string {
 	return fmt.Sprintf(
 		"%s/%s",
 		n.HostArchiveDir(),
-		n.from,
+		n.dist,
 	)
 }
 
@@ -114,7 +115,7 @@ func (n *Naming) HostArchiveFromOutputDir() string {
 	return fmt.Sprintf(
 		"%s/%s_%s",
 		n.HostArchiveFromDir(),
-		n.source,
+		n.pkg,
 		n.version,
 	)
 }
