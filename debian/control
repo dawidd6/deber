@@ -9,7 +9,6 @@ Build-Depends:
  golang-any,
  golang-github-docker-docker-dev,
  golang-github-spf13-cobra-dev,
- golang-pault-go-debian-dev,
 Standards-Version: 4.3.0
 Homepage: https://github.com/dawidd6/deber
 XS-Go-Import-Path: github.com/dawidd6/deber
