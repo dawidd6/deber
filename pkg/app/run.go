@@ -3,11 +3,11 @@ package app
 import (
 	"errors"
 	"fmt"
+	deb "github.com/dawidd6/deber/pkg/debian"
 	doc "github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/naming"
 	"github.com/spf13/cobra"
 	"os"
-	"pault.ag/go/debian/changelog"
 	"strings"
 )
 
@@ -42,7 +42,7 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	log.Info("Parsing Debian changelog")
-	debian, err := changelog.ParseFileOne("debian/changelog")
+	debian, err := deb.ParseFile()
 	if err != nil {
 		return err
 	}
@@ -53,17 +53,12 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	tarball, err := getTarball(debian.Source, debian.Version.Version)
-	if err != nil && !debian.Version.IsNative() {
-		return err
-	}
-
 	name := naming.New(
 		cmd.Use,
-		debian.Target,
-		debian.Source,
-		debian.Version.String(),
-		tarball,
+		debian.TargetDist,
+		debian.SourceName,
+		debian.PackageVersion,
+		debian.TarballFileName,
 	)
 
 	if include != "" && exclude != "" {
@@ -110,7 +105,6 @@ func runBuild(docker *doc.Docker, name *naming.Naming) error {
 		return nil
 	}
 
-	// TODO strip -security suffix, because there are no images available like this
 	from := ""
 
 	for _, o := range []string{"debian", "ubuntu"} {

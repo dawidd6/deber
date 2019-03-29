@@ -18,10 +18,10 @@ require (
 	github.com/sirupsen/logrus v1.3.0 // indirect
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3 // indirect
+	golang.org/x/crypto v0.0.0-20190103213133-ff983b9c42bc // indirect
 	golang.org/x/net v0.0.0-20190226193003-66a96c8a540e // indirect
 	golang.org/x/sys v0.0.0-20190222072716-a9d3bda3a223 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 	google.golang.org/grpc v1.19.0 // indirect
 	gotest.tools v2.2.0+incompatible // indirect
-	pault.ag/go/debian v0.0.0-20190109175134-a131cb0ae041
 )
