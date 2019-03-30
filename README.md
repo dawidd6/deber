@@ -7,8 +7,7 @@ Create Debian packages in Docker containers easily.
 
 ## Screencast
 
-[![asciicast](https://asciinema.org/a/236225.svg)](https://asciinema.org/a/236225)
-
+[![asciicast](https://asciinema.org/a/237780.svg)](https://asciinema.org/a/237780)
 ## Dependencies
 
 Name | Min Version | Notes
@@ -22,90 +21,54 @@ Name | Min Version | Notes
 go get -u github.com/dawidd6/deber
 ```
 
-## Directology
+## Usage
 
-**ARCHIVE**
+I recommend to use deber with gbp if possible, but it will work just fine
+as a standalone builder, like sbuild or pbuilder.
 
-```
-HostArchiveDir = /home/dawidd6/deber
-HostArchiveFromDir = /home/dawidd6/deber/debian:unstable << **MOUNT**
-HostArchiveFromOutputDir = /home/dawidd6/deber/debian:unstable/golang-github-alcortesm-tgz_0.0~git20161220.9c5fe88-1
-```
+Let's assume that you are in directory with already debianized source, have
+orig upstream tarball in parent directory and you want to build a package.
+Just run:
 
-```
-/home/dawidd6/deber
-└── debian:unstable
-    └── golang-github-alcortesm-tgz_0.0~git20161220.9c5fe88-1
-        ├── golang-github-alcortesm-tgz_0.0~git20161220.9c5fe88-1_amd64.buildinfo
-        ├── golang-github-alcortesm-tgz_0.0~git20161220.9c5fe88-1_amd64.changes
-        ├── golang-github-alcortesm-tgz_0.0~git20161220.9c5fe88-1.debian.tar.xz
-        ├── golang-github-alcortesm-tgz_0.0~git20161220.9c5fe88-1.dsc
-        ├── golang-github-alcortesm-tgz_0.0~git20161220.9c5fe88.orig.tar.gz
-        ├── golang-github-alcortesm-tgz-dev_0.0~git20161220.9c5fe88-1_all.deb
-        └── source
+```bash
+deber
 ```
 
-**SOURCE**
+or if you use gbp and have `builder = deber` in `gbp.conf`
 
-```
-HostSourceDir, HostSourceSourceTarballDir = /home/dawidd6/TEST
-HostSourceInputDir = /home/dawidd6/TEST/golang-github-alcortesm-tgz << **MOUNT**
-HostSourceSourceTarballFile = /home/dawidd6/TEST/golang-github-alcortesm-tgz_0.0~git20161220.9c5fe88.orig.tar.gz
+```bash
+gbp buildpackage
 ```
 
-```
-/home/dawidd6/TEST
-├── golang-github-alcortesm-tgz
-│   ├── debian
-│   │   ├── changelog
-│   │   ├── control
-│   │   ├── copyright
-│   │   ├── gbp.conf
-│   │   ├── rules
-│   │   ├── source
-│   │   │   └── format
-│   │   └── watch
-│   ├── fixtures
-│   │   ├── invalid-gzip.tgz
-│   │   ├── not-a-tar.tgz
-│   │   ├── test-01.tgz
-│   │   ├── test-02.tgz
-│   │   └── test-03.tgz
-│   ├── LICENSE
-│   ├── README.md
-│   ├── tgz.go
-│   └── tgz_test.go
-└── golang-github-alcortesm-tgz_0.0~git20161220.9c5fe88.orig.tar.gz
-```
-    
-**BUILD**
+If you run it first time, it will build Docker image and then proceed to build
+your package.
 
-```
-HostBuildDir = /tmp
-HostBuildCacheDir = /tmp/deber-debian:unstable << **MOUNT**
-HostBuildOutputDir, HostBuildTargetTarballDir = /tmp/deber_debian-unstable_golang-github-alcortesm-tgz_0.0-git20161220.9c5fe88-1 << **MOUNT**
-HostBuildTargetTarballFile = /tmp/deber_debian-unstable_golang-github-alcortesm-tgz_0.0-git20161220.9c5fe88-1/golang-github-alcortesm-tgz_0.0~git20161220.9c5fe88.orig.tar.gz
-```
+## FAQ
 
-```
-/tmp
-├── deber_debian-unstable_golang-github-alcortesm-tgz_0.0-git20161220.9c5fe88-1
-│   ├── golang-github-alcortesm-tgz_0.0~git20161220.9c5fe88.orig.tar.gz
-│   └── source
-├── deber-debian:unstable
-│   ├── archives
-│   │   ├── dh-golang_1.39_all.deb
-│   │   ├── golang-1.11-go_1.11.5-1_amd64.deb
-│   │   ├── golang-1.11-go_1.11.6-1_amd64.deb
-│   │   ├── golang-1.11-src_1.11.5-1_amd64.deb
-│   │   ├── golang-1.11-src_1.11.6-1_amd64.deb
-│   │   ├── golang-any_2%3a1.11~1_amd64.deb
-│   │   ├── golang-go_2%3a1.11~1_amd64.deb
-│   │   ├── golang-src_2%3a1.11~1_amd64.deb
-│   │   ├── lock
-│   │   └── pkg-config_0.29-6_amd64.deb
-│   ├── last-updated
-│   ├── pkgcache.bin
-│   └── srcpkgcache.bin
+**Okay everything went well, but... where the hell is my `.deb`?!**
 
-```
+If you haven't specified `DEBER_ARCHIVE` environment variable, then
+it's located in `~/deber`.
+I made it this way, because it was just hard looking at my parent directory,
+cluttered with `.orig.tar.gz`, `.deb`, `.changes` and God knows what else.
+
+**Where is build directory?**
+
+`/tmp/$container`
+
+**Where is apt cache directory?**
+
+`/tmp/deber:$dist`
+
+**How are images tagged?**
+
+Repository is `deber` and tag is `$dist`
+
+**I have already built image but it is building again?!**
+
+Probably because it is 14 days old and deber decided to
+update it.
+
+## Info
+
+Options, environment variables and others are listed and explained in [manpage](deber.md).
