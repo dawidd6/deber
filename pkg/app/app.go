@@ -9,10 +9,8 @@ import (
 var (
 	log *logger.Logger
 
-	include      string
-	exclude      string
-	dpkgFlags    string
-	lintianFlags string
+	include string
+	exclude string
 )
 
 func Run(program, version, description string) {
@@ -37,18 +35,6 @@ func Run(program, version, description string) {
 		"e",
 		"",
 		"which steps to exclude from complete set",
-	)
-	cmd.Flags().StringVar(
-		&dpkgFlags,
-		"dpkg-buildpackage-flags",
-		"-tc",
-		"specify flags passed to dpkg-buildpackage",
-	)
-	cmd.Flags().StringVar(
-		&lintianFlags,
-		"lintian-flags",
-		"-i",
-		"specify flags passed to lintian",
 	)
 
 	cmd.SetHelpCommand(&cobra.Command{Hidden: true, Use: "no"})

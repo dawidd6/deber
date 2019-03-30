@@ -233,8 +233,11 @@ func runPackage(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) err
 		}
 	}
 
-	flags := strings.Split(dpkgFlags, " ")
-	command := append([]string{"dpkg-buildpackage"}, flags...)
+	flags := os.Getenv("DEBER_DPKG_BUILDPACKAGE_FLAGS")
+	if flags == "" {
+		flags = "-tc"
+	}
+	command := append([]string{"dpkg-buildpackage"}, strings.Split(flags, " ")...)
 	err = docker.ExecContainer(name.Container, command...)
 	if err != nil {
 		return err
@@ -256,8 +259,11 @@ func runTest(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error 
 		return err
 	}
 
-	flags := strings.Split(lintianFlags, " ")
-	command := append([]string{"lintian"}, flags...)
+	flags := os.Getenv("DEBER_LINTIAN_FLAGS")
+	if flags == "" {
+		flags = "-i"
+	}
+	command := append([]string{"lintian"}, strings.Split(flags, " ")...)
 	err = docker.ExecContainer(name.Container, command...)
 	if err != nil {
 		return err
