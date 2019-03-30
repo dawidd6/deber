@@ -178,25 +178,25 @@ func (docker *Docker) CreateContainer(name *naming.Naming) error {
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
-				Source: name.HostBuildCacheDir(),
-				Target: naming.ContainerBuildCacheDir,
+				Source: name.SourceDir,
+				Target: naming.ContainerSourceDir,
 			}, {
 				Type:   mount.TypeBind,
-				Source: name.HostSourceInputDir(),
-				Target: naming.ContainerSourceInputDir,
+				Source: name.BuildDir,
+				Target: naming.ContainerBuildDir,
 			}, {
 				Type:   mount.TypeBind,
-				Source: name.HostBuildOutputDir(),
-				Target: naming.ContainerBuildOutputDir,
+				Source: name.CacheDir,
+				Target: naming.ContainerCacheDir,
 			}, {
 				Type:   mount.TypeBind,
-				Source: name.HostArchiveFromDir(),
-				Target: naming.ContainerArchiveFromDir,
+				Source: name.ArchiveDir,
+				Target: naming.ContainerArchiveDir,
 			},
 		},
 	}
 	config := &container.Config{
-		Image: name.Image(),
+		Image: name.Image,
 	}
 
 	// mkdir
@@ -207,7 +207,7 @@ func (docker *Docker) CreateContainer(name *naming.Naming) error {
 		}
 	}
 
-	_, err := docker.client.ContainerCreate(docker.ctx, config, hostConfig, nil, name.Container())
+	_, err := docker.client.ContainerCreate(docker.ctx, config, hostConfig, nil, name.Container)
 	if err != nil {
 		return err
 	}

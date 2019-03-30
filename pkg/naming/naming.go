@@ -3,37 +3,73 @@ package naming
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
+// Directories in container where their host counterpart should be mounted.
 const (
-	ContainerArchiveFromDir = "/archive"
-	ContainerBuildOutputDir = "/build"
-	ContainerSourceInputDir = "/build/source"
-	ContainerBuildCacheDir  = "/var/cache/apt"
+	ContainerArchiveDir = "/archive"
+	ContainerBuildDir   = "/build"
+	ContainerSourceDir  = "/build/source"
+	ContainerCacheDir   = "/var/cache/apt"
 )
 
 type Naming struct {
-	program string
-	pkg     string
-	dist    string
-	version string
-	tarball string
+	// Docker container name.
+	//
+	// Example: deber_unstable_wget_1.0.0-1
+	Container string
+	// Docker image name.
+	//
+	// Example: deber:unstable
+	Image string
+
+	// Current working directory, where debianized source lives.
+	SourceDir string
+	// Parent of current working directory.
+	//
+	// Used for locating orig upstream tarball mostly (if only).
+	SourceParentDir string
+
+	// Directory where built packages for a specific distribution live.
+	//
+	// Example: /home/user/deber/unstable
+	ArchiveDir string
+	// Specific directory of package for a distribution in archive.
+	//
+	// Example: /home/user/deber/unstable/wget_1.0.0-1
+	ArchivePackageDir string
+
+	// Directory where image's apt cache is stored
+	//
+	// Example: /tmp/deber:unstable
+	CacheDir string
+
+	// Directory where package building output is gathered.
+	//
+	// Example: /tmp/deber_unstable_wget_1.0.0-1
+	BuildDir string
 }
 
 func New(program, dist, pkg, version, tarball string) *Naming {
 	return &Naming{
-		program: program,
-		pkg:     pkg,
-		dist:    dist,
-		version: version,
-		tarball: tarball,
+		Container: Container(program, dist, pkg, version),
+		Image:     Image(program, dist),
+
+		SourceDir:       SourceDir(),
+		SourceParentDir: SourceParentDir(),
+
+		ArchiveDir:        ArchiveDir(program, dist),
+		ArchivePackageDir: ArchivePackageDir(program, dist, pkg, version),
+
+		CacheDir: CacheDir(program, dist),
+
+		BuildDir: BuildDir(program, dist, pkg, version),
 	}
 }
 
-func (n *Naming) Container() string {
-	version := n.version
-
+func Container(program, dist, pkg, version string) string {
 	// Docker allows only [a-zA-Z0-9][a-zA-Z0-9_.-]
 	// and Debian versioning allows these characters
 	version = strings.Replace(version, "~", "-", -1)
@@ -42,113 +78,60 @@ func (n *Naming) Container() string {
 
 	return fmt.Sprintf(
 		"%s_%s_%s_%s",
-		n.program,
-		n.dist,
-		n.pkg,
+		program,
+		dist,
+		pkg,
 		version,
 	)
 }
 
-func (n *Naming) Image() string {
+func Image(program, dist string) string {
 	return fmt.Sprintf(
 		"%s:%s",
-		n.program,
-		n.dist,
+		program,
+		dist,
 	)
-}
-
-func (n *Naming) Tarball() string {
-	return n.tarball
-}
-
-func (n *Naming) Dist() string {
-	return n.dist
 }
 
 // SOURCE
-func (n *Naming) HostSourceDir() string {
-	return fmt.Sprintf(
-		"%s/..",
-		os.Getenv("PWD"),
-	)
-}
-
-func (n *Naming) HostSourceInputDir() string {
+func SourceDir() string {
 	return os.Getenv("PWD")
 }
 
-func (n *Naming) HostSourceTarballDir() string {
-	return n.HostSourceDir()
-}
-
-func (n *Naming) HostSourceSourceTarballFile() string {
-	return fmt.Sprintf(
-		"%s/%s",
-		n.HostSourceTarballDir(),
-		n.tarball,
-	)
+func SourceParentDir() string {
+	return filepath.Dir(SourceDir())
 }
 
 // ARCHIVE
-func (n *Naming) HostArchiveDir() string {
+func ArchiveDir(program, dist string) string {
 	dir := os.Getenv("DEBER_ARCHIVE")
 	if dir != "" {
 		return dir
 	}
 
 	return fmt.Sprintf(
-		"%s/%s",
+		"%s/%s/%s",
 		os.Getenv("HOME"),
-		n.program,
+		program,
+		dist,
 	)
 }
 
-func (n *Naming) HostArchiveFromDir() string {
-	return fmt.Sprintf(
-		"%s/%s",
-		n.HostArchiveDir(),
-		n.dist,
-	)
-}
-
-func (n *Naming) HostArchiveFromOutputDir() string {
+func ArchivePackageDir(program, dist, pkg, version string) string {
 	return fmt.Sprintf(
 		"%s/%s_%s",
-		n.HostArchiveFromDir(),
-		n.pkg,
-		n.version,
+		ArchiveDir(program, dist),
+		pkg,
+		version,
 	)
+}
+
+// CACHE
+func CacheDir(program, dist string) string {
+	return "/tmp/" + Image(program, dist)
 }
 
 // BUILD
-func (n *Naming) HostBuildDir() string {
-	return "/tmp"
-}
-
-func (n *Naming) HostBuildCacheDir() string {
-	return fmt.Sprintf(
-		"%s/%s",
-		n.HostBuildDir(),
-		n.Image(),
-	)
-}
-
-func (n *Naming) HostBuildOutputDir() string {
-	return fmt.Sprintf(
-		"%s/%s",
-		n.HostBuildDir(),
-		n.Container(),
-	)
-}
-
-func (n *Naming) HostBuildTargetTarballDir() string {
-	return n.HostBuildOutputDir()
-}
-
-func (n *Naming) HostBuildTargetTarballFile() string {
-	return fmt.Sprintf(
-		"%s/%s",
-		n.HostBuildTargetTarballDir(),
-		n.tarball,
-	)
+func BuildDir(program, dist, pkg, version string) string {
+	return "/tmp/" + Container(program, dist, pkg, version)
 }
