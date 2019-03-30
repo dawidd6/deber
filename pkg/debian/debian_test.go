@@ -93,3 +93,16 @@ func TestParseLine5(t *testing.T) {
 
 	test(t, line, d)
 }
+
+func TestParseLine6(t *testing.T) {
+	line := "ansible (2.7.5+dfsg-1~bpo9+1) stretch-backports; urgency=medium"
+	d := &debian.Debian{
+		SourceName:      "ansible",
+		PackageVersion:  "2.7.5+dfsg-1~bpo9+1",
+		UpstreamVersion: "2.7.5+dfsg",
+		TargetDist:      "stretch",
+		IsNative:        false,
+	}
+
+	test(t, line, d)
+}
