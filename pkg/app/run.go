@@ -14,6 +14,7 @@ import (
 
 func run(cmd *cobra.Command, args []string) error {
 	steps := map[string]func(*doc.Docker, *deb.Debian, *naming.Naming) error{
+		"check":   runCheck,
 		"build":   runBuild,
 		"create":  runCreate,
 		"start":   runStart,
@@ -28,6 +29,7 @@ func run(cmd *cobra.Command, args []string) error {
 		"archive": runArchive,
 	}
 	keys := []string{
+		"check",
 		"build",
 		"create",
 		"start",
@@ -89,6 +91,17 @@ func run(cmd *cobra.Command, args []string) error {
 				return err
 			}
 		}
+	}
+
+	return nil
+}
+
+func runCheck(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error {
+	log.Info("Checking archive")
+
+	info, _ := os.Stat(name.ArchivePackageDir)
+	if info != nil {
+		os.Exit(0)
 	}
 
 	return nil
