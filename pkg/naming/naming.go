@@ -105,13 +105,13 @@ func SourceParentDir() string {
 // ARCHIVE
 func ArchiveDir(program, dist string) string {
 	dir := os.Getenv("DEBER_ARCHIVE")
-	if dir != "" {
-		return dir
+	if dir == "" {
+		dir = os.Getenv("HOME")
 	}
 
 	return fmt.Sprintf(
 		"%s/%s/%s",
-		os.Getenv("HOME"),
+		dir,
 		program,
 		dist,
 	)
@@ -128,10 +128,10 @@ func ArchivePackageDir(program, dist, pkg, version string) string {
 
 // CACHE
 func CacheDir(program, dist string) string {
-	return "/tmp/" + Image(program, dist)
+	return filepath.Join("/tmp", Image(program, dist))
 }
 
 // BUILD
 func BuildDir(program, dist, pkg, version string) string {
-	return "/tmp/" + Container(program, dist, pkg, version)
+	return filepath.Join("/tmp", Container(program, dist, pkg, version))
 }
