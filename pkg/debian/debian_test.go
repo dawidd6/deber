@@ -5,33 +5,19 @@ import (
 	"testing"
 )
 
-func test(t *testing.T, line string, expected *debian.Debian) {
-	got := debian.ParseLine(line)
-
-	if got.SourceName != expected.SourceName {
-		t.Fatal(line)
-	}
-
-	if got.PackageVersion != expected.PackageVersion {
-		t.Fatal(line)
-	}
-
-	if got.UpstreamVersion != expected.UpstreamVersion {
-		t.Fatal(line)
-	}
-
-	if got.TargetDist != expected.TargetDist {
-		t.Fatal(line)
-	}
-
-	if got.IsNative != expected.IsNative {
-		t.Fatal(line)
+func test(t *testing.T, got, expected *debian.Debian) {
+	if *got != *expected {
+		t.Log("got:", got)
+		t.Log("expected:", expected)
+		t.Fatal("got != expected")
 	}
 }
 
-func TestParseLine1(t *testing.T) {
+func TestNew1(t *testing.T) {
 	line := "golang-github-alcortesm-tgz (0.0~git20161220.9c5fe88-1) unstable; urgency=medium"
-	d := &debian.Debian{
+
+	got := debian.New(line)
+	expected := &debian.Debian{
 		SourceName:      "golang-github-alcortesm-tgz",
 		PackageVersion:  "0.0~git20161220.9c5fe88-1",
 		UpstreamVersion: "0.0~git20161220.9c5fe88",
@@ -39,12 +25,14 @@ func TestParseLine1(t *testing.T) {
 		IsNative:        false,
 	}
 
-	test(t, line, d)
+	test(t, got, expected)
 }
 
-func TestParseLine2(t *testing.T) {
+func TestNew2(t *testing.T) {
 	line := "ansible (2.7.5+dfsg-2) experimental; urgency=medium"
-	d := &debian.Debian{
+
+	got := debian.New(line)
+	expected := &debian.Debian{
 		SourceName:      "ansible",
 		PackageVersion:  "2.7.5+dfsg-2",
 		UpstreamVersion: "2.7.5+dfsg",
@@ -52,12 +40,14 @@ func TestParseLine2(t *testing.T) {
 		IsNative:        false,
 	}
 
-	test(t, line, d)
+	test(t, got, expected)
 }
 
-func TestParseLine3(t *testing.T) {
+func TestNew3(t *testing.T) {
 	line := "ansible (2.2.1.0-2+deb9u1) stretch-security; urgency=high"
-	d := &debian.Debian{
+
+	got := debian.New(line)
+	expected := &debian.Debian{
 		SourceName:      "ansible",
 		PackageVersion:  "2.2.1.0-2+deb9u1",
 		UpstreamVersion: "2.2.1.0",
@@ -65,12 +55,14 @@ func TestParseLine3(t *testing.T) {
 		IsNative:        false,
 	}
 
-	test(t, line, d)
+	test(t, got, expected)
 }
 
-func TestParseLine4(t *testing.T) {
+func TestNew4(t *testing.T) {
 	line := "procps (2:3.3.10-4ubuntu2.4) xenial-security; urgency=medium"
-	d := &debian.Debian{
+
+	got := debian.New(line)
+	expected := &debian.Debian{
 		SourceName:      "procps",
 		PackageVersion:  "2:3.3.10-4ubuntu2.4",
 		UpstreamVersion: "3.3.10",
@@ -78,12 +70,14 @@ func TestParseLine4(t *testing.T) {
 		IsNative:        false,
 	}
 
-	test(t, line, d)
+	test(t, got, expected)
 }
 
-func TestParseLine5(t *testing.T) {
+func TestNew5(t *testing.T) {
 	line := "git-buildpackage (0.9.14) unstable; urgency=medium"
-	d := &debian.Debian{
+
+	got := debian.New(line)
+	expected := &debian.Debian{
 		SourceName:      "git-buildpackage",
 		PackageVersion:  "0.9.14",
 		UpstreamVersion: "0.9.14",
@@ -91,12 +85,14 @@ func TestParseLine5(t *testing.T) {
 		IsNative:        true,
 	}
 
-	test(t, line, d)
+	test(t, got, expected)
 }
 
-func TestParseLine6(t *testing.T) {
+func TestNew6(t *testing.T) {
 	line := "ansible (2.7.5+dfsg-1~bpo9+1) stretch-backports; urgency=medium"
-	d := &debian.Debian{
+
+	got := debian.New(line)
+	expected := &debian.Debian{
 		SourceName:      "ansible",
 		PackageVersion:  "2.7.5+dfsg-1~bpo9+1",
 		UpstreamVersion: "2.7.5+dfsg",
@@ -104,5 +100,5 @@ func TestParseLine6(t *testing.T) {
 		IsNative:        false,
 	}
 
-	test(t, line, d)
+	test(t, got, expected)
 }

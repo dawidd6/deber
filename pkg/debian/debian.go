@@ -18,7 +18,7 @@ type Debian struct {
 	IsNative        bool
 }
 
-func ParseFile() (*Debian, error) {
+func ParseChangelog() (*Debian, error) {
 	file, err := os.Open("debian/changelog")
 	if err != nil {
 		return nil, err
@@ -34,56 +34,82 @@ func ParseFile() (*Debian, error) {
 		return nil, err
 	}
 
-	debian := ParseLine(line)
-
-	if !debian.IsNative {
-		tarball, err := debian.FindTarball()
-		if err != nil {
-			return nil, err
-		}
-
-		debian.TarballFileName = tarball
+	tarball, err := locateTarball(line)
+	if err != nil {
+		return nil, err
 	}
+
+	debian := New(line)
+	debian.TarballFileName = tarball
 
 	return debian, nil
 }
 
-func ParseLine(line string) *Debian {
-	elements := strings.Split(line, " ")
+func New(line string) *Debian {
+	return &Debian{
+		SourceName:      SourceName(line),
+		PackageVersion:  PackageVersion(line),
+		UpstreamVersion: UpstreamVersion(line),
+		TargetDist:      TargetDist(line),
+		IsNative:        IsNative(line),
+	}
+}
 
-	sourceName := elements[0]
+func SourceName(line string) string {
+	return strings.Split(line, " ")[0]
+}
 
-	packageVersion := elements[1]
+func PackageVersion(line string) string {
+	packageVersion := strings.Split(line, " ")[1]
 	packageVersion = strings.TrimPrefix(packageVersion, "(")
 	packageVersion = strings.TrimSuffix(packageVersion, ")")
-	isNative := true
 
-	upstreamVersion := packageVersion
+	return packageVersion
+}
+
+func UpstreamVersion(line string) string {
+	upstreamVersion := PackageVersion(line)
+
 	if strings.Contains(upstreamVersion, ":") {
 		upstreamVersion = strings.Split(upstreamVersion, ":")[1]
 	}
+
 	if strings.Contains(upstreamVersion, "-") {
 		upstreamVersion = strings.Split(upstreamVersion, "-")[0]
-		isNative = false
 	}
 
-	targetDist := elements[2]
+	return upstreamVersion
+}
+
+func TargetDist(line string) string {
+	targetDist := strings.Split(line, " ")[2]
 	targetDist = strings.TrimSuffix(targetDist, ";")
+
 	if strings.Contains(targetDist, "-") {
 		targetDist = strings.Split(targetDist, "-")[0]
 	}
 
-	return &Debian{
-		SourceName:      sourceName,
-		PackageVersion:  packageVersion,
-		UpstreamVersion: upstreamVersion,
-		TargetDist:      targetDist,
-		IsNative:        isNative,
-	}
+	return targetDist
 }
 
-func (debian *Debian) FindTarball() (string, error) {
-	tarball := fmt.Sprintf("%s_%s.orig.tar", debian.SourceName, debian.UpstreamVersion)
+func IsNative(line string) bool {
+	version := strings.Split(line, " ")[1]
+
+	if strings.Contains(version, "-") {
+		return false
+	}
+
+	return true
+}
+
+func locateTarball(line string) (string, error) {
+	if IsNative(line) {
+		return "", nil
+	}
+
+	sourceName := SourceName(line)
+	upstreamVersion := UpstreamVersion(line)
+	tarball := fmt.Sprintf("%s_%s.orig.tar", sourceName, upstreamVersion)
 
 	path, err := filepath.Abs(fmt.Sprintf("../%s", tarball))
 	if err != nil {

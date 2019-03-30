@@ -43,7 +43,7 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	log.Info("Parsing Debian changelog")
-	debian, err := deb.ParseFile()
+	debian, err := deb.ParseChangelog()
 	if err != nil {
 		return err
 	}
