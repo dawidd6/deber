@@ -47,14 +47,16 @@ func run(cmd *cobra.Command, args []string) error {
 	log.Info("Parsing Debian changelog")
 	debian, err := deb.ParseChangelog()
 	if err != nil {
-		return err
+		return log.FailE(err)
 	}
+	log.Done()
 
 	log.Info("Connecting with Docker")
 	docker, err := doc.New()
 	if err != nil {
-		return err
+		return log.FailE(err)
 	}
+	log.Done()
 
 	name := naming.New(
 		cmd.Use,
@@ -101,10 +103,11 @@ func runCheck(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error
 
 	info, _ := os.Stat(name.ArchivePackageDir)
 	if info != nil {
+		log.Skip()
 		os.Exit(0)
 	}
 
-	return nil
+	return log.DoneE()
 }
 
 func runBuild(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error {
@@ -112,39 +115,41 @@ func runBuild(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error
 
 	isImageBuilt, err := docker.IsImageBuilt(name.Image)
 	if err != nil {
-		return err
+		return log.FailE(err)
 	}
 	if isImageBuilt {
 		isImageOld, err := docker.IsImageOld(name.Image)
 		if err != nil {
-			return err
+			return log.FailE(err)
 		}
 		if !isImageOld {
-			return nil
+			return log.SkipE()
 		}
 	}
 
 	for _, repo := range []string{"debian", "ubuntu"} {
 		tags, err := doc.GetTags(repo)
 		if err != nil {
-			return err
+			return log.FailE(err)
 		}
 
 		for _, tag := range tags {
 			if tag.Name == debian.TargetDist {
 				from := fmt.Sprintf("%s:%s", repo, debian.TargetDist)
 
+				log.Drop()
+
 				err := docker.BuildImage(name.Image, from)
 				if err != nil {
-					return err
+					return log.FailE(err)
 				}
 
-				return nil
+				return log.DoneE()
 			}
 		}
 	}
 
-	return errors.New("dist image not found")
+	return log.FailE(errors.New("dist image not found"))
 }
 
 func runCreate(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error {
@@ -152,18 +157,18 @@ func runCreate(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) erro
 
 	isContainerCreated, err := docker.IsContainerCreated(name.Container)
 	if err != nil {
-		return err
+		return log.FailE(err)
 	}
 	if isContainerCreated {
-		return nil
+		return log.SkipE()
 	}
 
 	err = docker.CreateContainer(name)
 	if err != nil {
-		return err
+		return log.FailE(err)
 	}
 
-	return nil
+	return log.DoneE()
 }
 
 func runStart(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error {
@@ -171,18 +176,18 @@ func runStart(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error
 
 	isContainerStarted, err := docker.IsContainerStarted(name.Container)
 	if err != nil {
-		return err
+		return log.FailE(err)
 	}
 	if isContainerStarted {
-		return nil
+		return log.SkipE()
 	}
 
 	err = docker.StartContainer(name.Container)
 	if err != nil {
-		return err
+		return log.FailE(err)
 	}
 
-	return nil
+	return log.DoneE()
 }
 
 func runTarball(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error {
@@ -194,44 +199,50 @@ func runTarball(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) err
 	if debian.TarballFileName != "" {
 		err := os.Rename(source, target)
 		if err != nil {
-			return err
+			return log.FailE(err)
 		}
 	}
 
-	return nil
+	return log.DoneE()
 }
 
 func runScan(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error {
 	log.Info("Scanning archive")
 
+	log.Drop()
+
 	err := docker.ExecContainer(name.Container, "scan")
 	if err != nil {
-		return err
+		return log.FailE(err)
 	}
 
-	return nil
+	return log.DoneE()
 }
 
 func runUpdate(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error {
 	log.Info("Updating cache")
 
+	log.Drop()
+
 	err := docker.ExecContainer(name.Container, "sudo", "apt-get", "update")
 	if err != nil {
-		return err
+		return log.FailE(err)
 	}
 
-	return nil
+	return log.DoneE()
 }
 
 func runDeps(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error {
 	log.Info("Installing dependencies")
 
+	log.Drop()
+
 	err := docker.ExecContainer(name.Container, "sudo", "mk-build-deps", "-ri", "-t", "apty")
 	if err != nil {
-		return err
+		return log.FailE(err)
 	}
 
-	return nil
+	return log.DoneE()
 }
 
 func runPackage(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error {
@@ -242,9 +253,11 @@ func runPackage(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) err
 	if info == nil {
 		_, err := os.Create(file)
 		if err != nil {
-			return err
+			return log.FailE(err)
 		}
 	}
+
+	log.Drop()
 
 	flags := os.Getenv("DEBER_DPKG_BUILDPACKAGE_FLAGS")
 	if flags == "" {
@@ -253,23 +266,25 @@ func runPackage(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) err
 	command := append([]string{"dpkg-buildpackage"}, strings.Split(flags, " ")...)
 	err = docker.ExecContainer(name.Container, command...)
 	if err != nil {
-		return err
+		return log.FailE(err)
 	}
 
-	return nil
+	return log.DoneE()
 }
 
 func runTest(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error {
 	log.Info("Testing package")
 
+	log.Drop()
+
 	err := docker.ExecContainer(name.Container, "debc")
 	if err != nil {
-		return err
+		return log.FailE(err)
 	}
 
 	err = docker.ExecContainer(name.Container, "sudo", "debi", "--with-depends", "--tool", "apty")
 	if err != nil {
-		return err
+		return log.FailE(err)
 	}
 
 	flags := os.Getenv("DEBER_LINTIAN_FLAGS")
@@ -279,10 +294,10 @@ func runTest(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error 
 	command := append([]string{"lintian"}, strings.Split(flags, " ")...)
 	err = docker.ExecContainer(name.Container, command...)
 	if err != nil {
-		return err
+		return log.FailE(err)
 	}
 
-	return nil
+	return log.DoneE()
 }
 
 func runStop(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error {
@@ -290,19 +305,18 @@ func runStop(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error 
 
 	isContainerStopped, err := docker.IsContainerStopped(name.Container)
 	if err != nil {
-
-		return err
+		return log.FailE(err)
 	}
 	if isContainerStopped {
-		return nil
+		return log.SkipE()
 	}
 
 	err = docker.StopContainer(name.Container)
 	if err != nil {
-		return err
+		return log.FailE(err)
 	}
 
-	return nil
+	return log.DoneE()
 }
 
 func runRemove(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error {
@@ -310,18 +324,18 @@ func runRemove(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) erro
 
 	isContainerCreated, err := docker.IsContainerCreated(name.Container)
 	if err != nil {
-		return err
+		return log.FailE(err)
 	}
 	if !isContainerCreated {
-		return nil
+		return log.SkipE()
 	}
 
 	err = docker.RemoveContainer(name.Container)
 	if err != nil {
-		return err
+		return log.FailE(err)
 	}
 
-	return nil
+	return log.DoneE()
 }
 
 func runArchive(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error {
@@ -329,13 +343,13 @@ func runArchive(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) err
 
 	info, err := os.Stat(name.ArchivePackageDir)
 	if info != nil {
-		return nil
+		return log.SkipE()
 	}
 
 	err = os.Rename(name.BuildDir, name.ArchivePackageDir)
 	if err != nil {
-		return err
+		return log.FailE(err)
 	}
 
-	return nil
+	return log.DoneE()
 }
