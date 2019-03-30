@@ -59,7 +59,6 @@ func run(cmd *cobra.Command, args []string) error {
 		debian.TargetDist,
 		debian.SourceName,
 		debian.PackageVersion,
-		debian.TarballFileName,
 	)
 
 	if include != "" && exclude != "" {

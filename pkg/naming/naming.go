@@ -52,7 +52,7 @@ type Naming struct {
 	BuildDir string
 }
 
-func New(program, dist, pkg, version, tarball string) *Naming {
+func New(program, dist, pkg, version string) *Naming {
 	return &Naming{
 		Container: Container(program, dist, pkg, version),
 		Image:     Image(program, dist),
