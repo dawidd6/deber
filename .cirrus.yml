@@ -1,6 +1,7 @@
-install_task:
+go_task:
   container:
     image: golang:1.11.4
+  test_script: go test -v -count 3 ./...
   install_script: go install
 
 package_task:
