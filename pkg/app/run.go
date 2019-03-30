@@ -102,39 +102,36 @@ func runBuild(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error
 		return err
 	}
 	if isImageBuilt {
-		return nil
+		isImageOld, err := docker.IsImageOld(name.Image)
+		if err != nil {
+			return err
+		}
+		if !isImageOld {
+			return nil
+		}
 	}
 
-	from := ""
-
-	for _, o := range []string{"debian", "ubuntu"} {
-		tags, err := doc.GetTags(o)
+	for _, repo := range []string{"debian", "ubuntu"} {
+		tags, err := doc.GetTags(repo)
 		if err != nil {
 			return err
 		}
 
 		for _, tag := range tags {
 			if tag.Name == debian.TargetDist {
-				from = fmt.Sprintf("%s:%s", o, debian.TargetDist)
-				break
+				from := fmt.Sprintf("%s:%s", repo, debian.TargetDist)
+
+				err := docker.BuildImage(name.Image, from)
+				if err != nil {
+					return err
+				}
+
+				return nil
 			}
 		}
-
-		if from != "" {
-			break
-		}
 	}
 
-	if from == "" {
-		return errors.New("dist image not found")
-	}
-
-	err = docker.BuildImage(name.Image, from)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return errors.New("dist image not found")
 }
 
 func runCreate(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error {

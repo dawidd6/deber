@@ -20,6 +20,8 @@ import (
 const (
 	ApiVersion = "1.30"
 
+	MaxImageAge = time.Hour * 24 * 14
+
 	ContainerStateRunning    = "running"
 	ContainerStateCreated    = "created"
 	ContainerStateExited     = "exited"
@@ -57,6 +59,22 @@ func (docker *Docker) IsImageBuilt(image string) (bool, error) {
 				return true, nil
 			}
 		}
+	}
+
+	return false, nil
+}
+
+func (docker *Docker) IsImageOld(image string) (bool, error) {
+	inspect, _, err := docker.client.ImageInspectWithRaw(docker.ctx, image)
+	if err != nil {
+		return false, err
+	}
+
+	created := inspect.Metadata.LastTagTime
+	diff := time.Since(created)
+
+	if diff > MaxImageAge {
+		return true, nil
 	}
 
 	return false, nil
@@ -130,8 +148,9 @@ func (docker *Docker) BuildImage(name, from string) error {
 		Size: int64(len(dockerfile)),
 	}
 	options := types.ImageBuildOptions{
-		Tags:   []string{name},
-		Remove: true,
+		Tags:       []string{name},
+		Remove:     true,
+		PullParent: true,
 	}
 
 	err = writer.WriteHeader(header)
