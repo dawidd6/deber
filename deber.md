@@ -13,98 +13,121 @@ Docker containers.
 
 ## OPTIONS
 
- * `-h`, `--help` :
-  help for deber
-   
- * `--dpkg-buildpackage-flags` *string* :
-  specify flags passed to dpkg-buildpackage (default "-tc")
- 
- * `--lintian-flags` *string* :
-  specify flags passed to lintian (default "-i")
- 
- * `-u`, `--update-after` *string* :
-  perform apt cache update after specified interval (default 30m0s)
- 
- * `-f`, `--from` *string* :
-  specify which Docker image to use (default "debian:unstable")
- 
- * `-r`, `--repo` *string* :
-  specify a local repository to be mounted in container
+ * `-i`, `--include` *string* :
+  steps which will be executed as the only ones
   
- * `-c`, `--clean` :
-  stop and remove uncleaned container
+ * `-e`, `--exclude` *string*:
+  steps which should be omitted
    
  * `--version` :
   version for deber
+  
+ * `-h`, `--help` :
+  help for deber
 
 ## STEPS
 
 The following steps are executed (in that exact order):
 
+`check`
+
+    Check if to-be-build package is already built and in archive.
+    
+    Note: if package is in archive, then deber will simply exit.
+
 `build`
     
-    Build Docker image. This step is skipped if an image is already built.
+    Build image. This step is skipped if an image is already built.
+    
+    Also if image is older than 14 days, then deber will try to rebuild it.
     
 `create`
 
-      Create Docker container.
+    Create container and make needed directories on host system.
      
 `start`
       
-      Start Docker container.
+    Start container.
+    
+`tarball`
+
+    Move orig upstream tarball from parent directory to build directory.
+    
+`scan`
+
+    Scan packages in archive.
+    
+`update`
+
+    Update apt's cache.
+    
+`deps`
+
+    Install package's build dependencies in container
      
 `package`
       
-      Run series of commands in Docker container:
-       - apt-get update
-       - mk-build-deps
-       - dpkg-buildpackage
+    Run `dpkg-buildpackage` in container.
      
 `test`
       
-      Run series of commands in Docker container:
+    Run series of commands in Docker container:
        - debc
        - debi
        - lintian
      
 `stop`
       
-      Stop Docker container.
+    Stop container.
      
 `remove`
 
-      Remove Docker container.
+    Remove container.
+    
+`archive`
+
+    Move built package artifacts to archive.
+    
+    Note: this step is skipped if package directory already exists in archive
 
 ## EXAMPLES
 
-Using deber with gbp:
+Basic usage of deber with gbp:
     
     $ gbp buildpackage --git-builder deber
     
-Using deber (with flags) with gbp:
-        
-    $ gbp buildpackage --git-builder deber --from debian:buster
-  
-Specifying different OS and Distribution:
-  
-    $ deber --from ubuntu:bionic
-  
-Build package with custom dpkg-buildpackage flags:
-    
-    $ deber --dpkg-buildpackage-flags "-nc -S"
-  
-Test package with custom lintian flags:
-    
-    $ deber --lintian-flags "-i -I"
-  
-Mount local repo and use it in container:
-    
-    $ deber --repo $HOME/repo/unstable
-    
-Update apt cache now:
+Excluding some steps:
 
-    $ deber --update-after 0
+    $ deber --exclude remove,stop,archive
+    
+Removing container after unsuccessful build (if needed):
+    
+    $ deber --include remove,stop
+    
+Only building image:
+
+    $ deber --include build
+    
+Only moving tarball and creating container:
+
+Note: this example assumes that you specified `builder = deber` in `gbp.conf`.
+
+    $ gbp buildpackage --include tarball,create
+    
+## ENVIRONMENT VARIABLES
+
+**DEBER_ARCHIVE**
+
+    Directory where deber will put built packages.
+    
+**DEBER_DPKG_BUILDPACKAGE_FLAGS**
+
+    Space separated flags to be passed to dpkg-buildpackage in container.
+
+**DEBER_LINTIAN_FLAGS**
+
+    Space separated flags to be passed to lintian in container.
 
 ## SEE ALSO
 
-gbp(1), gbp-buildpackage(1), lintian(1)
+gbp(1), gbp.conf(5), gbp-buildpackage(1), lintian(1)

@@ -15,39 +15,38 @@ Utility made with simplicity in mind to provide an easy way for building Debian 
 .SH "OPTIONS"
 .
 .TP
-\fB\-h\fR, \fB\-\-help\fR
-help for deber
+\fB\-i\fR, \fB\-\-include\fR \fIstring\fR
+steps which will be executed as the only ones
 .
 .TP
-\fB\-\-dpkg\-buildpackage\-flags\fR \fIstring\fR
-specify flags passed to dpkg\-buildpackage (default "\-tc")
-.
-.TP
-\fB\-\-lintian\-flags\fR \fIstring\fR
-specify flags passed to lintian (default "\-i")
-.
-.TP
-\fB\-u\fR, \fB\-\-update\-after\fR \fIstring\fR
-perform apt cache update after specified interval (default 30m0s)
-.
-.TP
-\fB\-f\fR, \fB\-\-from\fR \fIstring\fR
-specify which Docker image to use (default "debian:unstable")
-.
-.TP
-\fB\-r\fR, \fB\-\-repo\fR \fIstring\fR
-specify a local repository to be mounted in container
-.
-.TP
-\fB\-c\fR, \fB\-\-clean\fR
-stop and remove uncleaned container
+\fB\-e\fR, \fB\-\-exclude\fR \fIstring\fR
+steps which should be omitted
 .
 .TP
 \fB\-\-version\fR
 version for deber
 .
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+help for deber
+.
 .SH "STEPS"
 The following steps are executed (in that exact order):
+.
+.P
+\fBcheck\fR
+.
+.IP "" 4
+.
+.nf
+
+Check if to\-be\-build package is already built and in archive\.
+
+Note: if package is in archive, then deber will simply exit\.
+.
+.fi
+.
+.IP "" 0
 .
 .P
 \fBbuild\fR
@@ -56,7 +55,9 @@ The following steps are executed (in that exact order):
 .
 .nf
 
-Build Docker image\. This step is skipped if an image is already built\.
+Build image\. This step is skipped if an image is already built\.
+
+Also if image is older than 14 days, then deber will try to rebuild it\.
 .
 .fi
 .
@@ -69,7 +70,7 @@ Build Docker image\. This step is skipped if an image is already built\.
 .
 .nf
 
-  Create Docker container\.
+Create container and make needed directories on host system\.
 .
 .fi
 .
@@ -82,7 +83,59 @@ Build Docker image\. This step is skipped if an image is already built\.
 .
 .nf
 
-  Start Docker container\.
+Start container\.
+.
+.fi
+.
+.IP "" 0
+.
+.P
+\fBtarball\fR
+.
+.IP "" 4
+.
+.nf
+
+Move orig upstream tarball from parent directory to build directory\.
+.
+.fi
+.
+.IP "" 0
+.
+.P
+\fBscan\fR
+.
+.IP "" 4
+.
+.nf
+
+Scan packages in archive\.
+.
+.fi
+.
+.IP "" 0
+.
+.P
+\fBupdate\fR
+.
+.IP "" 4
+.
+.nf
+
+Update apt\'s cache\.
+.
+.fi
+.
+.IP "" 0
+.
+.P
+\fBdeps\fR
+.
+.IP "" 4
+.
+.nf
+
+Install package\'s build dependencies in container
 .
 .fi
 .
@@ -95,10 +148,7 @@ Build Docker image\. This step is skipped if an image is already built\.
 .
 .nf
 
-  Run series of commands in Docker container:
-   \- apt\-get update
-   \- mk\-build\-deps
-   \- dpkg\-buildpackage
+Run `dpkg\-buildpackage` in container\.
 .
 .fi
 .
@@ -111,7 +161,7 @@ Build Docker image\. This step is skipped if an image is already built\.
 .
 .nf
 
-  Run series of commands in Docker container:
+Run series of commands in Docker container:
    \- debc
    \- debi
    \- lintian
@@ -127,7 +177,7 @@ Build Docker image\. This step is skipped if an image is already built\.
 .
 .nf
 
-  Stop Docker container\.
+Stop container\.
 .
 .fi
 .
@@ -140,14 +190,29 @@ Build Docker image\. This step is skipped if an image is already built\.
 .
 .nf
 
-  Remove Docker container\.
+Remove container\.
+.
+.fi
+.
+.IP "" 0
+.
+.P
+\fBarchive\fR
+.
+.IP "" 4
+.
+.nf
+
+Move built package artifacts to archive\.
+
+Note: this step is skipped if package directory already exists in archive
 .
 .fi
 .
 .IP "" 0
 .
 .SH "EXAMPLES"
-Using deber with gbp:
+Basic usage of deber with gbp:
 .
 .IP "" 4
 .
@@ -160,82 +225,98 @@ $ gbp buildpackage \-\-git\-builder deber
 .IP "" 0
 .
 .P
-Using deber (with flags) with gbp:
+Excluding some steps:
 .
 .IP "" 4
 .
 .nf
 
-$ gbp buildpackage \-\-git\-builder deber \-\-from debian:buster
+$ deber \-\-exclude remove,stop,archive
 .
 .fi
 .
 .IP "" 0
 .
 .P
-Specifying different OS and Distribution:
+Removing container after unsuccessful build (if needed):
 .
 .IP "" 4
 .
 .nf
 
-$ deber \-\-from ubuntu:bionic
+$ deber \-\-include remove,stop
 .
 .fi
 .
 .IP "" 0
 .
 .P
-Build package with custom dpkg\-buildpackage flags:
+Only building image:
 .
 .IP "" 4
 .
 .nf
 
-$ deber \-\-dpkg\-buildpackage\-flags "\-nc \-S"
+$ deber \-\-include build
 .
 .fi
 .
 .IP "" 0
 .
 .P
-Test package with custom lintian flags:
+Only moving tarball and creating container:
+.
+.P
+Note: this example assumes that you specified \fBbuilder = deber\fR in \fBgbp\.conf\fR\.
 .
 .IP "" 4
 .
 .nf
 
-$ deber \-\-lintian\-flags "\-i \-I"
+$ gbp buildpackage \-\-include tarball,create
+.
+.fi
+.
+.IP "" 0
+.
+.SH "ENVIRONMENT VARIABLES"
+\fBDEBER_ARCHIVE\fR
+.
+.IP "" 4
+.
+.nf
+
+Directory where deber will put built packages\.
 .
 .fi
 .
 .IP "" 0
 .
 .P
-Mount local repo and use it in container:
+\fBDEBER_DPKG_BUILDPACKAGE_FLAGS\fR
 .
 .IP "" 4
 .
 .nf
 
-$ deber \-\-repo $HOME/repo/unstable
+Space separated flags to be passed to dpkg\-buildpackage in container\.
 .
 .fi
 .
 .IP "" 0
 .
 .P
-Update apt cache now:
+\fBDEBER_LINTIAN_FLAGS\fR
 .
 .IP "" 4
 .
 .nf
 
-$ deber \-\-update\-after 0
+Space separated flags to be passed to lintian in container\.
 .
 .fi
 .
 .IP "" 0
 .
 .SH "SEE ALSO"
-gbp(1), gbp\-buildpackage(1), lintian(1)
+gbp(1), gbp\.conf(5), gbp\-buildpackage(1), lintian(1)
