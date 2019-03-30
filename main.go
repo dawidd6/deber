@@ -4,7 +4,7 @@ import "github.com/dawidd6/deber/pkg/app"
 
 const (
 	program = "deber"
-	version = "0.3"
+	version = "0.4"
 	desc    = `Debian packaging with Docker`
 )
 
