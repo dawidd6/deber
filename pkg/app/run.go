@@ -348,7 +348,10 @@ func runArchive(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) err
 
 	info, err := os.Stat(name.ArchivePackageDir)
 	if info != nil {
-		return log.SkipE()
+		err := os.RemoveAll(name.ArchivePackageDir)
+		if err != nil {
+			return log.FailE(err)
+		}
 	}
 
 	err = os.Rename(name.BuildDir, name.ArchivePackageDir)
