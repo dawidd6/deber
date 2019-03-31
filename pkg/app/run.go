@@ -196,6 +196,11 @@ func runTarball(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) err
 	source := filepath.Join(name.SourceParentDir, debian.TarballFileName)
 	target := filepath.Join(name.BuildDir, debian.TarballFileName)
 
+	source, err := filepath.EvalSymlinks(source)
+	if err != nil {
+		return err
+	}
+
 	if debian.TarballFileName != "" {
 		err := os.Rename(source, target)
 		if err != nil {
