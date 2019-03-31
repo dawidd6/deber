@@ -17,7 +17,7 @@ RUN apt-get update && \
     rm /etc/apt/apt.conf.d/*
 RUN useradd builder && \
     echo "builder ALL=NOPASSWD: ALL" > /etc/sudoers
-RUN printf '#!/bin/bash\napt-get -y $@\n' > /bin/apty && \
+RUN printf '#!/bin/bash\napt-get -o Debug::pkgProblemResolver=yes -y $@\n' > /bin/apty && \
 	chmod +x /bin/apty
 RUN printf '#!/bin/bash\ncd /archive\ndpkg-scanpackages . > Packages\n' > /bin/scan && \
 	chmod +x /bin/scan
