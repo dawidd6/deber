@@ -3,13 +3,14 @@ package app
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
 	deb "github.com/dawidd6/deber/pkg/debian"
 	doc "github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/naming"
 	"github.com/spf13/cobra"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
 func run(cmd *cobra.Command, args []string) error {
@@ -34,7 +35,6 @@ func run(cmd *cobra.Command, args []string) error {
 		"create",
 		"start",
 		"tarball",
-		"scan",
 		"update",
 		"deps",
 		"package",
@@ -42,6 +42,7 @@ func run(cmd *cobra.Command, args []string) error {
 		"stop",
 		"remove",
 		"archive",
+		"scan",
 	}
 
 	log.Info("Parsing Debian changelog")
@@ -211,19 +212,6 @@ func runTarball(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) err
 	return log.DoneE()
 }
 
-func runScan(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error {
-	log.Info("Scanning archive")
-
-	log.Drop()
-
-	err := docker.ExecContainer(name.Container, "scan")
-	if err != nil {
-		return log.FailE(err)
-	}
-
-	return log.DoneE()
-}
-
 func runUpdate(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error {
 	log.Info("Updating cache")
 
@@ -355,6 +343,19 @@ func runArchive(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) err
 	}
 
 	err = os.Rename(name.BuildDir, name.ArchivePackageDir)
+	if err != nil {
+		return log.FailE(err)
+	}
+
+	return log.DoneE()
+}
+
+func runScan(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error {
+	log.Info("Scanning archive")
+
+	log.Drop()
+
+	err := docker.ExecContainer(name.Container, "scan")
 	if err != nil {
 		return log.FailE(err)
 	}
