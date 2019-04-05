@@ -194,19 +194,26 @@ func runStart(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error
 func runTarball(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error {
 	log.Info("Moving tarball")
 
-	source := filepath.Join(name.SourceParentDir, debian.TarballFileName)
-	target := filepath.Join(name.BuildDir, debian.TarballFileName)
-
-	source, err := filepath.EvalSymlinks(source)
+	tarball, err := debian.LocateTarball()
 	if err != nil {
-		return err
+		return log.FailE(err)
 	}
 
-	if debian.TarballFileName != "" {
-		err := os.Rename(source, target)
-		if err != nil {
-			return log.FailE(err)
-		}
+	if tarball == "" {
+		return log.SkipE()
+	}
+
+	source := filepath.Join(name.SourceParentDir, tarball)
+	target := filepath.Join(name.BuildDir, tarball)
+
+	source, err = filepath.EvalSymlinks(source)
+	if err != nil {
+		return log.FailE(err)
+	}
+
+	err = os.Rename(source, target)
+	if err != nil {
+		return log.FailE(err)
 	}
 
 	return log.DoneE()

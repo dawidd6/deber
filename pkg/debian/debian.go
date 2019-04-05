@@ -14,7 +14,6 @@ type Debian struct {
 	PackageVersion  string
 	UpstreamVersion string
 	TargetDist      string
-	TarballFileName string
 	IsNative        bool
 }
 
@@ -34,15 +33,7 @@ func ParseChangelog() (*Debian, error) {
 		return nil, err
 	}
 
-	tarball, err := locateTarball(line)
-	if err != nil {
-		return nil, err
-	}
-
-	debian := New(line)
-	debian.TarballFileName = tarball
-
-	return debian, nil
+	return New(line), nil
 }
 
 func New(line string) *Debian {
@@ -102,13 +93,13 @@ func IsNative(line string) bool {
 	return true
 }
 
-func locateTarball(line string) (string, error) {
-	if IsNative(line) {
+func (debian *Debian) LocateTarball() (string, error) {
+	if debian.IsNative {
 		return "", nil
 	}
 
-	sourceName := SourceName(line)
-	upstreamVersion := UpstreamVersion(line)
+	sourceName := debian.SourceName
+	upstreamVersion := debian.UpstreamVersion
 	tarball := fmt.Sprintf("%s_%s.orig.tar", sourceName, upstreamVersion)
 
 	path, err := filepath.Abs(fmt.Sprintf("../%s", tarball))
