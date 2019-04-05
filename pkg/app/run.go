@@ -20,14 +20,14 @@ func run(cmd *cobra.Command, args []string) error {
 		"create":  runCreate,
 		"start":   runStart,
 		"tarball": runTarball,
-		"scan":    runScan,
 		"update":  runUpdate,
 		"deps":    runDeps,
 		"package": runPackage,
 		"test":    runTest,
+		"archive": runArchive,
+		"scan":    runScan,
 		"stop":    runStop,
 		"remove":  runRemove,
-		"archive": runArchive,
 	}
 	keys := []string{
 		"check",
@@ -39,10 +39,10 @@ func run(cmd *cobra.Command, args []string) error {
 		"deps",
 		"package",
 		"test",
-		"stop",
-		"remove",
 		"archive",
 		"scan",
+		"stop",
+		"remove",
 	}
 
 	log.Info("Parsing Debian changelog")
@@ -300,6 +300,38 @@ func runTest(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error 
 	return log.DoneE()
 }
 
+func runArchive(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error {
+	log.Info("Archiving build")
+
+	info, err := os.Stat(name.ArchivePackageDir)
+	if info != nil {
+		err := os.RemoveAll(name.ArchivePackageDir)
+		if err != nil {
+			return log.FailE(err)
+		}
+	}
+
+	err = os.Rename(name.BuildDir, name.ArchivePackageDir)
+	if err != nil {
+		return log.FailE(err)
+	}
+
+	return log.DoneE()
+}
+
+func runScan(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error {
+	log.Info("Scanning archive")
+
+	log.Drop()
+
+	err := docker.ExecContainer(name.Container, "scan")
+	if err != nil {
+		return log.FailE(err)
+	}
+
+	return log.DoneE()
+}
+
 func runStop(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error {
 	log.Info("Stopping container")
 
@@ -331,38 +363,6 @@ func runRemove(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) erro
 	}
 
 	err = docker.RemoveContainer(name.Container)
-	if err != nil {
-		return log.FailE(err)
-	}
-
-	return log.DoneE()
-}
-
-func runArchive(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error {
-	log.Info("Archiving build")
-
-	info, err := os.Stat(name.ArchivePackageDir)
-	if info != nil {
-		err := os.RemoveAll(name.ArchivePackageDir)
-		if err != nil {
-			return log.FailE(err)
-		}
-	}
-
-	err = os.Rename(name.BuildDir, name.ArchivePackageDir)
-	if err != nil {
-		return log.FailE(err)
-	}
-
-	return log.DoneE()
-}
-
-func runScan(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error {
-	log.Info("Scanning archive")
-
-	log.Drop()
-
-	err := docker.ExecContainer(name.Container, "scan")
 	if err != nil {
 		return log.FailE(err)
 	}
