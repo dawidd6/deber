@@ -53,10 +53,6 @@ The following steps are executed (in that exact order):
 
     Move orig upstream tarball from parent directory to build directory.
     
-`scan`
-
-    Scan packages in archive.
-    
 `update`
 
     Update apt's cache.
@@ -75,7 +71,17 @@ The following steps are executed (in that exact order):
        - debc
        - debi
        - lintian
+       
+`archive`
      
+    Move built package artifacts to archive.
+         
+    Note: this step is skipped if package directory already exists in archive
+         
+`scan`
+         
+    Scan packages in archive.
+         
 `stop`
       
     Stop container.
@@ -83,12 +89,6 @@ The following steps are executed (in that exact order):
 `remove`
 
     Remove container.
-    
-`archive`
-
-    Move built package artifacts to archive.
-    
-    Note: this step is skipped if package directory already exists in archive
 
 ## EXAMPLES
 

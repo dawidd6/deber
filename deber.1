@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "DEBER" "1" "March 2019" "" ""
+.TH "DEBER" "1" "April 2019" "" ""
 .
 .SH "NAME"
 \fBdeber\fR \- Debian packaging with Docker
@@ -103,19 +103,6 @@ Move orig upstream tarball from parent directory to build directory\.
 .IP "" 0
 .
 .P
-\fBscan\fR
-.
-.IP "" 4
-.
-.nf
-
-Scan packages in archive\.
-.
-.fi
-.
-.IP "" 0
-.
-.P
 \fBupdate\fR
 .
 .IP "" 4
@@ -171,6 +158,34 @@ Run series of commands in Docker container:
 .IP "" 0
 .
 .P
+\fBarchive\fR
+.
+.IP "" 4
+.
+.nf
+
+Move built package artifacts to archive\.
+
+Note: this step is skipped if package directory already exists in archive
+.
+.fi
+.
+.IP "" 0
+.
+.P
+\fBscan\fR
+.
+.IP "" 4
+.
+.nf
+
+Scan packages in archive\.
+.
+.fi
+.
+.IP "" 0
+.
+.P
 \fBstop\fR
 .
 .IP "" 4
@@ -191,21 +206,6 @@ Stop container\.
 .nf
 
 Remove container\.
-.
-.fi
-.
-.IP "" 0
-.
-.P
-\fBarchive\fR
-.
-.IP "" 4
-.
-.nf
-
-Move built package artifacts to archive\.
-
-Note: this step is skipped if package directory already exists in archive
 .
 .fi
 .
