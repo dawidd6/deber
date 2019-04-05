@@ -114,6 +114,14 @@ Note: this example assumes that you specified `builder = deber` in `gbp.conf`.
 
     $ gbp buildpackage --include tarball,create
     
+Build package regardless it's existence in archive:
+
+    $ deber --exclude check
+    
+Build package without checking archive, updating apt's cache and scanning packages:
+
+    $ deber --exclude check,update,scan
+    
 ## ENVIRONMENT VARIABLES
 
 **DEBER_ARCHIVE**

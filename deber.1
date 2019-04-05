@@ -279,6 +279,32 @@ $ gbp buildpackage \-\-include tarball,create
 .
 .IP "" 0
 .
+.P
+Build package regardless it\'s existence in archive:
+.
+.IP "" 4
+.
+.nf
+
+$ deber \-\-exclude check
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Build package without checking archive, updating apt\'s cache and scanning packages:
+.
+.IP "" 4
+.
+.nf
+
+$ deber \-\-exclude check,update,scan
+.
+.fi
+.
+.IP "" 0
+.
 .SH "ENVIRONMENT VARIABLES"
 \fBDEBER_ARCHIVE\fR
 .
