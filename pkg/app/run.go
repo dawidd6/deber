@@ -224,7 +224,16 @@ func runUpdate(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) erro
 
 	log.Drop()
 
-	err := docker.ExecContainer(name.Container, "sudo", "apt-get", "update")
+	file := filepath.Join(name.ArchiveDir, "Packages")
+	info, err := os.Stat(file)
+	if info == nil {
+		_, err := os.Create(file)
+		if err != nil {
+			return log.FailE(err)
+		}
+	}
+
+	err = docker.ExecContainer(name.Container, "sudo", "apt-get", "update")
 	if err != nil {
 		return log.FailE(err)
 	}
