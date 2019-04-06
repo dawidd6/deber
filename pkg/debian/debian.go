@@ -80,6 +80,10 @@ func TargetDist(line string) string {
 		targetDist = strings.Split(targetDist, "-")[0]
 	}
 
+	if targetDist == "UNRELEASED" {
+		targetDist = "unstable"
+	}
+
 	return targetDist
 }
 
