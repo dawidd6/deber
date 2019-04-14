@@ -298,7 +298,7 @@ func runTest(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error 
 
 	flags := os.Getenv("DEBER_LINTIAN_FLAGS")
 	if flags == "" {
-		flags = "-i"
+		flags = "-i -I"
 	}
 	command := append([]string{"lintian"}, strings.Split(flags, " ")...)
 	err = docker.ExecContainer(name.Container, command...)
