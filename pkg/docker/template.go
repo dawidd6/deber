@@ -19,8 +19,6 @@ RUN useradd builder && \
     echo "builder ALL=NOPASSWD: ALL" > /etc/sudoers
 RUN printf '#!/bin/bash\napt-get -o Debug::pkgProblemResolver=yes -y $@\n' > /bin/apty && \
 	chmod +x /bin/apty
-RUN printf '#!/bin/bash\ncd /archive\ndpkg-scanpackages . > Packages\n' > /bin/scan && \
-	chmod +x /bin/scan
 RUN mkdir -p /archive && \
     touch /archive/Packages && \
     echo "deb [trusted=yes] file:///archive ./" > /etc/apt/sources.list.d/a.list
