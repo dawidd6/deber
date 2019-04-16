@@ -252,9 +252,9 @@ func (docker *Docker) RemoveContainer(container string) error {
 	return docker.client.ContainerRemove(docker.ctx, container, options)
 }
 
-func (docker *Docker) ExecContainer(container string, cmd ...string) error {
+func (docker *Docker) ExecContainer(container string, cmd string) error {
 	config := types.ExecConfig{
-		Cmd:          cmd,
+		Cmd:          []string{"bash", "-c", cmd},
 		AttachStdout: true,
 		AttachStderr: true,
 		Tty:          true,

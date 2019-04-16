@@ -233,7 +233,7 @@ func runUpdate(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) erro
 		}
 	}
 
-	err = docker.ExecContainer(name.Container, "sudo", "apt-get", "update")
+	err = docker.ExecContainer(name.Container, "sudo apt-get update")
 	if err != nil {
 		return log.FailE(err)
 	}
@@ -246,7 +246,7 @@ func runDeps(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error 
 
 	log.Drop()
 
-	err := docker.ExecContainer(name.Container, "sudo", "mk-build-deps", "-ri", "-t", "apty")
+	err := docker.ExecContainer(name.Container, "sudo mk-build-deps -ri -t apty")
 	if err != nil {
 		return log.FailE(err)
 	}
@@ -272,8 +272,8 @@ func runPackage(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) err
 	if flags == "" {
 		flags = "-tc"
 	}
-	command := append([]string{"dpkg-buildpackage"}, strings.Split(flags, " ")...)
-	err = docker.ExecContainer(name.Container, command...)
+
+	err = docker.ExecContainer(name.Container, "dpkg-buildpackage"+" "+flags)
 	if err != nil {
 		return log.FailE(err)
 	}
@@ -291,7 +291,7 @@ func runTest(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error 
 		return log.FailE(err)
 	}
 
-	err = docker.ExecContainer(name.Container, "sudo", "debi", "--with-depends", "--tool", "apty")
+	err = docker.ExecContainer(name.Container, "sudo debi --with-depends --tool apty")
 	if err != nil {
 		return log.FailE(err)
 	}
@@ -300,8 +300,8 @@ func runTest(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error 
 	if flags == "" {
 		flags = "-i -I"
 	}
-	command := append([]string{"lintian"}, strings.Split(flags, " ")...)
-	err = docker.ExecContainer(name.Container, command...)
+
+	err = docker.ExecContainer(name.Container, "lintian"+" "+flags)
 	if err != nil {
 		return log.FailE(err)
 	}
@@ -333,7 +333,7 @@ func runScan(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error 
 
 	log.Drop()
 
-	err := docker.ExecContainer(name.Container, "scan")
+	err := docker.ExecContainer(name.Container, "cd "+naming.ContainerArchiveDir+" && dpkg-scanpackages -m . > Packages")
 	if err != nil {
 		return log.FailE(err)
 	}
