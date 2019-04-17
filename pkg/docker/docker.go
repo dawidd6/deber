@@ -70,9 +70,12 @@ func (docker *Docker) IsImageOld(image string) (bool, error) {
 		return false, err
 	}
 
-	created := inspect.Metadata.LastTagTime
-	diff := time.Since(created)
+	created, err := time.Parse(time.RFC3339Nano, inspect.Created)
+	if err != nil {
+		return false, err
+	}
 
+	diff := time.Since(created)
 	if diff > MaxImageAge {
 		return true, nil
 	}
