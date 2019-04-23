@@ -29,8 +29,10 @@ func (l *Logger) Info(v interface{}) {
 	fmt.Printf("%s%s:info:%s %s ...", blue, l.program, normal, v)
 }
 
-func (l *Logger) Error(v interface{}) {
-	fmt.Printf("%s%s:error:%s %s\n", red, l.program, normal, v)
+// Error function is effectively used only once
+// so there is for it to be struct method.
+func Error(program string, v interface{}) {
+	fmt.Printf("%s%s:error:%s %s\n", red, program, normal, v)
 }
 
 // Call this function before operation that you know will output to Stdout.
