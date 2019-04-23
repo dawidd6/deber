@@ -269,10 +269,6 @@ func runPackage(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) err
 	log.Drop()
 
 	flags := os.Getenv("DEBER_DPKG_BUILDPACKAGE_FLAGS")
-	if flags == "" {
-		flags = "-tc"
-	}
-
 	err = docker.ExecContainer(name.Container, "dpkg-buildpackage"+" "+flags)
 	if err != nil {
 		return log.FailE(err)
@@ -297,10 +293,6 @@ func runTest(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error 
 	}
 
 	flags := os.Getenv("DEBER_LINTIAN_FLAGS")
-	if flags == "" {
-		flags = "-i -I"
-	}
-
 	err = docker.ExecContainer(name.Container, "lintian"+" "+flags)
 	if err != nil {
 		return log.FailE(err)
