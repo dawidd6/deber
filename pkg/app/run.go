@@ -24,7 +24,7 @@ var (
 func run(cmd *cobra.Command, args []string) error {
 	var err error
 
-	log := logger.New(cmd.Use)
+	log = logger.New(cmd.Use)
 
 	steps := map[string]func() error{
 		"check":   runCheck,
