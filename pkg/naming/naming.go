@@ -52,7 +52,7 @@ type Naming struct {
 	BuildDir string
 }
 
-func New(program, dist, pkg, version string) *Naming {
+func New(program, dist, pkg, version, archiveDir string) *Naming {
 	return &Naming{
 		Container: Container(program, dist, pkg, version),
 		Image:     Image(program, dist),
@@ -60,8 +60,8 @@ func New(program, dist, pkg, version string) *Naming {
 		SourceDir:       SourceDir(),
 		SourceParentDir: SourceParentDir(),
 
-		ArchiveDir:        ArchiveDir(program, dist),
-		ArchivePackageDir: ArchivePackageDir(program, dist, pkg, version),
+		ArchiveDir:        ArchiveDir(program, dist, archiveDir),
+		ArchivePackageDir: ArchivePackageDir(program, dist, pkg, version, archiveDir),
 
 		CacheDir: CacheDir(program, dist),
 
@@ -103,8 +103,7 @@ func SourceParentDir() string {
 }
 
 // ARCHIVE
-func ArchiveDir(program, dist string) string {
-	dir := os.Getenv("DEBER_ARCHIVE")
+func ArchiveDir(program, dist, dir string) string {
 	if dir == "" {
 		dir = os.Getenv("HOME")
 	}
@@ -117,10 +116,10 @@ func ArchiveDir(program, dist string) string {
 	)
 }
 
-func ArchivePackageDir(program, dist, pkg, version string) string {
+func ArchivePackageDir(program, dist, pkg, version, dir string) string {
 	return fmt.Sprintf(
 		"%s/%s_%s",
-		ArchiveDir(program, dist),
+		ArchiveDir(program, dist, dir),
 		pkg,
 		version,
 	)

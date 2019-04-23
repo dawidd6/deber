@@ -64,6 +64,7 @@ func run(cmd *cobra.Command, args []string) error {
 		debian.TargetDist,
 		debian.SourceName,
 		debian.PackageVersion,
+		archiveDir,
 	)
 
 	if include != "" && exclude != "" {
@@ -268,8 +269,7 @@ func runPackage(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) err
 
 	log.Drop()
 
-	flags := os.Getenv("DEBER_DPKG_BUILDPACKAGE_FLAGS")
-	err = docker.ExecContainer(name.Container, "dpkg-buildpackage"+" "+flags)
+	err = docker.ExecContainer(name.Container, "dpkg-buildpackage"+" "+dpkgFlags)
 	if err != nil {
 		return log.FailE(err)
 	}
@@ -292,8 +292,7 @@ func runTest(docker *doc.Docker, debian *deb.Debian, name *naming.Naming) error 
 		return log.FailE(err)
 	}
 
-	flags := os.Getenv("DEBER_LINTIAN_FLAGS")
-	err = docker.ExecContainer(name.Container, "lintian"+" "+flags)
+	err = docker.ExecContainer(name.Container, "lintian"+" "+lintianFlags)
 	if err != nil {
 		return log.FailE(err)
 	}

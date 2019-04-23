@@ -86,7 +86,7 @@ func TestArchiveDir(t *testing.T) {
 	key, val := setEnv(t, "HOME", home)
 	defer restoreEnv(t, key, val)
 
-	got := naming.ArchiveDir(program, dist)
+	got := naming.ArchiveDir(program, dist, "")
 	expected := fmt.Sprintf("%s/%s/%s", home, program, dist)
 
 	test(t, got, expected)
@@ -95,8 +95,9 @@ func TestArchiveDir(t *testing.T) {
 func TestArchiveDirWithEnv(t *testing.T) {
 	key, val := setEnv(t, "DEBER_ARCHIVE", env)
 	defer restoreEnv(t, key, val)
+	dir := os.Getenv("DEBER_ARCHIVE")
 
-	got := naming.ArchiveDir(program, dist)
+	got := naming.ArchiveDir(program, dist, dir)
 	expected := fmt.Sprintf("%s/%s/%s", env, program, dist)
 
 	test(t, got, expected)
@@ -106,7 +107,7 @@ func TestArchivePackageDir(t *testing.T) {
 	key, val := setEnv(t, "HOME", home)
 	defer restoreEnv(t, key, val)
 
-	got := naming.ArchivePackageDir(program, dist, pkg, version)
+	got := naming.ArchivePackageDir(program, dist, pkg, version, "")
 	expected := fmt.Sprintf("%s/%s/%s/%s_%s", home, program, dist, pkg, version)
 
 	test(t, got, expected)
@@ -115,8 +116,9 @@ func TestArchivePackageDir(t *testing.T) {
 func TestArchivePackageDirWithEnv(t *testing.T) {
 	key, val := setEnv(t, "DEBER_ARCHIVE", env)
 	defer restoreEnv(t, key, val)
+	dir := os.Getenv("DEBER_ARCHIVE")
 
-	got := naming.ArchivePackageDir(program, dist, pkg, version)
+	got := naming.ArchivePackageDir(program, dist, pkg, version, dir)
 	expected := fmt.Sprintf("%s/%s/%s/%s_%s", env, program, dist, pkg, version)
 
 	test(t, got, expected)

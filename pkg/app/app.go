@@ -11,6 +11,10 @@ var (
 
 	include string
 	exclude string
+
+	dpkgFlags    = os.Getenv("DEBER_DPKG_BUILDPACKAGE_FLAGS")
+	lintianFlags = os.Getenv("DEBER_LINTIAN_FLAGS")
+	archiveDir   = os.Getenv("DEBER_ARCHIVE")
 )
 
 func Run(program, version, description string) {
