@@ -7,8 +7,6 @@ import (
 )
 
 var (
-	log *logger.Logger
-
 	include string
 	exclude string
 
@@ -18,8 +16,6 @@ var (
 )
 
 func Run(program, version, description string) {
-	log = logger.New(program)
-
 	cmd := &cobra.Command{
 		Use:     program,
 		Version: version,
@@ -47,7 +43,7 @@ func Run(program, version, description string) {
 
 	err := cmd.Execute()
 	if err != nil {
-		log.Error(err)
+		logger.Error(program, err)
 		os.Exit(1)
 	}
 }
