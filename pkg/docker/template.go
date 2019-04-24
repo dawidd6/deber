@@ -26,9 +26,11 @@ RUN apt-get update && \
 RUN useradd {{ .User }} && \
 	echo "{{ .User }} ALL=NOPASSWD: ALL" > /etc/sudoers
 
-# Create apt-get wrapper script.
-RUN printf '#!/bin/bash\napt-get -o Debug::pkgProblemResolver=yes -y $@\n' > /bin/apty && \
-	chmod +x /bin/apty
+# Run apt without confirmations.
+RUN echo "APT::Get::Assume-Yes "true";" > /etc/apt/apt.conf.d/00noconfirm
+
+# Set debconf to be non interactive
+RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 
 # Add local apt repository.
 RUN mkdir -p {{ .Archive }} && \
