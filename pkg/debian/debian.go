@@ -80,6 +80,11 @@ func TargetDist(line string) string {
 		targetDist = strings.Split(targetDist, "-")[0]
 	}
 
+	// Debian backport
+	if strings.Contains(PackageVersion(line), "bpo") {
+		targetDist += "-backports"
+	}
+
 	if targetDist == "UNRELEASED" {
 		targetDist = "unstable"
 	}

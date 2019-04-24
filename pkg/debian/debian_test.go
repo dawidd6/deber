@@ -96,7 +96,22 @@ func TestNew6(t *testing.T) {
 		SourceName:      "ansible",
 		PackageVersion:  "2.7.5+dfsg-1~bpo9+1",
 		UpstreamVersion: "2.7.5+dfsg",
-		TargetDist:      "stretch",
+		TargetDist:      "stretch-backports",
+		IsNative:        false,
+	}
+
+	test(t, got, expected)
+}
+
+func TestNew7(t *testing.T) {
+	line := "procps (2:3.3.10-4ubuntu2.4) xenial-backports; urgency=medium"
+
+	got := debian.New(line)
+	expected := &debian.Debian{
+		SourceName:      "procps",
+		PackageVersion:  "2:3.3.10-4ubuntu2.4",
+		UpstreamVersion: "3.3.10",
+		TargetDist:      "xenial",
 		IsNative:        false,
 	}
 
