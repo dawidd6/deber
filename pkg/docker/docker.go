@@ -244,7 +244,7 @@ func (docker *Docker) StartContainer(container string) error {
 }
 
 func (docker *Docker) StopContainer(container string) error {
-	timeout := time.Second
+	timeout := time.Millisecond*10
 
 	return docker.client.ContainerStop(docker.ctx, container, &timeout)
 }
