@@ -3,10 +3,11 @@ package app
 import (
 	"errors"
 	"fmt"
-	"github.com/dawidd6/deber/pkg/logger"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/dawidd6/deber/pkg/logger"
 
 	deb "github.com/dawidd6/deber/pkg/debian"
 	doc "github.com/dawidd6/deber/pkg/docker"
@@ -278,6 +279,12 @@ func runPackage() error {
 			return log.FailE(err)
 		}
 	}
+
+	err = docker.DisableNetwork(name.Container)
+	if err != nil {
+		return log.FailE(err)
+	}
+	defer docker.EnableNetwork(name.Container)
 
 	log.Drop()
 

@@ -5,6 +5,10 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
+	"os"
+	"time"
+
 	"github.com/dawidd6/deber/pkg/naming"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -12,9 +16,6 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/term"
-	"io"
-	"os"
-	"time"
 )
 
 const (
@@ -244,7 +245,7 @@ func (docker *Docker) StartContainer(container string) error {
 }
 
 func (docker *Docker) StopContainer(container string) error {
-	timeout := time.Millisecond*10
+	timeout := time.Millisecond * 10
 
 	return docker.client.ContainerStop(docker.ctx, container, &timeout)
 }
@@ -294,4 +295,12 @@ func (docker *Docker) ExecContainer(container string, cmd string) error {
 	}
 
 	return nil
+}
+
+func (docker *Docker) DisableNetwork(container string) error {
+	return docker.client.NetworkDisconnect(docker.ctx, "bridge", container, false)
+}
+
+func (docker *Docker) EnableNetwork(container string) error {
+	return docker.client.NetworkConnect(docker.ctx, "bridge", container, nil)
 }
