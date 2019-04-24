@@ -260,7 +260,7 @@ func runDeps() error {
 
 	log.Drop()
 
-	err := docker.ExecContainer(name.Container, "sudo mk-build-deps -ri -t apty")
+	err := docker.ExecContainer(name.Container, "sudo mk-build-deps -ri")
 	if err != nil {
 		return log.FailE(err)
 	}
@@ -306,7 +306,7 @@ func runTest() error {
 		return log.FailE(err)
 	}
 
-	err = docker.ExecContainer(name.Container, "sudo debi --with-depends --tool apty")
+	err = docker.ExecContainer(name.Container, "sudo debi --with-depends")
 	if err != nil {
 		return log.FailE(err)
 	}
