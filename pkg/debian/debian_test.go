@@ -1,8 +1,9 @@
 package debian_test
 
 import (
-	"github.com/dawidd6/deber/pkg/debian"
 	"testing"
+
+	"github.com/dawidd6/deber/pkg/debian"
 )
 
 func test(t *testing.T, got, expected *debian.Debian) {

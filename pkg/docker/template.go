@@ -1,9 +1,10 @@
 package docker
 
 import (
-	"github.com/dawidd6/deber/pkg/naming"
 	"bytes"
 	"text/template"
+
+	"github.com/dawidd6/deber/pkg/naming"
 )
 
 type DockerfileTemplate struct {
@@ -52,7 +53,7 @@ func dockerfileParse(from string) (string, error) {
 		From:    from,
 		User:    "builder",
 		Archive: naming.ContainerArchiveDir,
-		Source: naming.ContainerSourceDir,
+		Source:  naming.ContainerSourceDir,
 	}
 
 	temp, err := template.New("dockerfile").Parse(dockerfileTemplate)

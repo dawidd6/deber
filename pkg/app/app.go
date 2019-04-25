@@ -1,9 +1,10 @@
 package app
 
 import (
+	"os"
+
 	"github.com/dawidd6/deber/pkg/logger"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 var (

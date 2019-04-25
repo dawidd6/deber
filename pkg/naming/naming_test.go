@@ -2,10 +2,11 @@ package naming_test
 
 import (
 	"fmt"
-	"github.com/dawidd6/deber/pkg/naming"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/dawidd6/deber/pkg/naming"
 )
 
 const (
