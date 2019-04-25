@@ -71,4 +71,4 @@ update it.
 
 ## Info
 
-Options, environment variables and others are listed and explained in [manpage](deber.md).
+Options, environment variables and others are listed and explained in [manpage](doc/deber.md).
