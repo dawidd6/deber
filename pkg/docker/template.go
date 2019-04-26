@@ -24,7 +24,7 @@ RUN apt-get update && \
 	rm /etc/apt/apt.conf.d/*
 
 # Add normal user and with su access.
-RUN useradd --create-home {{ .User }} && \
+RUN useradd -d /nonexistent {{ .User }} && \
 	echo "{{ .User }} ALL=NOPASSWD: ALL" > /etc/sudoers
 
 # Run apt without confirmations.
