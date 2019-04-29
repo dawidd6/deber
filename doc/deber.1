@@ -23,6 +23,10 @@ steps which will be executed as the only ones
 steps which should be omitted
 .
 .TP
+\fB\-s\fR, \fB\-\-shell\fR
+run bash shell interactively in container
+.
+.TP
 \fB\-\-version\fR
 version for deber
 .
@@ -300,6 +304,22 @@ Build package without checking archive, updating apt\'s cache and scanning packa
 .nf
 
 $ deber \-\-exclude check,update,scan
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Launch interactive bash shell session in container:
+.
+.P
+Note: specifying other options after or before this, takes no effect\.
+.
+.IP "" 4
+.
+.nf
+
+$ deber \-\-shell
 .
 .fi
 .

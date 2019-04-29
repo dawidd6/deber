@@ -16,8 +16,11 @@ Docker containers.
  * `-i`, `--include` *string* :
   steps which will be executed as the only ones
 
- * `-e`, `--exclude` *string*:
+ * `-e`, `--exclude` *string* :
   steps which should be omitted
+
+ * `-s`, `--shell` :
+  run bash shell interactively in container
 
  * `--version` :
   version for deber
@@ -121,6 +124,12 @@ Build package regardless it's existence in archive:
 Build package without checking archive, updating apt's cache and scanning packages:
 
     $ deber --exclude check,update,scan
+
+Launch interactive bash shell session in container:
+
+Note: specifying other options after or before this, takes no effect.
+
+    $ deber --shell
 
 ## ENVIRONMENT VARIABLES
 
