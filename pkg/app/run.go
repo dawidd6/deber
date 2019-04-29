@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/dawidd6/deber/pkg/stepping"
+
 	"github.com/dawidd6/deber/pkg/logger"
 
 	deb "github.com/dawidd6/deber/pkg/debian"
@@ -25,52 +27,79 @@ var (
 func run(cmd *cobra.Command, args []string) error {
 	var err error
 
-	steps := map[string]func() error{
-		"check":   runCheck,
-		"build":   runBuild,
-		"create":  runCreate,
-		"start":   runStart,
-		"tarball": runTarball,
-		"update":  runUpdate,
-		"deps":    runDeps,
-		"package": runPackage,
-		"test":    runTest,
-		"archive": runArchive,
-		"scan":    runScan,
-		"stop":    runStop,
-		"remove":  runRemove,
-	}
-	keys := []string{
-		"check",
-		"build",
-		"create",
-		"start",
-		"tarball",
-		"update",
-		"deps",
-		"package",
-		"test",
-		"archive",
-		"scan",
-		"stop",
-		"remove",
+	// SECTION: declare steps
+	steps := stepping.Steps{
+		{
+			Name: "check",
+			Run:  runCheck,
+		}, {
+			Name: "build",
+			Run:  runBuild,
+		}, {
+			Name: "create",
+			Run:  runCreate,
+		}, {
+			Name: "start",
+			Run:  runStart,
+		}, {
+			Name: "tarball",
+			Run:  runTarball,
+		}, {
+			Name: "update",
+			Run:  runUpdate,
+		}, {
+			Name: "deps",
+			Run:  runDeps,
+		}, {
+			Name: "package",
+			Run:  runPackage,
+		}, {
+			Name: "test",
+			Run:  runTest,
+		}, {
+			Name: "archive",
+			Run:  runArchive,
+		}, {
+			Name: "scan",
+			Run:  runScan,
+		}, {
+			Name: "stop",
+			Run:  runStop,
+		}, {
+			Name: "remove",
+			Run:  runRemove,
+		},
 	}
 
+	// SECTION: include-exclude
+	if include != "" && exclude != "" {
+		return errors.New("can't specify --include and --exclude together")
+	}
+	if include != "" {
+		err := steps.Include(strings.Split(include, ",")...)
+		if err != nil {
+			return err
+		}
+	}
+	if exclude != "" {
+		err := steps.Exclude(strings.Split(exclude, ",")...)
+		if err != nil {
+			return err
+		}
+	}
+
+	// SECTION: init stuff
 	log = logger.New(cmd.Use)
 
-	log.Info("Parsing Debian changelog")
-	debian, err = deb.ParseChangelog()
+	debian, err = initDebian(log)
 	if err != nil {
-		return log.FailE(err)
+		return err
 	}
-	log.Done()
 
-	log.Info("Connecting with Docker")
-	docker, err = doc.New()
+	docker, err = initDocker(log)
 	if err != nil {
-		return log.FailE(err)
+		return err
 	}
-	log.Done()
 
 	name = naming.New(
 		cmd.Use,
@@ -80,53 +109,56 @@ func run(cmd *cobra.Command, args []string) error {
 		archiveDir,
 	)
 
+	// SECTION: handle bool options
 	if shell {
-		err := runCreate()
-		if err != nil {
-			return err
-		}
-
-		err = runStart()
-		if err != nil {
-			return err
-		}
-
-		err = docker.ExecShellContainer(name.Container)
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return runShellOptional()
 	}
 
-	if include != "" && exclude != "" {
-		return errors.New("can't specify --include and --exclude together")
+	// SECTION: run steps
+	err = steps.Run()
+	if err != nil {
+		return err
 	}
 
-	if include != "" {
-		for key := range steps {
-			if !strings.Contains(include, key) {
-				delete(steps, key)
-			}
-		}
+	return nil
+}
+
+func initDocker(log *logger.Logger) (*doc.Docker, error) {
+	log.Info("Connecting with Docker")
+
+	docker, err := doc.New()
+	if err != nil {
+		return nil, log.FailE(err)
 	}
 
-	if exclude != "" {
-		for key := range steps {
-			if strings.Contains(exclude, key) {
-				delete(steps, key)
-			}
-		}
+	return docker, log.DoneE()
+}
+
+func initDebian(log *logger.Logger) (*deb.Debian, error) {
+	log.Info("Parsing Debian changelog")
+
+	debian, err := deb.ParseChangelog()
+	if err != nil {
+		return nil, log.FailE(err)
 	}
 
-	for i := range keys {
-		function, ok := steps[keys[i]]
-		if ok {
-			err := function()
-			if err != nil {
-				return err
-			}
-		}
+	return debian, log.DoneE()
+}
+
+func runShellOptional() error {
+	err := runCreate()
+	if err != nil {
+		return err
+	}
+
+	err = runStart()
+	if err != nil {
+		return err
+	}
+
+	err = docker.ExecShellContainer(name.Container)
+	if err != nil {
+		return err
 	}
 
 	return nil
