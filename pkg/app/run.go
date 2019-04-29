@@ -80,6 +80,25 @@ func run(cmd *cobra.Command, args []string) error {
 		archiveDir,
 	)
 
+	if shell {
+		err := runCreate()
+		if err != nil {
+			return err
+		}
+
+		err = runStart()
+		if err != nil {
+			return err
+		}
+
+		err = docker.ExecShellContainer(name.Container)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
 	if include != "" && exclude != "" {
 		return errors.New("can't specify --include and --exclude together")
 	}

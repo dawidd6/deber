@@ -10,6 +10,7 @@ import (
 var (
 	include string
 	exclude string
+	shell bool
 
 	dpkgFlags    = os.Getenv("DEBER_DPKG_BUILDPACKAGE_FLAGS")
 	lintianFlags = os.Getenv("DEBER_LINTIAN_FLAGS")
@@ -36,6 +37,13 @@ func Run(program, version, description string) {
 		"e",
 		"",
 		"which steps to exclude from complete set",
+	)
+	cmd.Flags().BoolVarP(
+		&shell,
+		"shell",
+		"s",
+		false,
+		"run bash shell interactively in container",
 	)
 
 	cmd.SetHelpCommand(&cobra.Command{Hidden: true, Use: "no"})

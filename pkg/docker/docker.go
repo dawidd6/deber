@@ -256,6 +256,45 @@ func (docker *Docker) RemoveContainer(container string) error {
 	return docker.client.ContainerRemove(docker.ctx, container, options)
 }
 
+func (docker *Docker) ExecShellContainer(container string) error {
+	config := types.ExecConfig{
+		Cmd:          []string{"bash"},
+		AttachStdin:  true,
+		AttachStdout: true,
+		AttachStderr: true,
+		Tty:          true,
+	}
+	check := types.ExecStartCheck{
+		Tty:    true,
+		Detach: false,
+	}
+
+	response, err := docker.client.ContainerExecCreate(docker.ctx, container, config)
+	if err != nil {
+		return err
+	}
+
+	hijack, err := docker.client.ContainerExecAttach(docker.ctx, response.ID, check)
+	if err != nil {
+		return err
+	}
+
+	if term.IsTerminal(os.Stdin.Fd()) {
+		oldState, err := term.MakeRaw(os.Stdin.Fd())
+		if err != nil {
+			return err
+		}
+		defer term.RestoreTerminal(os.Stdin.Fd(), oldState)
+	}
+
+	go io.Copy(hijack.Conn, os.Stdin)
+
+	io.Copy(os.Stdout, hijack.Conn)
+	hijack.Close()
+
+	return nil
+}
+
 func (docker *Docker) ExecContainer(container string, cmd string) error {
 	config := types.ExecConfig{
 		Cmd:          []string{"bash", "-c", cmd},
