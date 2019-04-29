@@ -91,12 +91,12 @@ func run(cmd *cobra.Command, args []string) error {
 	// SECTION: init stuff
 	log = logger.New(cmd.Use)
 
-	debian, err = initDebian(log)
+	debian, err = deb.ParseChangelog()
 	if err != nil {
 		return err
 	}
 
-	docker, err = initDocker(log)
+	docker, err = doc.New()
 	if err != nil {
 		return err
 	}
@@ -121,28 +121,6 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
-}
-
-func initDocker(log *logger.Logger) (*doc.Docker, error) {
-	log.Info("Connecting with Docker")
-
-	docker, err := doc.New()
-	if err != nil {
-		return nil, log.FailE(err)
-	}
-
-	return docker, log.DoneE()
-}
-
-func initDebian(log *logger.Logger) (*deb.Debian, error) {
-	log.Info("Parsing Debian changelog")
-
-	debian, err := deb.ParseChangelog()
-	if err != nil {
-		return nil, log.FailE(err)
-	}
-
-	return debian, log.DoneE()
 }
 
 func runShellOptional() error {
