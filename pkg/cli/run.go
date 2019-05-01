@@ -366,7 +366,7 @@ func runUpdate() error {
 	log.Drop()
 
 	file := filepath.Join(name.ArchiveDir, "Packages")
-	info, err := os.Stat(file)
+	info, _ := os.Stat(file)
 	if info == nil {
 		_, err := os.Create(file)
 		if err != nil {
@@ -378,7 +378,7 @@ func runUpdate() error {
 		Name: name.Container,
 		Cmd:  "sudo apt-get update",
 	}
-	err = dock.ContainerExec(args)
+	err := dock.ContainerExec(args)
 	if err != nil {
 		return log.FailE(err)
 	}
@@ -407,7 +407,7 @@ func runPackage() error {
 	log.Info("Packaging software")
 
 	file := fmt.Sprintf("%s/%s", name.ArchiveDir, "Packages")
-	info, err := os.Stat(file)
+	info, _ := os.Stat(file)
 	if info == nil {
 		_, err := os.Create(file)
 		if err != nil {
@@ -415,7 +415,7 @@ func runPackage() error {
 		}
 	}
 
-	err = dock.ContainerDisableNetwork(name.Container)
+	err := dock.ContainerDisableNetwork(name.Container)
 	if err != nil {
 		return log.FailE(err)
 	}
@@ -463,7 +463,7 @@ func runTest() error {
 func runArchive() error {
 	log.Info("Archiving build")
 
-	info, err := os.Stat(name.ArchivePackageDir)
+	info, _ := os.Stat(name.ArchivePackageDir)
 	if info != nil {
 		err := os.RemoveAll(name.ArchivePackageDir)
 		if err != nil {
@@ -471,7 +471,7 @@ func runArchive() error {
 		}
 	}
 
-	err = os.Rename(name.BuildDir, name.ArchivePackageDir)
+	err := os.Rename(name.BuildDir, name.ArchivePackageDir)
 	if err != nil {
 		return log.FailE(err)
 	}
