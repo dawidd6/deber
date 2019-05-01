@@ -1,6 +1,9 @@
 package cli
 
 import (
+	"github.com/dawidd6/deber/pkg/debian"
+	"github.com/dawidd6/deber/pkg/docker"
+	"github.com/dawidd6/deber/pkg/naming"
 	"os"
 
 	"github.com/dawidd6/deber/pkg/logger"
@@ -17,6 +20,11 @@ var (
 	dpkgFlags    = os.Getenv("DEBER_DPKG_BUILDPACKAGE_FLAGS")
 	lintianFlags = os.Getenv("DEBER_LINTIAN_FLAGS")
 	archiveDir   = os.Getenv("DEBER_ARCHIVE")
+
+	deb  *debian.Debian
+	dock *docker.Docker
+	name *naming.Naming
+	log  *logger.Logger
 )
 
 func Run(program, version, description, examples string) {
