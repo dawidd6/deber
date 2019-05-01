@@ -19,11 +19,12 @@ var (
 	archiveDir   = os.Getenv("DEBER_ARCHIVE")
 )
 
-func Run(program, version, description string) {
+func Run(program, version, description, examples string) {
 	cmd := &cobra.Command{
 		Use:     program,
 		Version: version,
 		Short:   description,
+		Example: examples,
 		RunE:    run,
 	}
 	cmd.Flags().StringVarP(
