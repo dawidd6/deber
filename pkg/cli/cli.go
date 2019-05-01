@@ -11,6 +11,7 @@ var (
 	include string
 	exclude string
 	shell   bool
+	remove  bool
 
 	dpkgFlags    = os.Getenv("DEBER_DPKG_BUILDPACKAGE_FLAGS")
 	lintianFlags = os.Getenv("DEBER_LINTIAN_FLAGS")
@@ -44,6 +45,13 @@ func Run(program, version, description string) {
 		"s",
 		false,
 		"run bash shell interactively in container",
+	)
+	cmd.Flags().BoolVarP(
+		&remove,
+		"remove",
+		"r",
+		false,
+		"alias for '--include remove,stop'",
 	)
 
 	cmd.SetHelpCommand(&cobra.Command{Hidden: true, Use: "no"})

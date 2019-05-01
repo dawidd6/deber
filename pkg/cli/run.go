@@ -110,11 +110,18 @@ func run(cmd *cobra.Command, args []string) error {
 	)
 
 	// SECTION: handle bool options
-	if shell {
+	switch {
+	case shell:
 		steps.Reset()
 		steps.ExtraFunctionAfterRun(runShellOptional)
 
 		err := steps.Include("build", "create", "start")
+		if err != nil {
+			return err
+		}
+	case remove:
+		steps.Reset()
+		err := steps.Include("remove", "stop")
 		if err != nil {
 			return err
 		}
