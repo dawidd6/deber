@@ -127,17 +127,11 @@ func initOptions(steps stepping.Steps) error {
 		steps.Reset()
 		steps.ExtraFunctionAfterRun(runShellOptional)
 
-		err := steps.Include("build", "create", "start")
-		if err != nil {
-			return err
-		}
+		include = "build,create,start"
 	case remove:
 		steps.Reset()
 
-		err := steps.Include("remove", "stop")
-		if err != nil {
-			return err
-		}
+		include = "remove,stop"
 	case list:
 		for i, step := range steps {
 			fmt.Printf("%d. %s\n\n", i+1, step.Name)
@@ -150,21 +144,19 @@ func initOptions(steps stepping.Steps) error {
 			}
 		}
 		return nil
-	default:
-		if include != "" && exclude != "" {
-			return errors.New("can't specify --include and --exclude together")
+	}
+
+	if include != "" && exclude != "" {
+		return errors.New("can't specify --include and --exclude together")
+	} else if include != "" {
+		err := steps.Include(strings.Split(include, ",")...)
+		if err != nil {
+			return err
 		}
-		if include != "" {
-			err := steps.Include(strings.Split(include, ",")...)
-			if err != nil {
-				return err
-			}
-		}
-		if exclude != "" {
-			err := steps.Exclude(strings.Split(exclude, ",")...)
-			if err != nil {
-				return err
-			}
+	} else if exclude != "" {
+		err := steps.Exclude(strings.Split(exclude, ",")...)
+		if err != nil {
+			return err
 		}
 	}
 
