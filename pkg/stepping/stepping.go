@@ -11,6 +11,8 @@ type Step struct {
 
 type Steps []*Step
 
+var extraFunctionAfterRun func() error
+
 func (steps Steps) isNameValid(name string) bool {
 	for _, step := range steps {
 		if step.Name == name {
@@ -29,6 +31,10 @@ func (steps Steps) validateNames(names ...string) error {
 	}
 
 	return nil
+}
+
+func (steps Steps) ExtraFunctionAfterRun(f func() error) {
+	extraFunctionAfterRun = f
 }
 
 func (steps Steps) Include(names ...string) error {
@@ -98,6 +104,8 @@ func (steps Steps) Reset() {
 	for _, step := range steps {
 		step.excluded = false
 	}
+
+	steps.ExtraFunctionAfterRun(nil)
 }
 
 func (steps Steps) Run() error {
@@ -110,6 +118,10 @@ func (steps Steps) Run() error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if extraFunctionAfterRun != nil {
+		return extraFunctionAfterRun()
 	}
 
 	return nil
