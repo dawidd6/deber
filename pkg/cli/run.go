@@ -32,42 +32,109 @@ func run(cmd *cobra.Command, args []string) error {
 		{
 			Name: "check",
 			Run:  runCheck,
+			Description: []string{
+				"Checks if to-be-built package is already built and in archive.",
+				"If package is in archive, then deber will simply exit.",
+				"To build package anyway, simply exclude this step.",
+			},
 		}, {
 			Name: "build",
 			Run:  runBuild,
+			Description: []string{
+				"Builds image for deber's use.",
+				"This step is skipped if an image is already built.",
+				"Image's parent name is derived from Debian's changelog, for example",
+				"if in `debian/changelog` target distribution is `bionic`, then",
+				"deber will use `ubuntu:bionic` image as a parent from Docker Hub.",
+				"Image's repository name is determined by querying Docker Hub API.",
+				"So, if one wants to build for other distribution than specified in",
+				"`debian/changelog`, just change target distribution to whatever",
+				"one desires and deber will follow.",
+				"Also if image is older than 14 days, deber will try to rebuild it.",
+			},
 		}, {
 			Name: "create",
 			Run:  runCreate,
+			Description: []string{
+				"Creates container and makes needed directories on host system.",
+				"Will fail if image is nonexistent.",
+			},
 		}, {
 			Name: "start",
 			Run:  runStart,
+			Description: []string{
+				"Starts previously created container.",
+				"The entry command is `sleep inf`, which means that container",
+				"will just sit there, doing nothing and waiting for commands.",
+			},
 		}, {
 			Name: "tarball",
 			Run:  runTarball,
+			Description: []string{
+				"Moves orig upstream tarball from parent directory to build directory.",
+				"Will fail if tarball is nonexistent and skip if package is native.",
+			},
 		}, {
 			Name: "update",
 			Run:  runUpdate,
+			Description: []string{
+				"Updates apt's cache.",
+				"Also creates empty `Packages` file in archive if nonexistent",
+			},
 		}, {
 			Name: "deps",
 			Run:  runDeps,
+			Description: []string{
+				"Installs package's build dependencies in container.",
+				"Runs `mk-build-deps` with appropriate options.",
+			},
 		}, {
 			Name: "package",
 			Run:  runPackage,
+			Description: []string{
+				"Runs `dpkg-buildpackage` in container.",
+				"Options passed to `dpkg-buildpackage` are taken from environment variable",
+				"Current `dpkg-buildpackage` options: " + dpkgFlags,
+			},
 		}, {
 			Name: "test",
 			Run:  runTest,
+			Description: []string{
+				"Runs series of commands in container:",
+				"  - debc",
+				"  - debi",
+				"  - lintian",
+				"Options passed to `lintian` are taken from environment variable",
+				"Current `lintian` options: " + lintianFlags,
+			},
 		}, {
 			Name: "archive",
 			Run:  runArchive,
+			Description: []string{
+				"Moves built package artifacts (like .deb, .dsc and others) to archive.",
+				"Package directory in archive is overwritten every time.",
+			},
 		}, {
 			Name: "scan",
 			Run:  runScan,
+			Description: []string{
+				"Scans available packages in archive and writes result to `Packages` file.",
+				"This `Packages` file is then used by apt in container.",
+			},
 		}, {
 			Name: "stop",
 			Run:  runStop,
+			Description: []string{
+				"Stops container.",
+				"With " + docker.ContainerStopTimeout.String() + " timeout.",
+			},
 		}, {
 			Name: "remove",
 			Run:  runRemove,
+			Description: []string{
+				"Removes container.",
+				"Nothing more.",
+			},
 		},
 	}
 
@@ -90,7 +157,14 @@ func run(cmd *cobra.Command, args []string) error {
 		}
 	case list:
 		for i, step := range steps {
-			fmt.Printf("%d. %s\n\t%s\n", i+1, step.Name, step.Description)
+			fmt.Printf("%d. %s\n\n", i+1, step.Name)
+			for _, desc := range step.Description {
+				fmt.Printf("\t%s\n", desc)
+			}
+
+			if i < len(steps)-1 {
+				fmt.Println()
+			}
 		}
 		return nil
 	default:
