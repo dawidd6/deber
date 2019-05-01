@@ -111,7 +111,13 @@ func run(cmd *cobra.Command, args []string) error {
 
 	// SECTION: handle bool options
 	if shell {
-		return runShellOptional()
+		steps.Reset()
+		steps.ExtraFunctionAfterRun(runShellOptional)
+
+		err := steps.Include("build", "create", "start")
+		if err != nil {
+			return err
+		}
 	}
 
 	// SECTION: run steps
@@ -124,21 +130,11 @@ func run(cmd *cobra.Command, args []string) error {
 }
 
 func runShellOptional() error {
-	err := runCreate()
-	if err != nil {
-		return err
-	}
-
-	err = runStart()
-	if err != nil {
-		return err
-	}
-
 	args := docker.ContainerExecArgs{
 		Interactive: true,
 		Name:        name.Container,
 	}
-	err = dock.ContainerExec(args)
+	err := dock.ContainerExec(args)
 	if err != nil {
 		return err
 	}
