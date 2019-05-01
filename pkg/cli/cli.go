@@ -1,4 +1,4 @@
-package app
+package cli
 
 import (
 	"os"
@@ -10,7 +10,7 @@ import (
 var (
 	include string
 	exclude string
-	shell bool
+	shell   bool
 
 	dpkgFlags    = os.Getenv("DEBER_DPKG_BUILDPACKAGE_FLAGS")
 	lintianFlags = os.Getenv("DEBER_LINTIAN_FLAGS")

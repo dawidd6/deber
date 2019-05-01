@@ -1,6 +1,6 @@
 package main
 
-import "github.com/dawidd6/deber/pkg/app"
+import "github.com/dawidd6/deber/pkg/cli"
 
 const (
 	program = "deber"
@@ -9,5 +9,5 @@ const (
 )
 
 func main() {
-	app.Run(program, version, desc)
+	cli.Run(program, version, desc)
 }
