@@ -9,26 +9,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/dawidd6/deber/pkg/naming"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/term"
-)
-
-const (
-	ApiVersion = "1.30"
-
-	MaxImageAge = time.Hour * 24 * 14
-
-	ContainerStateRunning    = "running"
-	ContainerStateCreated    = "created"
-	ContainerStateExited     = "exited"
-	ContainerStateRestarting = "restarting"
-	ContainerStatePaused     = "paused"
-	ContainerStateDead       = "dead"
 )
 
 type Docker struct {
@@ -48,7 +34,7 @@ func New() (*Docker, error) {
 	}, nil
 }
 
-func (docker *Docker) IsImageBuilt(image string) (bool, error) {
+func (docker *Docker) IsImageBuilt(name string) (bool, error) {
 	list, err := docker.client.ImageList(docker.ctx, types.ImageListOptions{})
 	if err != nil {
 		return false, err
@@ -56,7 +42,7 @@ func (docker *Docker) IsImageBuilt(image string) (bool, error) {
 
 	for i := range list {
 		for j := range list[i].RepoTags {
-			if list[i].RepoTags[j] == image {
+			if list[i].RepoTags[j] == name {
 				return true, nil
 			}
 		}
@@ -65,8 +51,8 @@ func (docker *Docker) IsImageBuilt(image string) (bool, error) {
 	return false, nil
 }
 
-func (docker *Docker) IsImageOld(image string) (bool, error) {
-	inspect, _, err := docker.client.ImageInspectWithRaw(docker.ctx, image)
+func (docker *Docker) IsImageOld(name string) (bool, error) {
+	inspect, _, err := docker.client.ImageInspectWithRaw(docker.ctx, name)
 	if err != nil {
 		return false, err
 	}
@@ -84,7 +70,7 @@ func (docker *Docker) IsImageOld(image string) (bool, error) {
 	return false, nil
 }
 
-func (docker *Docker) IsContainerCreated(container string) (bool, error) {
+func (docker *Docker) IsContainerCreated(name string) (bool, error) {
 	list, err := docker.client.ContainerList(docker.ctx, types.ContainerListOptions{All: true})
 	if err != nil {
 		return false, err
@@ -92,7 +78,7 @@ func (docker *Docker) IsContainerCreated(container string) (bool, error) {
 
 	for i := range list {
 		for j := range list[i].Names {
-			if list[i].Names[j] == "/"+container {
+			if list[i].Names[j] == "/"+name {
 				return true, nil
 			}
 		}
@@ -101,7 +87,7 @@ func (docker *Docker) IsContainerCreated(container string) (bool, error) {
 	return false, nil
 }
 
-func (docker *Docker) IsContainerStarted(container string) (bool, error) {
+func (docker *Docker) IsContainerStarted(name string) (bool, error) {
 	list, err := docker.client.ContainerList(docker.ctx, types.ContainerListOptions{All: true})
 	if err != nil {
 		return false, err
@@ -109,7 +95,7 @@ func (docker *Docker) IsContainerStarted(container string) (bool, error) {
 
 	for i := range list {
 		for j := range list[i].Names {
-			if list[i].Names[j] == "/"+container {
+			if list[i].Names[j] == "/"+name {
 				if list[i].State == ContainerStateRunning {
 					return true, nil
 				}
@@ -120,7 +106,7 @@ func (docker *Docker) IsContainerStarted(container string) (bool, error) {
 	return false, nil
 }
 
-func (docker *Docker) IsContainerStopped(container string) (bool, error) {
+func (docker *Docker) IsContainerStopped(name string) (bool, error) {
 	list, err := docker.client.ContainerList(docker.ctx, types.ContainerListOptions{All: true})
 	if err != nil {
 		return false, err
@@ -128,7 +114,7 @@ func (docker *Docker) IsContainerStopped(container string) (bool, error) {
 
 	for i := range list {
 		for j := range list[i].Names {
-			if list[i].Names[j] == "/"+container {
+			if list[i].Names[j] == "/"+name {
 				if list[i].State == ContainerStateRunning {
 					return false, nil
 				}
@@ -139,8 +125,8 @@ func (docker *Docker) IsContainerStopped(container string) (bool, error) {
 	return true, nil
 }
 
-func (docker *Docker) BuildImage(name, from string) error {
-	dockerfile, err := dockerfileParse(from)
+func (docker *Docker) ImageBuild(args BuildImageArgs) error {
+	dockerfile, err := dockerfileParse(args.From)
 	if err != nil {
 		return err
 	}
@@ -152,7 +138,7 @@ func (docker *Docker) BuildImage(name, from string) error {
 		Size: int64(len(dockerfile)),
 	}
 	options := types.ImageBuildOptions{
-		Tags:       []string{name},
+		Tags:       []string{args.Name},
 		Remove:     true,
 		PullParent: true,
 	}
@@ -188,7 +174,7 @@ func (docker *Docker) BuildImage(name, from string) error {
 		return err
 	}
 
-	_, _, err = docker.client.ImageInspectWithRaw(docker.ctx, name)
+	_, _, err = docker.client.ImageInspectWithRaw(docker.ctx, args.Name)
 	if err != nil {
 		return errors.New("image didn't built successfully")
 	}
@@ -196,30 +182,30 @@ func (docker *Docker) BuildImage(name, from string) error {
 	return nil
 }
 
-func (docker *Docker) CreateContainer(name *naming.Naming) error {
+func (docker *Docker) ContainerCreate(args ContainerCreateArgs) error {
 	hostConfig := &container.HostConfig{
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
-				Source: name.SourceDir,
-				Target: naming.ContainerSourceDir,
+				Source: args.SourceDir,
+				Target: ContainerSourceDir,
 			}, {
 				Type:   mount.TypeBind,
-				Source: name.BuildDir,
-				Target: naming.ContainerBuildDir,
+				Source: args.BuildDir,
+				Target: ContainerBuildDir,
 			}, {
 				Type:   mount.TypeBind,
-				Source: name.CacheDir,
-				Target: naming.ContainerCacheDir,
+				Source: args.CacheDir,
+				Target: ContainerCacheDir,
 			}, {
 				Type:   mount.TypeBind,
-				Source: name.ArchiveDir,
-				Target: naming.ContainerArchiveDir,
+				Source: args.ArchiveDir,
+				Target: ContainerArchiveDir,
 			},
 		},
 	}
 	config := &container.Config{
-		Image: name.Image,
+		Image: args.Image,
 	}
 
 	// mkdir
@@ -230,7 +216,7 @@ func (docker *Docker) CreateContainer(name *naming.Naming) error {
 		}
 	}
 
-	_, err := docker.client.ContainerCreate(docker.ctx, config, hostConfig, nil, name.Container)
+	_, err := docker.client.ContainerCreate(docker.ctx, config, hostConfig, nil, args.Name)
 	if err != nil {
 		return err
 	}
@@ -238,28 +224,34 @@ func (docker *Docker) CreateContainer(name *naming.Naming) error {
 	return nil
 }
 
-func (docker *Docker) StartContainer(container string) error {
+func (docker *Docker) ContainerStart(name string) error {
 	options := types.ContainerStartOptions{}
 
-	return docker.client.ContainerStart(docker.ctx, container, options)
+	return docker.client.ContainerStart(docker.ctx, name, options)
 }
 
-func (docker *Docker) StopContainer(container string) error {
+func (docker *Docker) ContainerStop(name string) error {
 	timeout := time.Millisecond * 10
 
-	return docker.client.ContainerStop(docker.ctx, container, &timeout)
+	return docker.client.ContainerStop(docker.ctx, name, &timeout)
 }
 
-func (docker *Docker) RemoveContainer(container string) error {
+func (docker *Docker) ContainerRemove(name string) error {
 	options := types.ContainerRemoveOptions{}
 
-	return docker.client.ContainerRemove(docker.ctx, container, options)
+	return docker.client.ContainerRemove(docker.ctx, name, options)
 }
 
-func (docker *Docker) ExecShellContainer(container string) error {
+func (docker *Docker) ContainerExec(args ContainerExecArgs) error {
+	cmd := []string{"bash"}
+	if args.Cmd != "" {
+		cmd = append(cmd, "-c", args.Cmd)
+	}
+
 	config := types.ExecConfig{
-		Cmd:          []string{"bash"},
-		AttachStdin:  true,
+		Cmd:          cmd,
+		WorkingDir:   args.WorkDir,
+		AttachStdin:  args.Interactive,
 		AttachStdout: true,
 		AttachStderr: true,
 		Tty:          true,
@@ -269,7 +261,7 @@ func (docker *Docker) ExecShellContainer(container string) error {
 		Detach: false,
 	}
 
-	response, err := docker.client.ContainerExecCreate(docker.ctx, container, config)
+	response, err := docker.client.ContainerExecCreate(docker.ctx, args.Name, config)
 	if err != nil {
 		return err
 	}
@@ -279,49 +271,19 @@ func (docker *Docker) ExecShellContainer(container string) error {
 		return err
 	}
 
-	if term.IsTerminal(os.Stdin.Fd()) {
-		oldState, err := term.MakeRaw(os.Stdin.Fd())
-		if err != nil {
-			return err
+	if args.Interactive {
+		if term.IsTerminal(os.Stdin.Fd()) {
+			oldState, err := term.MakeRaw(os.Stdin.Fd())
+			if err != nil {
+				return err
+			}
+			defer term.RestoreTerminal(os.Stdin.Fd(), oldState)
 		}
-		defer term.RestoreTerminal(os.Stdin.Fd(), oldState)
-	}
 
-	go io.Copy(hijack.Conn, os.Stdin)
+		go io.Copy(hijack.Conn, os.Stdin)
+	}
 
 	io.Copy(os.Stdout, hijack.Conn)
-	hijack.Close()
-
-	return nil
-}
-
-func (docker *Docker) ExecContainer(container string, cmd string) error {
-	config := types.ExecConfig{
-		Cmd:          []string{"bash", "-c", cmd},
-		AttachStdout: true,
-		AttachStderr: true,
-		Tty:          true,
-	}
-	check := types.ExecStartCheck{
-		Tty:    true,
-		Detach: false,
-	}
-
-	response, err := docker.client.ContainerExecCreate(docker.ctx, container, config)
-	if err != nil {
-		return err
-	}
-
-	hijack, err := docker.client.ContainerExecAttach(docker.ctx, response.ID, check)
-	if err != nil {
-		return err
-	}
-
-	_, err = io.Copy(os.Stdout, hijack.Reader)
-	if err != nil {
-		return err
-	}
-
 	hijack.Close()
 
 	inspect, err := docker.client.ContainerExecInspect(docker.ctx, response.ID)
@@ -336,10 +298,10 @@ func (docker *Docker) ExecContainer(container string, cmd string) error {
 	return nil
 }
 
-func (docker *Docker) DisableNetwork(container string) error {
-	return docker.client.NetworkDisconnect(docker.ctx, "bridge", container, false)
+func (docker *Docker) ContainerDisableNetwork(name string) error {
+	return docker.client.NetworkDisconnect(docker.ctx, "bridge", name, false)
 }
 
-func (docker *Docker) EnableNetwork(container string) error {
-	return docker.client.NetworkConnect(docker.ctx, "bridge", container, nil)
+func (docker *Docker) ContainerEnableNetwork(name string) error {
+	return docker.client.NetworkConnect(docker.ctx, "bridge", name, nil)
 }

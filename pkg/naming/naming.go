@@ -7,14 +7,6 @@ import (
 	"strings"
 )
 
-// Directories in container where their host counterpart should be mounted.
-const (
-	ContainerArchiveDir = "/archive"
-	ContainerBuildDir   = "/build"
-	ContainerSourceDir  = "/build/source"
-	ContainerCacheDir   = "/var/cache/apt"
-)
-
 type Naming struct {
 	// Docker container name.
 	//

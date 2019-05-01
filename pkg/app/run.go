@@ -11,17 +11,17 @@ import (
 
 	"github.com/dawidd6/deber/pkg/logger"
 
-	deb "github.com/dawidd6/deber/pkg/debian"
-	doc "github.com/dawidd6/deber/pkg/docker"
+	"github.com/dawidd6/deber/pkg/debian"
+	"github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/naming"
 	"github.com/spf13/cobra"
 )
 
 var (
-	debian *deb.Debian
-	docker *doc.Docker
-	name   *naming.Naming
-	log    *logger.Logger
+	deb  *debian.Debian
+	dock *docker.Docker
+	name *naming.Naming
+	log  *logger.Logger
 )
 
 func run(cmd *cobra.Command, args []string) error {
@@ -91,21 +91,21 @@ func run(cmd *cobra.Command, args []string) error {
 	// SECTION: init stuff
 	log = logger.New(cmd.Use)
 
-	debian, err = deb.ParseChangelog()
+	deb, err = debian.ParseChangelog()
 	if err != nil {
 		return err
 	}
 
-	docker, err = doc.New()
+	dock, err = docker.New()
 	if err != nil {
 		return err
 	}
 
 	name = naming.New(
 		cmd.Use,
-		debian.TargetDist,
-		debian.SourceName,
-		debian.PackageVersion,
+		deb.TargetDist,
+		deb.SourceName,
+		deb.PackageVersion,
 		archiveDir,
 	)
 
@@ -134,7 +134,11 @@ func runShellOptional() error {
 		return err
 	}
 
-	err = docker.ExecShellContainer(name.Container)
+	args := docker.ContainerExecArgs{
+		Interactive: true,
+		Name:        name.Container,
+	}
+	err = dock.ContainerExec(args)
 	if err != nil {
 		return err
 	}
@@ -157,12 +161,12 @@ func runCheck() error {
 func runBuild() error {
 	log.Info("Building image")
 
-	isImageBuilt, err := docker.IsImageBuilt(name.Image)
+	isImageBuilt, err := dock.IsImageBuilt(name.Image)
 	if err != nil {
 		return log.FailE(err)
 	}
 	if isImageBuilt {
-		isImageOld, err := docker.IsImageOld(name.Image)
+		isImageOld, err := dock.IsImageOld(name.Image)
 		if err != nil {
 			return log.FailE(err)
 		}
@@ -172,18 +176,22 @@ func runBuild() error {
 	}
 
 	for _, repo := range []string{"debian", "ubuntu"} {
-		tags, err := doc.GetTags(repo)
+		tags, err := docker.GetTags(repo)
 		if err != nil {
 			return log.FailE(err)
 		}
 
 		for _, tag := range tags {
-			if tag.Name == debian.TargetDist {
-				from := fmt.Sprintf("%s:%s", repo, debian.TargetDist)
+			if tag.Name == deb.TargetDist {
+				from := fmt.Sprintf("%s:%s", repo, deb.TargetDist)
 
 				log.Drop()
 
-				err := docker.BuildImage(name.Image, from)
+				args := docker.BuildImageArgs{
+					From: from,
+					Name: name.Image,
+				}
+				err := dock.ImageBuild(args)
 				if err != nil {
 					return log.FailE(err)
 				}
@@ -199,7 +207,7 @@ func runBuild() error {
 func runCreate() error {
 	log.Info("Creating container")
 
-	isContainerCreated, err := docker.IsContainerCreated(name.Container)
+	isContainerCreated, err := dock.IsContainerCreated(name.Container)
 	if err != nil {
 		return log.FailE(err)
 	}
@@ -207,7 +215,15 @@ func runCreate() error {
 		return log.SkipE()
 	}
 
-	err = docker.CreateContainer(name)
+	args := docker.ContainerCreateArgs{
+		SourceDir:  name.SourceDir,
+		BuildDir:   name.BuildDir,
+		ArchiveDir: name.ArchiveDir,
+		CacheDir:   name.CacheDir,
+		Image:      name.Image,
+		Name:       name.Container,
+	}
+	err = dock.ContainerCreate(args)
 	if err != nil {
 		return log.FailE(err)
 	}
@@ -218,7 +234,7 @@ func runCreate() error {
 func runStart() error {
 	log.Info("Starting container")
 
-	isContainerStarted, err := docker.IsContainerStarted(name.Container)
+	isContainerStarted, err := dock.IsContainerStarted(name.Container)
 	if err != nil {
 		return log.FailE(err)
 	}
@@ -226,7 +242,7 @@ func runStart() error {
 		return log.SkipE()
 	}
 
-	err = docker.StartContainer(name.Container)
+	err = dock.ContainerStart(name.Container)
 	if err != nil {
 		return log.FailE(err)
 	}
@@ -237,7 +253,7 @@ func runStart() error {
 func runTarball() error {
 	log.Info("Moving tarball")
 
-	tarball, err := debian.LocateTarball()
+	tarball, err := deb.LocateTarball()
 	if err != nil {
 		return log.FailE(err)
 	}
@@ -276,7 +292,11 @@ func runUpdate() error {
 		}
 	}
 
-	err = docker.ExecContainer(name.Container, "sudo apt-get update")
+	args := docker.ContainerExecArgs{
+		Name: name.Container,
+		Cmd:  "sudo apt-get update",
+	}
+	err = dock.ContainerExec(args)
 	if err != nil {
 		return log.FailE(err)
 	}
@@ -289,7 +309,11 @@ func runDeps() error {
 
 	log.Drop()
 
-	err := docker.ExecContainer(name.Container, "sudo mk-build-deps -ri")
+	args := docker.ContainerExecArgs{
+		Name: name.Container,
+		Cmd:  "sudo mk-build-deps -ri",
+	}
+	err := dock.ContainerExec(args)
 	if err != nil {
 		return log.FailE(err)
 	}
@@ -309,15 +333,19 @@ func runPackage() error {
 		}
 	}
 
-	err = docker.DisableNetwork(name.Container)
+	err = dock.ContainerDisableNetwork(name.Container)
 	if err != nil {
 		return log.FailE(err)
 	}
-	defer docker.EnableNetwork(name.Container)
+	defer dock.ContainerEnableNetwork(name.Container)
 
 	log.Drop()
 
-	err = docker.ExecContainer(name.Container, "dpkg-buildpackage"+" "+dpkgFlags)
+	args := docker.ContainerExecArgs{
+		Name: name.Container,
+		Cmd:  "dpkg-buildpackage" + " " + dpkgFlags,
+	}
+	err = dock.ContainerExec(args)
 	if err != nil {
 		return log.FailE(err)
 	}
@@ -330,19 +358,21 @@ func runTest() error {
 
 	log.Drop()
 
-	err := docker.ExecContainer(name.Container, "debc")
-	if err != nil {
-		return log.FailE(err)
+	commands := []string{
+		"debc",
+		"sudo debi --with-depends",
+		"lintian" + " " + lintianFlags,
 	}
 
-	err = docker.ExecContainer(name.Container, "sudo debi --with-depends")
-	if err != nil {
-		return log.FailE(err)
-	}
-
-	err = docker.ExecContainer(name.Container, "lintian"+" "+lintianFlags)
-	if err != nil {
-		return log.FailE(err)
+	for _, cmd := range commands {
+		args := docker.ContainerExecArgs{
+			Name: name.Container,
+			Cmd:  cmd,
+		}
+		err := dock.ContainerExec(args)
+		if err != nil {
+			return log.FailE(err)
+		}
 	}
 
 	return log.DoneE()
@@ -372,7 +402,12 @@ func runScan() error {
 
 	log.Drop()
 
-	err := docker.ExecContainer(name.Container, "cd "+naming.ContainerArchiveDir+" && dpkg-scanpackages -m . > Packages")
+	args := docker.ContainerExecArgs{
+		Name:    name.Container,
+		Cmd:     "dpkg-scanpackages -m . > Packages",
+		WorkDir: docker.ContainerArchiveDir,
+	}
+	err := dock.ContainerExec(args)
 	if err != nil {
 		return log.FailE(err)
 	}
@@ -383,7 +418,7 @@ func runScan() error {
 func runStop() error {
 	log.Info("Stopping container")
 
-	isContainerStopped, err := docker.IsContainerStopped(name.Container)
+	isContainerStopped, err := dock.IsContainerStopped(name.Container)
 	if err != nil {
 		return log.FailE(err)
 	}
@@ -391,7 +426,7 @@ func runStop() error {
 		return log.SkipE()
 	}
 
-	err = docker.StopContainer(name.Container)
+	err = dock.ContainerStop(name.Container)
 	if err != nil {
 		return log.FailE(err)
 	}
@@ -402,7 +437,7 @@ func runStop() error {
 func runRemove() error {
 	log.Info("Removing container")
 
-	isContainerCreated, err := docker.IsContainerCreated(name.Container)
+	isContainerCreated, err := dock.IsContainerCreated(name.Container)
 	if err != nil {
 		return log.FailE(err)
 	}
@@ -410,7 +445,7 @@ func runRemove() error {
 		return log.SkipE()
 	}
 
-	err = docker.RemoveContainer(name.Container)
+	err = dock.ContainerRemove(name.Container)
 	if err != nil {
 		return log.FailE(err)
 	}

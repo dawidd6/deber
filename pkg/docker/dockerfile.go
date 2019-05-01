@@ -3,15 +3,15 @@ package docker
 import (
 	"bytes"
 	"text/template"
-
-	"github.com/dawidd6/deber/pkg/naming"
 )
 
 type DockerfileTemplate struct {
-	From    string
-	User    string
-	Archive string
-	Source  string
+	From       string
+	UserName   string
+	UserHome   string
+	ArchiveDir string
+	SourceDir  string
+	Packages   string
 }
 
 const dockerfileTemplate = `
@@ -20,12 +20,12 @@ FROM {{ .From }}
 
 # Install required packages and remove not needed apt configs.
 RUN apt-get update && \
-	apt-get install -y build-essential devscripts dpkg-dev debhelper equivs sudo && \
+	apt-get install -y {{ .Packages }} && \
 	rm /etc/apt/apt.conf.d/*
 
 # Add normal user and with su access.
-RUN useradd -d /nonexistent {{ .User }} && \
-	echo "{{ .User }} ALL=NOPASSWD: ALL" > /etc/sudoers
+RUN useradd -d {{ .UserHome }} {{ .UserName }} && \
+	echo "{{ .UserName }} ALL=NOPASSWD: ALL" > /etc/sudoers
 
 # Run apt without confirmations.
 RUN echo "APT::Get::Assume-Yes "true";" > /etc/apt/apt.conf.d/00noconfirm
@@ -34,15 +34,15 @@ RUN echo "APT::Get::Assume-Yes "true";" > /etc/apt/apt.conf.d/00noconfirm
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 
 # Add local apt repository.
-RUN mkdir -p {{ .Archive }} && \
-    touch {{ .Archive }}/Packages && \
-    echo "deb [trusted=yes] file://{{ .Archive }} ./" > /etc/apt/sources.list.d/a.list
+RUN mkdir -p {{ .ArchiveDir }} && \
+    touch {{ .ArchiveDir }}/Packages && \
+    echo "deb [trusted=yes] file://{{ .ArchiveDir }} ./" > /etc/apt/sources.list.d/a.list
 
 # Define default user.
-USER {{ .User }}:{{ .User }}
+USER {{ .UserName }}:{{ .UserName }}
 
 # Set working directory.
-WORKDIR {{ .Source }}
+WORKDIR {{ .SourceDir }}
 
 # Sleep all the time and just wait for commands.
 CMD ["sleep", "inf"]
@@ -50,10 +50,12 @@ CMD ["sleep", "inf"]
 
 func dockerfileParse(from string) (string, error) {
 	t := DockerfileTemplate{
-		From:    from,
-		User:    "builder",
-		Archive: naming.ContainerArchiveDir,
-		Source:  naming.ContainerSourceDir,
+		From:       from,
+		UserName:   "builder",
+		UserHome:   "/nonexistent",
+		ArchiveDir: ContainerArchiveDir,
+		SourceDir:  ContainerSourceDir,
+		Packages:   "build-essential devscripts dpkg-dev debhelper equivs sudo",
 	}
 
 	temp, err := template.New("dockerfile").Parse(dockerfileTemplate)
