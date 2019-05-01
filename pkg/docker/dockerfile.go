@@ -20,7 +20,7 @@ FROM {{ .From }}
 
 # Install required packages and remove not needed apt configs.
 RUN apt-get update && \
-	apt-get install -y {{ .Packages }} && \
+	apt-get install --no-install-recommends -y {{ .Packages }} && \
 	rm /etc/apt/apt.conf.d/*
 
 # Add normal user and with su access.
@@ -55,7 +55,7 @@ func dockerfileParse(from string) (string, error) {
 		UserHome:   "/nonexistent",
 		ArchiveDir: ContainerArchiveDir,
 		SourceDir:  ContainerSourceDir,
-		Packages:   "build-essential devscripts dpkg-dev debhelper equivs sudo",
+		Packages:   "build-essential devscripts debhelper lintian equivs sudo",
 	}
 
 	temp, err := template.New("dockerfile").Parse(dockerfileTemplate)
