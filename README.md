@@ -16,9 +16,11 @@
     </a>
 </p>
 
-**deb**_(ian)_ + _(dock)_**er** = **deber**
+`Debian` **+** `Docker` **=** `deber`
 
-Create Debian packages in Docker containers easily.
+Utility made with simplicity in mind to provide
+an easy way for building Debian packages in
+Docker containers.
 
 ## Screencast
 
@@ -58,24 +60,27 @@ gbp buildpackage
 If you run it first time, it will build Docker image and then proceed to build
 your package.
 
+Only one option passed to deber is respected,
+it is pointless to specify multiple options at once.
+
 ## FAQ
 
 **Okay everything went well, but... where the hell is my `.deb`?!**
 
 If you haven't specified `DEBER_ARCHIVE` environment variable, then
 it's located in `~/deber`.
-I made it this way, because it was just hard looking at my parent directory,
+I made it this way, because it was just hard to look at my parent directory,
 cluttered with `.orig.tar.gz`, `.deb`, `.changes` and God knows what else.
 
-**Where is build directory?**
+**Where is build directory located?**
 
 `/tmp/$container`
 
-**Where is apt cache directory?**
+**Where is apt's cache directory located?**
 
 `/tmp/deber:$dist`
 
-**How are images tagged?**
+**How images built by deber are named?**
 
 Repository is `deber` and tag is `$dist`
 
@@ -84,6 +89,6 @@ Repository is `deber` and tag is `$dist`
 Probably because it is 14 days old and deber decided to
 update it.
 
-## Info
+## More
 
 Options, environment variables and others are listed and explained in [manpage](doc/deber.md).
