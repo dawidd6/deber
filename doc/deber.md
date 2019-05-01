@@ -11,6 +11,9 @@ Utility made with simplicity in mind to provide
 an easy way for building Debian packages in
 Docker containers.
 
+Only one option is respected,
+it is pointless to specify multiple options at once.
+
 ## OPTIONS
 
  * `-i`, `--include` *string* :
@@ -21,6 +24,12 @@ Docker containers.
 
  * `-s`, `--shell` :
   run bash shell interactively in container
+  
+ * `-r`, `--remove` :
+  alias for '--include remove,stop'
+    
+ * `-l`, `--list` :
+  list steps in order and exit
 
  * `--version` :
   version for deber
@@ -32,66 +41,83 @@ Docker containers.
 
 The following steps are executed (in that exact order):
 
-`check`
+`1. check`
 
-    Check if to-be-build package is already built and in archive.
+        Checks if to-be-built package is already built and in archive.
+        If package is in archive, then deber will simply exit.
+        To build package anyway, simply exclude this step.
 
-    Note: if package is in archive, then deber will simply exit.
+`2. build`
 
-`build`
+        Builds image for deber's use.
+        This step is skipped if an image is already built.
+        Image's parent name is derived from Debian's changelog, for example
+        if in `debian/changelog` target distribution is `bionic`, then
+        deber will use `ubuntu:bionic` image as a parent from Docker Hub.
+        Image's repository name is determined by querying Docker Hub API.
+        So, if one wants to build for other distribution than specified in
+        `debian/changelog`, just change target distribution to whatever
+        one desires and deber will follow.
+        Also if image is older than 14 days, deber will try to rebuild it.
 
-    Build image. This step is skipped if an image is already built.
+`3. create`
 
-    Also if image is older than 14 days, then deber will try to rebuild it.
+        Creates container and makes needed directories on host system.
+        Will fail if image is nonexistent.
 
-`create`
+`4. start`
 
-    Create container and make needed directories on host system.
+        Starts previously created container.
+        The entry command is `sleep inf`, which means that container
+        will just sit there, doing nothing and waiting for commands.
 
-`start`
+`5. tarball`
 
-    Start container.
+        Moves orig upstream tarball from parent directory to build directory.
+        Will fail if tarball is nonexistent and skip if package is native.
 
-`tarball`
+`6. update`
 
-    Move orig upstream tarball from parent directory to build directory.
+        Updates apt's cache.
+        Also creates empty `Packages` file in archive if nonexistent
 
-`update`
+`7. deps`
 
-    Update apt's cache.
+        Installs package's build dependencies in container.
+        Runs `mk-build-deps` with appropriate options.
 
-`deps`
+`8. package`
 
-    Install package's build dependencies in container
+        Runs `dpkg-buildpackage` in container.
+        Options passed to `dpkg-buildpackage` are taken from environment variable
 
-`package`
+`9. test`
 
-    Run `dpkg-buildpackage` in container.
+        Runs series of commands in container:
+          - debc
+          - debi
+          - lintian
+        Options passed to `lintian` are taken from environment variable
 
-`test`
+`10. archive`
 
-    Run series of commands in Docker container:
-       - debc
-       - debi
-       - lintian
+        Moves built package artifacts (like .deb, .dsc and others) to archive.
+        Package directory in archive is overwritten every time.
 
-`archive`
+`11. scan`
 
-    Move built package artifacts to archive.
+        Scans available packages in archive and writes result to `Packages` file.
+        This `Packages` file is then used by apt in container.
 
-    Note: this step is skipped if package directory already exists in archive
+`12. stop`
 
-`scan`
+        Stops container.
+        With 10ms timeout.
 
-    Scan packages in archive.
+`13. remove`
 
-`stop`
-
-    Stop container.
-
-`remove`
-
-    Remove container.
+        Removes container.
+        Nothing more.
 
 ## EXAMPLES
 
@@ -136,6 +162,7 @@ Note: specifying other options after or before this, takes no effect.
 **DEBER_ARCHIVE**
 
     Directory where deber will put built packages.
+    Defaults to "$HOME/deber".
 
 **DEBER_DPKG_BUILDPACKAGE_FLAGS**
 
@@ -147,4 +174,4 @@ Note: specifying other options after or before this, takes no effect.
 
 ## SEE ALSO
 
-gbp(1), gbp.conf(5), gbp-buildpackage(1), lintian(1)
+gbp(1), gbp.conf(5), gbp-buildpackage(1), dpkg-buildpackage(1), lintian(1), debc(1), debi(1), mk-build-deps(1)

@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "DEBER" "1" "April 2019" "" ""
+.TH "DEBER" "1" "May 2019" "" ""
 .
 .SH "NAME"
 \fBdeber\fR \- Debian packaging with Docker
@@ -11,6 +11,9 @@
 .
 .SH "DESCRIPTION"
 Utility made with simplicity in mind to provide an easy way for building Debian packages in Docker containers\.
+.
+.P
+Only one option is respected, it is pointless to specify multiple options at once\.
 .
 .SH "OPTIONS"
 .
@@ -27,6 +30,14 @@ steps which should be omitted
 run bash shell interactively in container
 .
 .TP
+\fB\-r\fR, \fB\-\-remove\fR
+alias for \'\-\-include remove,stop\'
+.
+.TP
+\fB\-l\fR, \fB\-\-list\fR
+list steps in order and exit
+.
+.TP
 \fB\-\-version\fR
 version for deber
 .
@@ -38,178 +49,195 @@ help for deber
 The following steps are executed (in that exact order):
 .
 .P
-\fBcheck\fR
+\fB1\. check\fR
 .
 .IP "" 4
 .
 .nf
 
-Check if to\-be\-build package is already built and in archive\.
-
-Note: if package is in archive, then deber will simply exit\.
+    Checks if to\-be\-built package is already built and in archive\.
+    If package is in archive, then deber will simply exit\.
+    To build package anyway, simply exclude this step\.
 .
 .fi
 .
 .IP "" 0
 .
 .P
-\fBbuild\fR
+\fB2\. build\fR
 .
 .IP "" 4
 .
 .nf
 
-Build image\. This step is skipped if an image is already built\.
-
-Also if image is older than 14 days, then deber will try to rebuild it\.
+    Builds image for deber\'s use\.
+    This step is skipped if an image is already built\.
+    Image\'s parent name is derived from Debian\'s changelog, for example
+    if in `debian/changelog` target distribution is `bionic`, then
+    deber will use `ubuntu:bionic` image as a parent from Docker Hub\.
+    Image\'s repository name is determined by querying Docker Hub API\.
+    So, if one wants to build for other distribution than specified in
+    `debian/changelog`, just change target distribution to whatever
+    one desires and deber will follow\.
+    Also if image is older than 14 days, deber will try to rebuild it\.
 .
 .fi
 .
 .IP "" 0
 .
 .P
-\fBcreate\fR
+\fB3\. create\fR
 .
 .IP "" 4
 .
 .nf
 
-Create container and make needed directories on host system\.
+    Creates container and makes needed directories on host system\.
+    Will fail if image is nonexistent\.
 .
 .fi
 .
 .IP "" 0
 .
 .P
-\fBstart\fR
+\fB4\. start\fR
 .
 .IP "" 4
 .
 .nf
 
-Start container\.
+    Starts previously created container\.
+    The entry command is `sleep inf`, which means that container
+    will just sit there, doing nothing and waiting for commands\.
 .
 .fi
 .
 .IP "" 0
 .
 .P
-\fBtarball\fR
+\fB5\. tarball\fR
 .
 .IP "" 4
 .
 .nf
 
-Move orig upstream tarball from parent directory to build directory\.
+    Moves orig upstream tarball from parent directory to build directory\.
+    Will fail if tarball is nonexistent and skip if package is native\.
 .
 .fi
 .
 .IP "" 0
 .
 .P
-\fBupdate\fR
+\fB6\. update\fR
 .
 .IP "" 4
 .
 .nf
 
-Update apt\'s cache\.
+    Updates apt\'s cache\.
+    Also creates empty `Packages` file in archive if nonexistent
 .
 .fi
 .
 .IP "" 0
 .
 .P
-\fBdeps\fR
+\fB7\. deps\fR
 .
 .IP "" 4
 .
 .nf
 
-Install package\'s build dependencies in container
+    Installs package\'s build dependencies in container\.
+    Runs `mk\-build\-deps` with appropriate options\.
 .
 .fi
 .
 .IP "" 0
 .
 .P
-\fBpackage\fR
+\fB8\. package\fR
 .
 .IP "" 4
 .
 .nf
 
-Run `dpkg\-buildpackage` in container\.
+    Runs `dpkg\-buildpackage` in container\.
+    Options passed to `dpkg\-buildpackage` are taken from environment variable
 .
 .fi
 .
 .IP "" 0
 .
 .P
-\fBtest\fR
+\fB9\. test\fR
 .
 .IP "" 4
 .
 .nf
 
-Run series of commands in Docker container:
-   \- debc
-   \- debi
-   \- lintian
+    Runs series of commands in container:
+      \- debc
+      \- debi
+      \- lintian
+    Options passed to `lintian` are taken from environment variable
 .
 .fi
 .
 .IP "" 0
 .
 .P
-\fBarchive\fR
+\fB10\. archive\fR
 .
 .IP "" 4
 .
 .nf
 
-Move built package artifacts to archive\.
-
-Note: this step is skipped if package directory already exists in archive
+    Moves built package artifacts (like \.deb, \.dsc and others) to archive\.
+    Package directory in archive is overwritten every time\.
 .
 .fi
 .
 .IP "" 0
 .
 .P
-\fBscan\fR
+\fB11\. scan\fR
 .
 .IP "" 4
 .
 .nf
 
-Scan packages in archive\.
+    Scans available packages in archive and writes result to `Packages` file\.
+    This `Packages` file is then used by apt in container\.
 .
 .fi
 .
 .IP "" 0
 .
 .P
-\fBstop\fR
+\fB12\. stop\fR
 .
 .IP "" 4
 .
 .nf
 
-Stop container\.
+    Stops container\.
+    With 10ms timeout\.
 .
 .fi
 .
 .IP "" 0
 .
 .P
-\fBremove\fR
+\fB13\. remove\fR
 .
 .IP "" 4
 .
 .nf
 
-Remove container\.
+    Removes container\.
+    Nothing more\.
 .
 .fi
 .
@@ -333,6 +361,7 @@ $ deber \-\-shell
 .nf
 
 Directory where deber will put built packages\.
+Defaults to "$HOME/deber"\.
 .
 .fi
 .
@@ -365,4 +394,4 @@ Space separated flags to be passed to lintian in container\.
 .IP "" 0
 .
 .SH "SEE ALSO"
-gbp(1), gbp\.conf(5), gbp\-buildpackage(1), lintian(1)
+gbp(1), gbp\.conf(5), gbp\-buildpackage(1), dpkg\-buildpackage(1), lintian(1), debc(1), debi(1), mk\-build\-deps(1)
