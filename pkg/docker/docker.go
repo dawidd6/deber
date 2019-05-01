@@ -7,6 +7,8 @@ import (
 	"errors"
 	"io"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -272,27 +274,70 @@ func (docker *Docker) ContainerExec(args ContainerExecArgs) error {
 	}
 
 	if args.Interactive {
-		if term.IsTerminal(os.Stdin.Fd()) {
-			oldState, err := term.MakeRaw(os.Stdin.Fd())
+		fd := os.Stdin.Fd()
+
+		if term.IsTerminal(fd) {
+			oldState, err := term.MakeRaw(fd)
 			if err != nil {
 				return err
 			}
-			defer term.RestoreTerminal(os.Stdin.Fd(), oldState)
-		}
+			defer term.RestoreTerminal(fd, oldState)
 
-		go io.Copy(hijack.Conn, os.Stdin)
+			args := ContainerExecResizeArgs{
+				Fd:     fd,
+				ExecID: response.ID,
+			}
+			err = docker.ContainerExecResize(args)
+			if err != nil {
+				return err
+			}
+
+			go docker.resizeIfChanged(args)
+			go io.Copy(hijack.Conn, os.Stdin)
+		}
 	}
 
 	io.Copy(os.Stdout, hijack.Conn)
 	hijack.Close()
 
-	inspect, err := docker.client.ContainerExecInspect(docker.ctx, response.ID)
+	if !args.Interactive {
+		inspect, err := docker.client.ContainerExecInspect(docker.ctx, response.ID)
+		if err != nil {
+			return err
+		}
+
+		if inspect.ExitCode != 0 {
+			return errors.New("command exited with non-zero status")
+		}
+	}
+
+	return nil
+}
+
+func (docker *Docker) resizeIfChanged(args ContainerExecResizeArgs) {
+	channel := make(chan os.Signal)
+	signal.Notify(channel, syscall.SIGWINCH)
+
+	for {
+		<-channel
+		docker.ContainerExecResize(args)
+	}
+}
+
+func (docker *Docker) ContainerExecResize(args ContainerExecResizeArgs) error {
+	winSize, err := term.GetWinsize(args.Fd)
 	if err != nil {
 		return err
 	}
 
-	if inspect.ExitCode != 0 {
-		return errors.New("command exited with non-zero status")
+	options := types.ResizeOptions{
+		Height: uint(winSize.Height),
+		Width:  uint(winSize.Width),
+	}
+
+	err = docker.client.ContainerExecResize(docker.ctx, args.ExecID, options)
+	if err != nil {
+		return err
 	}
 
 	return nil

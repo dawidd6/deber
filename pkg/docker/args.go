@@ -28,5 +28,10 @@ type ContainerExecArgs struct {
 	WorkDir     string
 }
 
+type ContainerExecResizeArgs struct {
+	Fd     uintptr
+	ExecID string
+}
+
 type DockerfileArgs struct {
 }
