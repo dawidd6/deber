@@ -4,7 +4,7 @@ import "fmt"
 
 type Step struct {
 	Name        string
-	Description string
+	Description []string
 	Run         func() error
 	excluded    bool
 }
