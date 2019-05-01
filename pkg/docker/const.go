@@ -7,6 +7,8 @@ const (
 
 	MaxImageAge = time.Hour * 24 * 14
 
+	ContainerStopTimeout = time.Millisecond * 10
+
 	ContainerStateRunning    = "running"
 	ContainerStateCreated    = "created"
 	ContainerStateExited     = "exited"
