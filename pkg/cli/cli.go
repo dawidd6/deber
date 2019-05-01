@@ -12,6 +12,7 @@ var (
 	exclude string
 	shell   bool
 	remove  bool
+	list    bool
 
 	dpkgFlags    = os.Getenv("DEBER_DPKG_BUILDPACKAGE_FLAGS")
 	lintianFlags = os.Getenv("DEBER_LINTIAN_FLAGS")
@@ -52,6 +53,13 @@ func Run(program, version, description string) {
 		"r",
 		false,
 		"alias for '--include remove,stop'",
+	)
+	cmd.Flags().BoolVarP(
+		&list,
+		"list",
+		"l",
+		false,
+		"list steps in order and exit",
 	)
 
 	cmd.SetHelpCommand(&cobra.Command{Hidden: true, Use: "no"})

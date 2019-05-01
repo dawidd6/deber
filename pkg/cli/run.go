@@ -125,6 +125,11 @@ func run(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
+	case list:
+		for i, step := range steps {
+			fmt.Printf("%d. %s\n\t%s\n", i+1, step.Name, step.Description)
+		}
+		return nil
 	}
 
 	// SECTION: run steps
