@@ -71,20 +71,43 @@ func run(cmd *cobra.Command, args []string) error {
 		},
 	}
 
-	// SECTION: include-exclude
-	if include != "" && exclude != "" {
-		return errors.New("can't specify --include and --exclude together")
-	}
-	if include != "" {
-		err := steps.Include(strings.Split(include, ",")...)
+	// SECTION: handle options
+	switch {
+	case shell:
+		steps.Reset()
+		steps.ExtraFunctionAfterRun(runShellOptional)
+
+		err := steps.Include("build", "create", "start")
 		if err != nil {
 			return err
 		}
-	}
-	if exclude != "" {
-		err := steps.Exclude(strings.Split(exclude, ",")...)
+	case remove:
+		steps.Reset()
+
+		err := steps.Include("remove", "stop")
 		if err != nil {
 			return err
+		}
+	case list:
+		for i, step := range steps {
+			fmt.Printf("%d. %s\n\t%s\n", i+1, step.Name, step.Description)
+		}
+		return nil
+	default:
+		if include != "" && exclude != "" {
+			return errors.New("can't specify --include and --exclude together")
+		}
+		if include != "" {
+			err := steps.Include(strings.Split(include, ",")...)
+			if err != nil {
+				return err
+			}
+		}
+		if exclude != "" {
+			err := steps.Exclude(strings.Split(exclude, ",")...)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -108,29 +131,6 @@ func run(cmd *cobra.Command, args []string) error {
 		deb.PackageVersion,
 		archiveDir,
 	)
-
-	// SECTION: handle bool options
-	switch {
-	case shell:
-		steps.Reset()
-		steps.ExtraFunctionAfterRun(runShellOptional)
-
-		err := steps.Include("build", "create", "start")
-		if err != nil {
-			return err
-		}
-	case remove:
-		steps.Reset()
-		err := steps.Include("remove", "stop")
-		if err != nil {
-			return err
-		}
-	case list:
-		for i, step := range steps {
-			fmt.Printf("%d. %s\n\t%s\n", i+1, step.Name, step.Description)
-		}
-		return nil
-	}
 
 	// SECTION: run steps
 	err = steps.Run()
