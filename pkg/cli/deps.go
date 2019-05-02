@@ -20,8 +20,9 @@ func runDeps() error {
 	log.Drop()
 
 	args := docker.ContainerExecArgs{
-		Name: name.Container,
-		Cmd:  "sudo mk-build-deps -ri",
+		Name:   name.Container,
+		Cmd:    "mk-build-deps -ri",
+		AsRoot: true,
 	}
 	err := dock.ContainerExec(args)
 	if err != nil {

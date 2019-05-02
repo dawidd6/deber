@@ -19,6 +19,7 @@ type ContainerCreateArgs struct {
 	CacheDir   string
 	Image      string
 	Name       string
+	User       string
 }
 
 type ContainerExecArgs struct {
@@ -26,6 +27,7 @@ type ContainerExecArgs struct {
 	Name        string
 	Cmd         string
 	WorkDir     string
+	AsRoot      bool
 }
 
 type ContainerExecResizeArgs struct {

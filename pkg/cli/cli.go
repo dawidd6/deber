@@ -29,6 +29,8 @@ var (
 	dock *docker.Docker
 	name *naming.Naming
 	log  *logger.Logger
+
+	user = fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid())
 )
 
 func Run(program, version, description, examples string) {

@@ -25,14 +25,15 @@ func runTest() error {
 
 	commands := []string{
 		"debc",
-		"sudo debi --with-depends",
+		"debi --with-depends",
 		"lintian" + " " + lintianFlags,
 	}
 
 	for _, cmd := range commands {
 		args := docker.ContainerExecArgs{
-			Name: name.Container,
-			Cmd:  cmd,
+			Name:   name.Container,
+			Cmd:    cmd,
+			AsRoot: true,
 		}
 		err := dock.ContainerExec(args)
 		if err != nil {

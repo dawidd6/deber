@@ -32,6 +32,7 @@ func runCreate() error {
 		CacheDir:   name.CacheDir,
 		Image:      name.Image,
 		Name:       name.Container,
+		User:       user,
 	}
 	err = dock.ContainerCreate(args)
 	if err != nil {

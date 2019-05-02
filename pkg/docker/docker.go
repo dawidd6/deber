@@ -208,6 +208,7 @@ func (docker *Docker) ContainerCreate(args ContainerCreateArgs) error {
 	}
 	config := &container.Config{
 		Image: args.Image,
+		User:  args.User,
 	}
 
 	// mkdir
@@ -245,13 +246,8 @@ func (docker *Docker) ContainerRemove(name string) error {
 }
 
 func (docker *Docker) ContainerExec(args ContainerExecArgs) error {
-	cmd := []string{"bash"}
-	if args.Cmd != "" {
-		cmd = append(cmd, "-c", args.Cmd)
-	}
-
 	config := types.ExecConfig{
-		Cmd:          cmd,
+		Cmd:          []string{"bash"},
 		WorkingDir:   args.WorkDir,
 		AttachStdin:  args.Interactive,
 		AttachStdout: true,
@@ -261,6 +257,14 @@ func (docker *Docker) ContainerExec(args ContainerExecArgs) error {
 	check := types.ExecStartCheck{
 		Tty:    true,
 		Detach: false,
+	}
+
+	if args.AsRoot {
+		config.User = "root"
+	}
+
+	if args.Cmd != "" {
+		config.Cmd = append(config.Cmd, "-c", args.Cmd)
 	}
 
 	response, err := docker.client.ContainerExecCreate(docker.ctx, args.Name, config)

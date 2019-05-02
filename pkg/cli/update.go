@@ -31,8 +31,9 @@ func runUpdate() error {
 	}
 
 	args := docker.ContainerExecArgs{
-		Name: name.Container,
-		Cmd:  "sudo apt-get update",
+		Name:   name.Container,
+		Cmd:    "apt-get update",
+		AsRoot: true,
 	}
 	err := dock.ContainerExec(args)
 	if err != nil {

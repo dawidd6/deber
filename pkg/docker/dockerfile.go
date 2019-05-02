@@ -7,8 +7,6 @@ import (
 
 type DockerfileTemplate struct {
 	From       string
-	UserName   string
-	UserHome   string
 	ArchiveDir string
 	SourceDir  string
 	Packages   string
@@ -31,17 +29,10 @@ RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selectio
 RUN apt-get update && \
 	apt-get install --no-install-recommends -y {{ .Packages }}
 
-# Add normal user and with su access.
-RUN useradd -d {{ .UserHome }} {{ .UserName }} && \
-	echo "{{ .UserName }} ALL=NOPASSWD: ALL" > /etc/sudoers
-
 # Add local apt repository.
 RUN mkdir -p {{ .ArchiveDir }} && \
     touch {{ .ArchiveDir }}/Packages && \
     echo "deb [trusted=yes] file://{{ .ArchiveDir }} ./" > /etc/apt/sources.list.d/a.list
-
-# Define default user.
-USER {{ .UserName }}:{{ .UserName }}
 
 # Set working directory.
 WORKDIR {{ .SourceDir }}
@@ -53,11 +44,9 @@ CMD ["sleep", "inf"]
 func dockerfileParse(from string) (string, error) {
 	t := DockerfileTemplate{
 		From:       from,
-		UserName:   "builder",
-		UserHome:   "/nonexistent",
 		ArchiveDir: ContainerArchiveDir,
 		SourceDir:  ContainerSourceDir,
-		Packages:   "build-essential devscripts debhelper lintian equivs sudo",
+		Packages:   "build-essential devscripts debhelper lintian equivs",
 	}
 
 	temp, err := template.New("dockerfile").Parse(dockerfileTemplate)
