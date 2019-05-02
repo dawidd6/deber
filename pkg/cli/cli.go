@@ -103,7 +103,18 @@ func run(cmd *cobra.Command, args []string) error {
 		stepRemove,
 	}
 
-	err := initOptions(steps)
+	switch {
+	case list:
+		return printSteps(steps)
+	case remove:
+		include = "remove,stop"
+	case shell:
+		// TODO figure out how to put optional steps to stepping
+		steps.ExtraFunctionAfterRun(runShellOptional)
+		include = "build,create,start"
+	}
+
+	err := handleIncludeExclude(steps)
 	if err != nil {
 		return err
 	}
@@ -121,31 +132,21 @@ func run(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func initOptions(steps stepping.Steps) error {
-	switch {
-	case shell:
-		steps.Reset()
-		steps.ExtraFunctionAfterRun(runShellOptional)
-
-		include = "build,create,start"
-	case remove:
-		steps.Reset()
-
-		include = "remove,stop"
-	case list:
-		for i, step := range steps {
-			fmt.Printf("%d. %s\n\n", i+1, step.Name)
-			for _, desc := range step.Description {
-				fmt.Printf("\t%s\n", desc)
-			}
-
-			if i < len(steps)-1 {
-				fmt.Println()
-			}
+func printSteps(steps stepping.Steps) error {
+	for i, step := range steps {
+		fmt.Printf("%d. %s\n\n", i+1, step.Name)
+		for _, desc := range step.Description {
+			fmt.Printf("\t%s\n", desc)
 		}
-		return nil
-	}
 
+		if i < len(steps)-1 {
+			fmt.Println()
+		}
+	}
+	return nil
+}
+
+func handleIncludeExclude(steps stepping.Steps) error {
 	if include != "" && exclude != "" {
 		return errors.New("can't specify --include and --exclude together")
 	} else if include != "" {
