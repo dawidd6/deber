@@ -102,6 +102,7 @@ func run(cmd *cobra.Command, args []string) error {
 		walking.StepScan,
 		walking.StepStop,
 		walking.StepRemove,
+		walking.StepShellOptional,
 	}
 
 	switch {
@@ -110,9 +111,7 @@ func run(cmd *cobra.Command, args []string) error {
 	case remove:
 		include = "remove,stop"
 	case shell:
-		// TODO figure out how to put optional steps to stepping
-		steps.ExtraFunctionAfterRun(walking.ShellOptional)
-		include = "build,create,start"
+		include = "build,create,start,shell"
 	}
 
 	err := handleIncludeExclude(steps)
