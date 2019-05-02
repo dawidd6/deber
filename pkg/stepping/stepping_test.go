@@ -41,6 +41,40 @@ var (
 	excludes = []string{"deps", "package", "scan"}
 )
 
+func TestSuggest(t *testing.T) {
+	cases := map[string]string{
+		"eps":         "deps",
+		"udate":       "update",
+		"date":        "update",
+		"move":        "remove",
+		"stap":        "stop",
+		"stahp":       "stop",
+		"buld":        "build",
+		"arhiche":     "archive",
+		"archibald":   "archive",
+		"buildah":     "build",
+		"depends":     "deps",
+		"uil":         "build",
+		"ate":         "update",
+		"up":          "update",
+		"rm":          "remove",
+		"dep":         "deps",
+		"scam":        "scan",
+		"tar":         "tarball",
+		"checkyoself": "check",
+		"pkg":         "package",
+		"sto":         "stop",
+		"sta":         "start",
+	}
+
+	for gave, expected := range cases {
+		got := steps.Suggest(gave)
+		if got != expected {
+			t.Fatal("gave:", gave, "expected:", expected, "got:", got)
+		}
+	}
+}
+
 func TestGet(t *testing.T) {
 	included, excluded := steps.Get()
 

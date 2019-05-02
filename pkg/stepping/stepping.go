@@ -26,11 +26,68 @@ func (steps Steps) isNameValid(name string) bool {
 func (steps Steps) validateNames(names ...string) error {
 	for _, name := range names {
 		if !steps.isNameValid(name) {
-			return fmt.Errorf("step name \"%s\" is not valid", name)
+			suggestion := steps.Suggest(name)
+			return fmt.Errorf("step name \"%s\" is not valid, did you mean \"%s\"?", name, suggestion)
 		}
 	}
 
 	return nil
+}
+
+func (steps Steps) countCharacters(s string) map[string]int {
+	m := make(map[string]int)
+	for _, char := range s {
+		m[string(char)]++
+	}
+
+	return m
+}
+
+func (steps Steps) Suggest(name string) string {
+	// returned match string
+	match := ""
+
+	maxMatch := 0
+	maxHit := 0
+	inputMap := steps.countCharacters(name)
+
+	for _, step := range steps {
+		currentMatch := 0
+		currentHit := 0
+		stepMap := steps.countCharacters(step.Name)
+
+		// scan for matching characters
+		for inputChar, inputCount := range inputMap {
+			stepCount, ok := stepMap[inputChar]
+
+			if ok {
+				currentMatch++
+
+				if stepCount == inputCount {
+					currentHit++
+				}
+			}
+		}
+
+		// power up if last characters match
+		if step.Name[len(step.Name)-1] == name[len(name)-1] {
+			currentMatch++
+		}
+
+		// power up if first characters match
+		if step.Name[0] == name[0] {
+			currentMatch++
+		}
+
+		// check if there is a better match
+		if maxHit < currentHit || maxMatch < currentMatch {
+			maxHit = currentHit
+			maxMatch = currentMatch
+			match = step.Name
+		}
+	}
+
+	return match
 }
 
 func (steps Steps) ExtraFunctionAfterRun(f func() error) {
