@@ -1,7 +1,11 @@
 docker_builder:
   env:
     CONTAINER: "deber-xyz-abc"
+    SOURCE: source
   script:
+    - mkdir $SOURCE
+    - find . -mindepth 1 -maxdepth 1 -not -name $SOURCE -exec mv -t $SOURCE {} +
+    - cd $SOURCE
     - docker create --name $CONTAINER -t -v "$PWD":"/build" -w "/build" golang:1.11.4 sleep inf
     - docker start $CONTAINER
     - docker exec -t $CONTAINER go build
