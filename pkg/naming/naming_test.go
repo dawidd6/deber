@@ -138,3 +138,14 @@ func TestContainer(t *testing.T) {
 
 	test(t, got, expected)
 }
+
+func TestNew(t *testing.T) {
+	name := naming.New(program, dist, pkg, version, "")
+
+	if name.Container != container {
+		t.Fatal()
+	}
+	if name.Image != image {
+		t.Fatal()
+	}
+}
