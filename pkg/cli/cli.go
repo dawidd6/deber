@@ -26,10 +26,6 @@ var (
 	archiveDir   = os.Getenv("DEBER_ARCHIVE")
 	logColor     = os.Getenv("DEBER_LOG_COLOR")
 
-	deb  *debian.Debian
-	dock *docker.Docker
-	name *naming.Naming
-
 	user = fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid())
 )
 
@@ -127,12 +123,25 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	err = initStuff(cmd.Use)
+	deb, err := debian.ParseChangelog()
 	if err != nil {
 		return err
 	}
 
-	err = steps.Run()
+	dock, err := docker.New()
+	if err != nil {
+		return err
+	}
+
+	name := naming.New(
+		cmd.Use,
+		deb.TargetDist,
+		deb.SourceName,
+		deb.PackageVersion,
+		archiveDir,
+	)
+
+	err = steps.Run(deb, dock, name)
 	if err != nil {
 		return err
 	}
@@ -168,30 +177,6 @@ func handleIncludeExclude(steps stepping.Steps) error {
 			return err
 		}
 	}
-
-	return nil
-}
-
-func initStuff(program string) error {
-	var err error
-
-	deb, err = debian.ParseChangelog()
-	if err != nil {
-		return err
-	}
-
-	dock, err = docker.New()
-	if err != nil {
-		return err
-	}
-
-	name = naming.New(
-		program,
-		deb.TargetDist,
-		deb.SourceName,
-		deb.PackageVersion,
-		archiveDir,
-	)
 
 	return nil
 }

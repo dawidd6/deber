@@ -1,8 +1,10 @@
 package cli
 
 import (
+	"github.com/dawidd6/deber/pkg/debian"
 	"github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/log"
+	"github.com/dawidd6/deber/pkg/naming"
 	"github.com/dawidd6/deber/pkg/stepping"
 )
 
@@ -15,7 +17,7 @@ var stepScan = &stepping.Step{
 	},
 }
 
-func runScan() error {
+func runScan(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Scanning archive")
 
 	log.Drop()

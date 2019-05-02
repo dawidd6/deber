@@ -1,7 +1,10 @@
 package cli
 
 import (
+	"github.com/dawidd6/deber/pkg/debian"
+	"github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/log"
+	"github.com/dawidd6/deber/pkg/naming"
 	"github.com/dawidd6/deber/pkg/stepping"
 )
 
@@ -14,7 +17,7 @@ var stepRemove = &stepping.Step{
 	},
 }
 
-func runRemove() error {
+func runRemove(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Removing container")
 
 	isContainerCreated, err := dock.IsContainerCreated(name.Container)

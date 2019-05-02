@@ -1,19 +1,24 @@
 package stepping
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/dawidd6/deber/pkg/debian"
+	"github.com/dawidd6/deber/pkg/docker"
+	"github.com/dawidd6/deber/pkg/naming"
+)
 
 // Step struct represents one single step
 type Step struct {
 	Name        string
 	Description []string
-	Run         func() error
+	Run         func(*debian.Debian, *docker.Docker, *naming.Naming) error
 	excluded    bool
 }
 
 // Steps slice represents a collection of steps in order
 type Steps []*Step
 
-var extraFunctionAfterRun func() error
+var extraFunctionAfterRun func(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error
 
 // IsNameValid checks if entered step name is existent in current collection
 func (steps Steps) IsNameValid(name string) bool {
@@ -97,7 +102,7 @@ func (steps Steps) Suggest(name string) string {
 
 // ExtraFuctionAfterRun sets an additional function to be run
 // after successful execution of every step in Run()
-func (steps Steps) ExtraFunctionAfterRun(f func() error) {
+func (steps Steps) ExtraFunctionAfterRun(f func(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error) {
 	extraFunctionAfterRun = f
 }
 
@@ -178,20 +183,20 @@ func (steps Steps) Reset() {
 }
 
 // Run executes enabled steps
-func (steps Steps) Run() error {
+func (steps Steps) Run(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	for _, step := range steps {
 		if step.excluded {
 			continue
 		}
 
-		err := step.Run()
+		err := step.Run(deb, dock, name)
 		if err != nil {
 			return err
 		}
 	}
 
 	if extraFunctionAfterRun != nil {
-		return extraFunctionAfterRun()
+		return extraFunctionAfterRun(deb, dock, name)
 	}
 
 	return nil

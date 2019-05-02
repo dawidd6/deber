@@ -1,8 +1,10 @@
 package cli
 
 import (
+	"github.com/dawidd6/deber/pkg/debian"
 	"github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/log"
+	"github.com/dawidd6/deber/pkg/naming"
 	"github.com/dawidd6/deber/pkg/stepping"
 )
 
@@ -19,7 +21,7 @@ var stepTest = &stepping.Step{
 	},
 }
 
-func runTest() error {
+func runTest(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Testing package")
 
 	log.Drop()

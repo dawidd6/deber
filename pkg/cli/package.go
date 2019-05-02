@@ -2,8 +2,10 @@ package cli
 
 import (
 	"fmt"
+	"github.com/dawidd6/deber/pkg/debian"
 	"github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/log"
+	"github.com/dawidd6/deber/pkg/naming"
 	"github.com/dawidd6/deber/pkg/stepping"
 	"os"
 )
@@ -18,7 +20,7 @@ var stepPackage = &stepping.Step{
 	},
 }
 
-func runPackage() error {
+func runPackage(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Packaging software")
 
 	file := fmt.Sprintf("%s/%s", name.ArchiveDir, "Packages")
