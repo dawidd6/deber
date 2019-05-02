@@ -6,7 +6,10 @@ import (
 	"github.com/dawidd6/deber/pkg/log"
 	"github.com/dawidd6/deber/pkg/naming"
 	"github.com/dawidd6/deber/pkg/stepping"
+	"os"
 )
+
+var lintianFlags = os.Getenv("DEBER_LINTIAN_FLAGS")
 
 var StepTest = &stepping.Step{
 	Name: "test",

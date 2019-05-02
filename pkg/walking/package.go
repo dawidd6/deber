@@ -10,6 +10,8 @@ import (
 	"os"
 )
 
+var dpkgFlags = os.Getenv("DEBER_DPKG_BUILDPACKAGE_FLAGS")
+
 var StepPackage = &stepping.Step{
 	Name: "package",
 	Run:  Package,

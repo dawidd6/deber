@@ -1,12 +1,16 @@
 package walking
 
 import (
+	"fmt"
 	"github.com/dawidd6/deber/pkg/debian"
 	"github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/log"
 	"github.com/dawidd6/deber/pkg/naming"
 	"github.com/dawidd6/deber/pkg/stepping"
+	"os"
 )
+
+var user = fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid())
 
 var StepCreate = &stepping.Step{
 	Name: "create",

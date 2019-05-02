@@ -22,12 +22,8 @@ var (
 	remove  bool
 	list    bool
 
-	dpkgFlags    = os.Getenv("DEBER_DPKG_BUILDPACKAGE_FLAGS")
-	lintianFlags = os.Getenv("DEBER_LINTIAN_FLAGS")
-	archiveDir   = os.Getenv("DEBER_ARCHIVE")
-	logColor     = os.Getenv("DEBER_LOG_COLOR")
-
-	user = fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid())
+	archiveDir = os.Getenv("DEBER_ARCHIVE")
+	logColor   = os.Getenv("DEBER_LOG_COLOR")
 )
 
 func init() {
