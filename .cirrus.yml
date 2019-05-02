@@ -1,6 +1,7 @@
 docker_builder:
   env:
     CONTAINER: "deber-xyz-abc"
+    DEBER_ARCHIVE: "/tmp/deber"
   script:
     - docker create --name $CONTAINER -t -v "/var/run/docker.sock":"/var/run/docker.sock" -v "$PWD":"/work" -w "/work" golang:1.11.4 sleep inf
     - docker start $CONTAINER
