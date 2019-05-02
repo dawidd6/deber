@@ -18,20 +18,22 @@ const dockerfileTemplate = `
 # From which Docker image do we start?
 FROM {{ .From }}
 
-# Install required packages and remove not needed apt configs.
-RUN apt-get update && \
-	apt-get install --no-install-recommends -y {{ .Packages }} && \
-	rm /etc/apt/apt.conf.d/*
-
-# Add normal user and with su access.
-RUN useradd -d {{ .UserHome }} {{ .UserName }} && \
-	echo "{{ .UserName }} ALL=NOPASSWD: ALL" > /etc/sudoers
+# Remove not needed apt configs.
+RUN rm /etc/apt/apt.conf.d/*
 
 # Run apt without confirmations.
 RUN echo "APT::Get::Assume-Yes "true";" > /etc/apt/apt.conf.d/00noconfirm
 
 # Set debconf to be non interactive
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+
+# Install required packages
+RUN apt-get update && \
+	apt-get install --no-install-recommends -y {{ .Packages }} && \
+
+# Add normal user and with su access.
+RUN useradd -d {{ .UserHome }} {{ .UserName }} && \
+	echo "{{ .UserName }} ALL=NOPASSWD: ALL" > /etc/sudoers
 
 # Add local apt repository.
 RUN mkdir -p {{ .ArchiveDir }} && \
