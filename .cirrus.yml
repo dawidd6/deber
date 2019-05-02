@@ -3,6 +3,7 @@ docker_builder:
     CONTAINER: "deber-xyz-abc"
     DEBER_LINTIAN_FLAGS: "-i -I --allow-root"
     DEBER_DPKG_BUILDPACKAGE_FLAGS: "-tc"
+    DEBER_LOG_COLOR: "false"
   create_script:
     - docker create --name $CONTAINER -t -v "$PWD":"/build" -w "/build" golang:1.11.4 sleep inf
   start_script:
