@@ -1,22 +1,12 @@
-<p align="center">
-    <img src="art/logo.svg" />
-</p>
+![logo](art/logo.svg)
 
-<h1 align="center">deber</h1>
+# deber
 
-<p align="center">
-    <a href="https://cirrus-ci.com/github/dawidd6/deber">
-        <img alt="Build Status" src="https://api.cirrus-ci.com/github/dawidd6/deber.svg">
-    </a>
-    <a href="https://goreportcard.com/report/github.com/dawidd6/deber">
-        <img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/dawidd6/deber">
-    </a>
-    <a href="https://github.com/dawidd6/deber/releases/latest">
-        <img alt="Latest Release" src="https://img.shields.io/github/tag-date/dawidd6/deber.svg">
-    </a>
-</p>
+[![build status](https://api.cirrus-ci.com/github/dawidd6/deber.svg)](https://cirrus-ci.com/github/dawidd6/deber)
+[![go report card](https://goreportcard.com/badge/github.com/dawidd6/deber)](https://goreportcard.com/report/github.com/dawidd6/deber)
+[![latest tag](https://img.shields.io/github/tag-date/dawidd6/deber.svg)](https://github.com/dawidd6/deber/releases/latest)
 
-`Debian` **+** `Docker` **=** `deber`
+### `Debian` **+** `Docker` **=** `deber`
 
 Utility made with simplicity in mind to provide
 an easy way for building Debian packages in
