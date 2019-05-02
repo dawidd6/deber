@@ -171,6 +171,10 @@ Note: specifying other options after or before this, takes no effect.
 **DEBER_LINTIAN_FLAGS**
 
     Space separated flags to be passed to lintian in container.
+    
+**DEBER_LOG_COLOR**
+
+    Set to "no", "false" or "off" to disable log coloring.
 
 ## SEE ALSO
 
