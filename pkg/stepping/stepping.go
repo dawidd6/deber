@@ -12,13 +12,12 @@ type Step struct {
 	Name        string
 	Description []string
 	Run         func(*debian.Debian, *docker.Docker, *naming.Naming) error
-	excluded    bool
+	Optional    bool
+	Excluded    bool
 }
 
 // Steps slice represents a collection of steps in order
 type Steps []*Step
-
-var extraFunctionAfterRun func(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error
 
 // IsNameValid checks if entered step name is existent in current collection
 func (steps Steps) IsNameValid(name string) bool {
@@ -100,12 +99,6 @@ func (steps Steps) Suggest(name string) string {
 	return match
 }
 
-// ExtraFuctionAfterRun sets an additional function to be run
-// after successful execution of every step in Run()
-func (steps Steps) ExtraFunctionAfterRun(f func(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error) {
-	extraFunctionAfterRun = f
-}
-
 // Include function disables every non matching step from execution
 // and enables matching
 func (steps Steps) Include(names ...string) error {
@@ -119,11 +112,11 @@ func (steps Steps) Include(names ...string) error {
 	}
 
 	for _, step := range steps {
-		step.excluded = true
+		step.Excluded = true
 
 		for _, name := range names {
 			if name == step.Name {
-				step.excluded = false
+				step.Excluded = false
 				break
 			}
 		}
@@ -145,11 +138,15 @@ func (steps Steps) Exclude(names ...string) error {
 	}
 
 	for _, step := range steps {
-		step.excluded = false
+		if step.Optional {
+			step.Excluded = true
+		} else {
+			step.Excluded = false
+		}
 
 		for _, name := range names {
 			if name == step.Name {
-				step.excluded = true
+				step.Excluded = true
 				break
 			}
 		}
@@ -164,7 +161,7 @@ func (steps Steps) Get() (included, excluded Steps) {
 	excluded = Steps{}
 
 	for _, step := range steps {
-		if step.excluded {
+		if step.Excluded {
 			excluded = append(excluded, step)
 		} else {
 			included = append(included, step)
@@ -176,27 +173,25 @@ func (steps Steps) Get() (included, excluded Steps) {
 
 func (steps Steps) Reset() {
 	for _, step := range steps {
-		step.excluded = false
+		if step.Optional {
+			step.Excluded = true
+		} else {
+			step.Excluded = false
+		}
 	}
-
-	steps.ExtraFunctionAfterRun(nil)
 }
 
 // Run executes enabled steps
 func (steps Steps) Run(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
-	for _, step := range steps {
-		if step.excluded {
-			continue
-		}
+	included, _ := steps.Get()
 
-		err := step.Run(deb, dock, name)
-		if err != nil {
-			return err
+	for _, step := range included {
+		if step.Run != nil {
+			err := step.Run(deb, dock, name)
+			if err != nil {
+				return err
+			}
 		}
-	}
-
-	if extraFunctionAfterRun != nil {
-		return extraFunctionAfterRun(deb, dock, name)
 	}
 
 	return nil

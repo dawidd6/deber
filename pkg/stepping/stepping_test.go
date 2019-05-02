@@ -1,6 +1,10 @@
 package stepping_test
 
 import (
+	"errors"
+	"github.com/dawidd6/deber/pkg/debian"
+	"github.com/dawidd6/deber/pkg/docker"
+	"github.com/dawidd6/deber/pkg/naming"
 	"testing"
 
 	"github.com/dawidd6/deber/pkg/stepping"
@@ -19,27 +23,44 @@ var steps = stepping.Steps{
 		Name: "tarball",
 	}, {
 		Name: "update",
+		Run:  runNil,
 	}, {
 		Name: "deps",
+		Run:  runError,
 	}, {
 		Name: "package",
+		Run:  runNil,
 	}, {
 		Name: "test",
 	}, {
 		Name: "archive",
+		Run:  runNil,
 	}, {
 		Name: "scan",
+		Run:  runError,
 	}, {
 		Name: "stop",
 	}, {
 		Name: "remove",
+	}, {
+		Name:     "shell",
+		Optional: true,
+		Excluded: true,
 	},
 }
 
 var (
-	includes = []string{"deps", "package", "scan"}
-	excludes = []string{"deps", "package", "scan"}
+	includes = []string{"archive", "package", "update"}
+	excludes = []string{"archive", "package", "update"}
 )
+
+func runNil(*debian.Debian, *docker.Docker, *naming.Naming) error {
+	return nil
+}
+
+func runError(*debian.Debian, *docker.Docker, *naming.Naming) error {
+	return errors.New("error")
+}
 
 func TestSuggest(t *testing.T) {
 	cases := map[string]string{
@@ -78,11 +99,14 @@ func TestSuggest(t *testing.T) {
 func TestGet(t *testing.T) {
 	included, excluded := steps.Get()
 
-	if len(included) != len(steps) {
+	// minus one optional step
+	if len(included) != len(steps)-1 {
 		t.Fatal("len mismatch")
 	}
-	if len(excluded) > 0 {
-		t.Fatal("len > 0")
+
+	// one optional step
+	if len(excluded) != 1 {
+		t.Fatal("len mismatch")
 	}
 }
 
@@ -110,11 +134,9 @@ func TestInclude(t *testing.T) {
 
 func TestGetAfterInclude(t *testing.T) {
 	included, _ := steps.Get()
-	len1 := len(included)
-	len2 := len(includes)
 
-	if len1 != len2 {
-		t.Fatal("len mismatch", len1, len2)
+	if len(included) != len(includes) {
+		t.Fatal("len mismatch")
 	}
 
 	for _, i := range included {
@@ -130,6 +152,13 @@ func TestGetAfterInclude(t *testing.T) {
 		if !found {
 			t.Fatal("not found")
 		}
+	}
+}
+
+func TestRunAfterInclude(t *testing.T) {
+	err := steps.Run(nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -158,7 +187,8 @@ func TestExclude(t *testing.T) {
 func TestGetAfterExclude(t *testing.T) {
 	_, excluded := steps.Get()
 
-	if len(excluded) != len(excludes) {
+	// plus one optional step
+	if len(excluded) != len(excludes)+1 {
 		t.Fatal("len mismatch")
 	}
 
@@ -172,9 +202,16 @@ func TestGetAfterExclude(t *testing.T) {
 			}
 		}
 
-		if !found {
+		if !found && !i.Optional {
 			t.Fatal("not found")
 		}
+	}
+}
+
+func TestRunAfterExclude(t *testing.T) {
+	err := steps.Run(nil, nil, nil)
+	if err == nil {
+		t.Fatal(err)
 	}
 }
 
