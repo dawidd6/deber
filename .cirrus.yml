@@ -1,10 +1,12 @@
 docker_builder:
   env:
     CONTAINER: "deber-xyz-abc"
-    DEBER_ARCHIVE: "/tmp/deber"
   script:
-    - docker create --name $CONTAINER -t -v "/var/run/docker.sock":"/var/run/docker.sock" -v "$PWD":"/work" -w "/work" golang:1.11.4 sleep inf
+    - docker create --name $CONTAINER -t -v "$PWD":"/build" -w "/build" golang:1.11.4 sleep inf
     - docker start $CONTAINER
-    - docker exec -t $CONTAINER go install
+    - docker exec -t $CONTAINER go build
     - docker exec -t $CONTAINER go test -v -count 3 ./...
-    - docker exec -t $CONTAINER deber --exclude remove,stop
+    - ./deber --version
+    - ./deber --list
+    - ./deber --exclude remove,stop
+    - ./deber --remove
