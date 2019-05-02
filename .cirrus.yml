@@ -1,19 +1,12 @@
-go_task:
-  container:
-    image: golang:1.11.4
-  test_script: go test -v -count 3 ./...
-  install_script: go install
-
-package_task:
-  container:
-    image: debian:unstable
-  package_script:
-    - apt-get update
-    - apt-get install -y dpkg-dev devscripts debhelper golang-go equivs
-    - echo "apt-get -y \$@" > /bin/apty
-    - chmod +x /bin/apty
-    - mk-build-deps -ri -t apty
-    - dpkg-buildpackage
-    - debc
-    - debi --with-depends --tool apty
-    - lintian -i -I
+docker_builder:
+  env:
+    CONTAINER: "deber-xyz-abc"
+  script:
+    - docker create --name $CONTAINER -t -v "$PWD":"/build" -w "/build" golang:1.11.4 sleep inf
+    - docker start $CONTAINER
+    - docker exec -t $CONTAINER go build
+    - docker exec -t $CONTAINER go test -v -count 3 ./...
+    - ./deber -v
+    - ./deber -l
+    - ./deber -e remove,stop
+    - deber -r
