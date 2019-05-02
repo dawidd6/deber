@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dawidd6/deber/pkg/docker"
+	"github.com/dawidd6/deber/pkg/log"
 	"github.com/dawidd6/deber/pkg/stepping"
 )
 

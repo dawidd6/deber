@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"github.com/dawidd6/deber/pkg/debian"
 	"github.com/dawidd6/deber/pkg/docker"
+	"github.com/dawidd6/deber/pkg/log"
 	"github.com/dawidd6/deber/pkg/naming"
 	"github.com/dawidd6/deber/pkg/stepping"
 	"os"
 	"strings"
 
-	"github.com/dawidd6/deber/pkg/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -28,7 +28,6 @@ var (
 	deb  *debian.Debian
 	dock *docker.Docker
 	name *naming.Naming
-	log  *logger.Logger
 
 	user = fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid())
 )
@@ -83,7 +82,7 @@ func Run(program, version, description, examples string) {
 
 	err := cmd.Execute()
 	if err != nil {
-		logger.Error(program, err)
+		log.Error(err)
 		os.Exit(1)
 	}
 }
@@ -168,8 +167,6 @@ func handleIncludeExclude(steps stepping.Steps) error {
 
 func initStuff(program string) error {
 	var err error
-
-	log = logger.New(program)
 
 	deb, err = debian.ParseChangelog()
 	if err != nil {
