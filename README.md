@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="art/logo.png" />
+    <img src="art/logo.svg" />
 </p>
 
 <h1 align="center">deber</h1>
