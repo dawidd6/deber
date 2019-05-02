@@ -24,6 +24,7 @@ var (
 	dpkgFlags    = os.Getenv("DEBER_DPKG_BUILDPACKAGE_FLAGS")
 	lintianFlags = os.Getenv("DEBER_LINTIAN_FLAGS")
 	archiveDir   = os.Getenv("DEBER_ARCHIVE")
+	logColor     = os.Getenv("DEBER_LOG_COLOR")
 
 	deb  *debian.Debian
 	dock *docker.Docker
@@ -31,6 +32,12 @@ var (
 
 	user = fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid())
 )
+
+func init() {
+	if logColor == "no" || logColor == "false" || logColor == "off" {
+		log.SetNoColor()
+	}
+}
 
 func Run(program, version, description, examples string) {
 	cmd := &cobra.Command{
