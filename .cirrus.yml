@@ -6,7 +6,7 @@ docker_builder:
     - docker start $CONTAINER
     - docker exec -t $CONTAINER go build
     - docker exec -t $CONTAINER go test -v -count 3 ./...
-    - ./deber -v
-    - ./deber -l
-    - ./deber -e remove,stop
-    - deber -r
+    - ./deber --version
+    - ./deber --list
+    - ./deber --exclude remove,stop
+    - deber --remove
