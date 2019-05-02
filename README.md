@@ -25,6 +25,23 @@ Docker containers.
 ## Screencast
 
 [![asciicast](https://asciinema.org/a/237780.svg)](https://asciinema.org/a/237780)
+
+## Features
+
+- Build packages for Debian and Ubuntu
+- Use official Debian and Ubuntu images from DockerHub
+- Automatically determine if target distribution is Ubuntu or Debian
+  by querying DockerHub API
+- Skip already ran steps (not every one)
+- Include or exclude steps per your likings
+- Plays nice with `gbp-buildpackage`
+- Easy local package dependency resolve
+- Don't clutter your parent directories with `.deb`, `.dsc` and company
+- Every successfully built package goes to local repo automatically
+  so you can easily build another package that depends on previous one
+- Ability to provide custom `dpkg-buildpackage` and `lintian`
+  options by exporting a couple of environment variables
+
 ## Dependencies
 
 Name | Min Version | Notes
