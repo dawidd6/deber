@@ -2,6 +2,7 @@ package stepping
 
 import "fmt"
 
+// Step struct represents one single step
 type Step struct {
 	Name        string
 	Description []string
@@ -9,11 +10,13 @@ type Step struct {
 	excluded    bool
 }
 
+// Steps slice represents a collection of steps in order
 type Steps []*Step
 
 var extraFunctionAfterRun func() error
 
-func (steps Steps) isNameValid(name string) bool {
+// IsNameValid checks if entered step name is existent in current collection
+func (steps Steps) IsNameValid(name string) bool {
 	for _, step := range steps {
 		if step.Name == name {
 			return true
@@ -25,7 +28,7 @@ func (steps Steps) isNameValid(name string) bool {
 
 func (steps Steps) validateNames(names ...string) error {
 	for _, name := range names {
-		if !steps.isNameValid(name) {
+		if !steps.IsNameValid(name) {
 			suggestion := steps.Suggest(name)
 			return fmt.Errorf("step name \"%s\" is not valid, maybe you meant \"%s\"", name, suggestion)
 		}
@@ -43,6 +46,8 @@ func (steps Steps) countCharacters(s string) map[string]int {
 	return m
 }
 
+// Suggest function takes entered invalid step name
+// and searches for best match in collection
 func (steps Steps) Suggest(name string) string {
 	// returned match string
 	match := ""
@@ -90,10 +95,14 @@ func (steps Steps) Suggest(name string) string {
 	return match
 }
 
+// ExtraFuctionAfterRun sets an additional function to be run
+// after successful execution of every step in Run()
 func (steps Steps) ExtraFunctionAfterRun(f func() error) {
 	extraFunctionAfterRun = f
 }
 
+// Include function disables every non matching step from execution
+// and enables matching
 func (steps Steps) Include(names ...string) error {
 	if len(names) == 0 {
 		return nil
@@ -118,6 +127,8 @@ func (steps Steps) Include(names ...string) error {
 	return nil
 }
 
+// Exclude function disables every matching step from execution
+// and enables non matching
 func (steps Steps) Exclude(names ...string) error {
 	if len(names) == 0 {
 		return nil
@@ -142,6 +153,7 @@ func (steps Steps) Exclude(names ...string) error {
 	return nil
 }
 
+// Get returns included and excluded steps slices
 func (steps Steps) Get() (included, excluded Steps) {
 	included = Steps{}
 	excluded = Steps{}
@@ -165,6 +177,7 @@ func (steps Steps) Reset() {
 	steps.ExtraFunctionAfterRun(nil)
 }
 
+// Run executes enabled steps
 func (steps Steps) Run() error {
 	for _, step := range steps {
 		if step.excluded {
