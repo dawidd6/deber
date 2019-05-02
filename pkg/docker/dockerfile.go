@@ -29,7 +29,7 @@ RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selectio
 
 # Install required packages
 RUN apt-get update && \
-	apt-get install --no-install-recommends -y {{ .Packages }} && \
+	apt-get install --no-install-recommends -y {{ .Packages }}
 
 # Add normal user and with su access.
 RUN useradd -d {{ .UserHome }} {{ .UserName }} && \
