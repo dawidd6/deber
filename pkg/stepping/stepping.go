@@ -27,7 +27,7 @@ func (steps Steps) validateNames(names ...string) error {
 	for _, name := range names {
 		if !steps.isNameValid(name) {
 			suggestion := steps.Suggest(name)
-			return fmt.Errorf("step name \"%s\" is not valid, did you mean \"%s\"?", name, suggestion)
+			return fmt.Errorf("step name \"%s\" is not valid, maybe you meant \"%s\"", name, suggestion)
 		}
 	}
 

@@ -67,5 +67,5 @@ func runBuild() error {
 		}
 	}
 
-	return log.FailE(errors.New("dist image not found"))
+	return log.FailE(errors.New("distribution image not found"))
 }
