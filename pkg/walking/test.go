@@ -1,4 +1,4 @@
-package cli
+package walking
 
 import (
 	"github.com/dawidd6/deber/pkg/debian"

@@ -8,6 +8,7 @@ import (
 	"github.com/dawidd6/deber/pkg/log"
 	"github.com/dawidd6/deber/pkg/naming"
 	"github.com/dawidd6/deber/pkg/stepping"
+	"github.com/dawidd6/deber/pkg/walking"
 	"os"
 	"strings"
 
@@ -92,19 +93,19 @@ func Run(program, version, description, examples string) {
 
 func run(cmd *cobra.Command, args []string) error {
 	steps := stepping.Steps{
-		StepCheck,
-		StepBuild,
-		StepCreate,
-		StepStart,
-		StepTarball,
-		StepUpdate,
-		StepDeps,
-		StepPackage,
-		StepTest,
-		StepArchive,
-		StepScan,
-		StepStop,
-		StepRemove,
+		walking.StepCheck,
+		walking.StepBuild,
+		walking.StepCreate,
+		walking.StepStart,
+		walking.StepTarball,
+		walking.StepUpdate,
+		walking.StepDeps,
+		walking.StepPackage,
+		walking.StepTest,
+		walking.StepArchive,
+		walking.StepScan,
+		walking.StepStop,
+		walking.StepRemove,
 	}
 
 	switch {
@@ -114,7 +115,7 @@ func run(cmd *cobra.Command, args []string) error {
 		include = "remove,stop"
 	case shell:
 		// TODO figure out how to put optional steps to stepping
-		steps.ExtraFunctionAfterRun(ShellOptional)
+		steps.ExtraFunctionAfterRun(walking.ShellOptional)
 		include = "build,create,start"
 	}
 
