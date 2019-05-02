@@ -9,16 +9,16 @@ import (
 	"os"
 )
 
-var stepArchive = &stepping.Step{
+var StepArchive = &stepping.Step{
 	Name: "archive",
-	Run:  runArchive,
+	Run:  Archive,
 	Description: []string{
 		"Moves built package artifacts (like .deb, .dsc and others) to archive.",
 		"Package directory in archive is overwritten every time.",
 	},
 }
 
-func runArchive(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
+func Archive(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Archiving build")
 
 	info, _ := os.Stat(name.ArchivePackageDir)

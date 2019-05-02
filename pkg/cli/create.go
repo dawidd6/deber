@@ -8,16 +8,16 @@ import (
 	"github.com/dawidd6/deber/pkg/stepping"
 )
 
-var stepCreate = &stepping.Step{
+var StepCreate = &stepping.Step{
 	Name: "create",
-	Run:  runCreate,
+	Run:  Create,
 	Description: []string{
 		"Creates container and makes needed directories on host system.",
 		"Will fail if image is nonexistent.",
 	},
 }
 
-func runCreate(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
+func Create(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Creating container")
 
 	isContainerCreated, err := dock.IsContainerCreated(name.Container)

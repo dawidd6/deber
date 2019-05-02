@@ -8,16 +8,16 @@ import (
 	"github.com/dawidd6/deber/pkg/stepping"
 )
 
-var stepScan = &stepping.Step{
+var StepScan = &stepping.Step{
 	Name: "scan",
-	Run:  runScan,
+	Run:  Scan,
 	Description: []string{
 		"Scans available packages in archive and writes result to `Packages` file.",
 		"This `Packages` file is then used by apt in container.",
 	},
 }
 
-func runScan(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
+func Scan(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Scanning archive")
 
 	log.Drop()

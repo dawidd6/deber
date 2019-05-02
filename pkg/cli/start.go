@@ -8,9 +8,9 @@ import (
 	"github.com/dawidd6/deber/pkg/stepping"
 )
 
-var stepStart = &stepping.Step{
+var StepStart = &stepping.Step{
 	Name: "start",
-	Run:  runStart,
+	Run:  Start,
 	Description: []string{
 		"Starts previously created container.",
 		"The entry command is `sleep inf`, which means that container",
@@ -18,7 +18,7 @@ var stepStart = &stepping.Step{
 	},
 }
 
-func runStart(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
+func Start(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Starting container")
 
 	isContainerStarted, err := dock.IsContainerStarted(name.Container)

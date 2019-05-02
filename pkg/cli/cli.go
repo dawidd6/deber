@@ -92,19 +92,19 @@ func Run(program, version, description, examples string) {
 
 func run(cmd *cobra.Command, args []string) error {
 	steps := stepping.Steps{
-		stepCheck,
-		stepBuild,
-		stepCreate,
-		stepStart,
-		stepTarball,
-		stepUpdate,
-		stepDeps,
-		stepPackage,
-		stepTest,
-		stepArchive,
-		stepScan,
-		stepStop,
-		stepRemove,
+		StepCheck,
+		StepBuild,
+		StepCreate,
+		StepStart,
+		StepTarball,
+		StepUpdate,
+		StepDeps,
+		StepPackage,
+		StepTest,
+		StepArchive,
+		StepScan,
+		StepStop,
+		StepRemove,
 	}
 
 	switch {
@@ -114,7 +114,7 @@ func run(cmd *cobra.Command, args []string) error {
 		include = "remove,stop"
 	case shell:
 		// TODO figure out how to put optional steps to stepping
-		steps.ExtraFunctionAfterRun(runShellOptional)
+		steps.ExtraFunctionAfterRun(ShellOptional)
 		include = "build,create,start"
 	}
 

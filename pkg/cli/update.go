@@ -10,16 +10,16 @@ import (
 	"path/filepath"
 )
 
-var stepUpdate = &stepping.Step{
+var StepUpdate = &stepping.Step{
 	Name: "update",
-	Run:  runUpdate,
+	Run:  Update,
 	Description: []string{
 		"Updates apt's cache.",
 		"Also creates empty `Packages` file in archive if nonexistent",
 	},
 }
 
-func runUpdate(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
+func Update(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Updating cache")
 
 	log.Drop()

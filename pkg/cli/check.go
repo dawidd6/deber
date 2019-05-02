@@ -9,9 +9,9 @@ import (
 	"os"
 )
 
-var stepCheck = &stepping.Step{
+var StepCheck = &stepping.Step{
 	Name: "check",
-	Run:  runCheck,
+	Run:  Check,
 	Description: []string{
 		"Checks if to-be-built package is already built and in archive.",
 		"If package is in archive, then deber will simply exit.",
@@ -19,7 +19,7 @@ var stepCheck = &stepping.Step{
 	},
 }
 
-func runCheck(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
+func Check(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Checking archive")
 
 	info, _ := os.Stat(name.ArchivePackageDir)

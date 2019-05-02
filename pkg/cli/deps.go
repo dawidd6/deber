@@ -8,16 +8,16 @@ import (
 	"github.com/dawidd6/deber/pkg/stepping"
 )
 
-var stepDeps = &stepping.Step{
+var StepDeps = &stepping.Step{
 	Name: "deps",
-	Run:  runDeps,
+	Run:  Deps,
 	Description: []string{
 		"Installs package's build dependencies in container.",
 		"Runs `mk-build-deps` with appropriate options.",
 	},
 }
 
-func runDeps(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
+func Deps(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Installing dependencies")
 
 	log.Drop()

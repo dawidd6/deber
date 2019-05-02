@@ -10,9 +10,9 @@ import (
 	"os"
 )
 
-var stepPackage = &stepping.Step{
+var StepPackage = &stepping.Step{
 	Name: "package",
-	Run:  runPackage,
+	Run:  Package,
 	Description: []string{
 		"Runs `dpkg-buildpackage` in container.",
 		"Options passed to `dpkg-buildpackage` are taken from environment variable",
@@ -20,7 +20,7 @@ var stepPackage = &stepping.Step{
 	},
 }
 
-func runPackage(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
+func Package(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Packaging software")
 
 	file := fmt.Sprintf("%s/%s", name.ArchiveDir, "Packages")

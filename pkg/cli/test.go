@@ -8,9 +8,9 @@ import (
 	"github.com/dawidd6/deber/pkg/stepping"
 )
 
-var stepTest = &stepping.Step{
+var StepTest = &stepping.Step{
 	Name: "test",
-	Run:  runTest,
+	Run:  Test,
 	Description: []string{
 		"Runs series of commands in container:",
 		"  - debc",
@@ -21,7 +21,7 @@ var stepTest = &stepping.Step{
 	},
 }
 
-func runTest(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
+func Test(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Testing package")
 
 	log.Drop()

@@ -10,9 +10,9 @@ import (
 	"github.com/dawidd6/deber/pkg/stepping"
 )
 
-var stepBuild = &stepping.Step{
+var StepBuild = &stepping.Step{
 	Name: "build",
-	Run:  runBuild,
+	Run:  Build,
 	Description: []string{
 		"Builds image for deber's use.",
 		"This step is skipped if an image is already built.",
@@ -27,7 +27,7 @@ var stepBuild = &stepping.Step{
 	},
 }
 
-func runBuild(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
+func Build(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Building image")
 
 	isImageBuilt, err := dock.IsImageBuilt(name.Image)

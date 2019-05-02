@@ -6,7 +6,7 @@ import (
 	"github.com/dawidd6/deber/pkg/naming"
 )
 
-func runShellOptional(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
+func ShellOptional(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	args := docker.ContainerExecArgs{
 		Interactive: true,
 		Name:        name.Container,

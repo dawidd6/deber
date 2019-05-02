@@ -8,16 +8,16 @@ import (
 	"github.com/dawidd6/deber/pkg/stepping"
 )
 
-var stepStop = &stepping.Step{
+var StepStop = &stepping.Step{
 	Name: "stop",
-	Run:  runStop,
+	Run:  Stop,
 	Description: []string{
 		"Stops container.",
 		"With " + docker.ContainerStopTimeout.String() + " timeout.",
 	},
 }
 
-func runStop(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
+func Stop(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Stopping container")
 
 	isContainerStopped, err := dock.IsContainerStopped(name.Container)

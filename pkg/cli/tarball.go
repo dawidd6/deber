@@ -10,16 +10,16 @@ import (
 	"path/filepath"
 )
 
-var stepTarball = &stepping.Step{
+var StepTarball = &stepping.Step{
 	Name: "tarball",
-	Run:  runTarball,
+	Run:  Tarball,
 	Description: []string{
 		"Moves orig upstream tarball from parent directory to build directory.",
 		"Will fail if tarball is nonexistent and skip if package is native.",
 	},
 }
 
-func runTarball(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
+func Tarball(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Moving tarball")
 
 	tarball, err := deb.LocateTarball()

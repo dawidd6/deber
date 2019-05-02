@@ -8,16 +8,16 @@ import (
 	"github.com/dawidd6/deber/pkg/stepping"
 )
 
-var stepRemove = &stepping.Step{
+var StepRemove = &stepping.Step{
 	Name: "remove",
-	Run:  runRemove,
+	Run:  Remove,
 	Description: []string{
 		"Removes container.",
 		"Nothing more.",
 	},
 }
 
-func runRemove(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
+func Remove(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Removing container")
 
 	isContainerCreated, err := dock.IsContainerCreated(name.Container)
