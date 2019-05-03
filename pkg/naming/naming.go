@@ -90,7 +90,6 @@ func Image(program, dist string) string {
 	)
 }
 
-// SOURCE
 // SourceDir function returns simply current directory
 func SourceDir() string {
 	return os.Getenv("PWD")
@@ -101,7 +100,6 @@ func SourceParentDir() string {
 	return filepath.Dir(SourceDir())
 }
 
-// ARCHIVE
 // ArchiveDir function returns archive directory, but already with distribution,
 // so it's not $HOME/deber, but for example $HOME/deber/unstable
 func ArchiveDir(program, dist, dir string) string {
@@ -127,13 +125,11 @@ func ArchivePackageDir(program, dist, pkg, version, dir string) string {
 	)
 }
 
-// CACHE
 // CacheDir function returns image's cache directory on host system
 func CacheDir(program, dist string) string {
 	return filepath.Join("/tmp", Image(program, dist))
 }
 
-// BUILD
 // BuildDir function returns container's build directory on host system
 func BuildDir(program, dist, pkg, version string) string {
 	return filepath.Join("/tmp", Container(program, dist, pkg, version))

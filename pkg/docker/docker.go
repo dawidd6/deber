@@ -27,7 +27,7 @@ type Docker struct {
 
 // New function creates fresh Docker struct and connects to Docker Engine
 func New() (*Docker, error) {
-	cli, err := client.NewClientWithOpts(client.WithVersion(ApiVersion))
+	cli, err := client.NewClientWithOpts(client.WithVersion(APIVersion))
 	if err != nil {
 		return nil, err
 	}

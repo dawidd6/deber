@@ -83,7 +83,7 @@ func UpstreamVersion(line string) string {
 	return upstreamVersion
 }
 
-// PackageVersion parses single changelog line to extract
+// TargetDist parses single changelog line to extract
 // target distribution
 func TargetDist(line string) string {
 	targetDist := strings.Split(line, " ")[2]
