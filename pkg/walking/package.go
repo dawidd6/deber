@@ -1,7 +1,6 @@
 package walking
 
 import (
-	"fmt"
 	"github.com/dawidd6/deber/pkg/debian"
 	"github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/log"
@@ -28,16 +27,6 @@ var StepPackage = &stepping.Step{
 // enables network back
 func Package(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Packaging software")
-
-	// TODO duplicated code, see Update()
-	file := fmt.Sprintf("%s/%s", name.ArchiveDir, "Packages")
-	info, _ := os.Stat(file)
-	if info == nil {
-		_, err := os.Create(file)
-		if err != nil {
-			return log.FailE(err)
-		}
-	}
 
 	err := dock.ContainerDisableNetwork(name.Container)
 	if err != nil {
