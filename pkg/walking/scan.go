@@ -8,6 +8,7 @@ import (
 	"github.com/dawidd6/deber/pkg/stepping"
 )
 
+// StepScan defines scan step
 var StepScan = &stepping.Step{
 	Name: "scan",
 	Run:  Scan,
@@ -17,6 +18,7 @@ var StepScan = &stepping.Step{
 	},
 }
 
+// Scan function executes "dpkg-scanpackages" in container and archive
 func Scan(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Scanning archive")
 

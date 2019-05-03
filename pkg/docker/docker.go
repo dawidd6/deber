@@ -19,11 +19,13 @@ import (
 	"github.com/docker/docker/pkg/term"
 )
 
+// Docker struct holds Docker client and a context for it
 type Docker struct {
 	client *client.Client
 	ctx    context.Context
 }
 
+// New function creates fresh Docker struct and connects to Docker Engine
 func New() (*Docker, error) {
 	cli, err := client.NewClientWithOpts(client.WithVersion(ApiVersion))
 	if err != nil {
@@ -36,6 +38,7 @@ func New() (*Docker, error) {
 	}, nil
 }
 
+// IsImageBuilt function check if image with given name is built
 func (docker *Docker) IsImageBuilt(name string) (bool, error) {
 	list, err := docker.client.ImageList(docker.ctx, types.ImageListOptions{})
 	if err != nil {
@@ -53,6 +56,8 @@ func (docker *Docker) IsImageBuilt(name string) (bool, error) {
 	return false, nil
 }
 
+// IsImageOld function check if image should be rebuilt
+// ImageMaxAge constant is utilized here
 func (docker *Docker) IsImageOld(name string) (bool, error) {
 	inspect, _, err := docker.client.ImageInspectWithRaw(docker.ctx, name)
 	if err != nil {
@@ -65,13 +70,15 @@ func (docker *Docker) IsImageOld(name string) (bool, error) {
 	}
 
 	diff := time.Since(created)
-	if diff > MaxImageAge {
+	if diff > ImageMaxAge {
 		return true, nil
 	}
 
 	return false, nil
 }
 
+// IsContainerCreated function checks if container is created
+// or simply just exists
 func (docker *Docker) IsContainerCreated(name string) (bool, error) {
 	list, err := docker.client.ContainerList(docker.ctx, types.ContainerListOptions{All: true})
 	if err != nil {
@@ -89,6 +96,8 @@ func (docker *Docker) IsContainerCreated(name string) (bool, error) {
 	return false, nil
 }
 
+// IsContainerStarted function checks
+// if container's state == ContainerStateRunning
 func (docker *Docker) IsContainerStarted(name string) (bool, error) {
 	list, err := docker.client.ContainerList(docker.ctx, types.ContainerListOptions{All: true})
 	if err != nil {
@@ -108,6 +117,8 @@ func (docker *Docker) IsContainerStarted(name string) (bool, error) {
 	return false, nil
 }
 
+// IsContainerStopped function checks
+// if container's state != ContainerStateRunning
 func (docker *Docker) IsContainerStopped(name string) (bool, error) {
 	list, err := docker.client.ContainerList(docker.ctx, types.ContainerListOptions{All: true})
 	if err != nil {
@@ -127,7 +138,9 @@ func (docker *Docker) IsContainerStopped(name string) (bool, error) {
 	return true, nil
 }
 
-func (docker *Docker) ImageBuild(args BuildImageArgs) error {
+// ImageBuild function build image from dockerfile
+// and prints output to Stdout
+func (docker *Docker) ImageBuild(args ImageBuildArgs) error {
 	dockerfile, err := dockerfileParse(args.From)
 	if err != nil {
 		return err
@@ -184,6 +197,8 @@ func (docker *Docker) ImageBuild(args BuildImageArgs) error {
 	return nil
 }
 
+// ContainerCreate function creates container and
+// makes required directories and host system
 func (docker *Docker) ContainerCreate(args ContainerCreateArgs) error {
 	hostConfig := &container.HostConfig{
 		Mounts: []mount.Mount{
@@ -227,24 +242,33 @@ func (docker *Docker) ContainerCreate(args ContainerCreateArgs) error {
 	return nil
 }
 
+// ContainerStart function starts container, just that
 func (docker *Docker) ContainerStart(name string) error {
 	options := types.ContainerStartOptions{}
 
 	return docker.client.ContainerStart(docker.ctx, name, options)
 }
 
+// ContainerStop function stops container, just that
+// It utilizes ContainerStopTimeout constant
 func (docker *Docker) ContainerStop(name string) error {
 	timeout := ContainerStopTimeout
 
 	return docker.client.ContainerStop(docker.ctx, name, &timeout)
 }
 
+// ContainerRemove function removes container, just that
 func (docker *Docker) ContainerRemove(name string) error {
 	options := types.ContainerRemoveOptions{}
 
 	return docker.client.ContainerRemove(docker.ctx, name, options)
 }
 
+// ContainerExec function executes a command in running container
+// Command is executed in bash shell by default
+// Command can be executed as root
+// Command can be executed interactively
+// Command can be empty, in that case just bash is executed
 func (docker *Docker) ContainerExec(args ContainerExecArgs) error {
 	config := types.ExecConfig{
 		Cmd:          []string{"bash"},
@@ -328,6 +352,7 @@ func (docker *Docker) resizeIfChanged(args ContainerExecResizeArgs) {
 	}
 }
 
+// ContainerExecResize function resizes TTY for exec process
 func (docker *Docker) ContainerExecResize(args ContainerExecResizeArgs) error {
 	winSize, err := term.GetWinsize(args.Fd)
 	if err != nil {
@@ -347,10 +372,12 @@ func (docker *Docker) ContainerExecResize(args ContainerExecResizeArgs) error {
 	return nil
 }
 
+// ContainerDisableNetwork function disconnects "bridge" network from container
 func (docker *Docker) ContainerDisableNetwork(name string) error {
 	return docker.client.NetworkDisconnect(docker.ctx, "bridge", name, false)
 }
 
+// ContainerEnableNetwork function connects "bridge" network to container
 func (docker *Docker) ContainerEnableNetwork(name string) error {
 	return docker.client.NetworkConnect(docker.ctx, "bridge", name, nil)
 }

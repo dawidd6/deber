@@ -171,6 +171,8 @@ func (steps Steps) Get() (included, excluded Steps) {
 	return included, excluded
 }
 
+// Reset sets every optional step to excluded and
+// non optional to included
 func (steps Steps) Reset() {
 	for _, step := range steps {
 		if step.Optional {

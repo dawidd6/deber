@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+// Naming struct represents a collection of directory names
+// used on host system
 type Naming struct {
 	// Docker container name.
 	//
@@ -44,6 +46,7 @@ type Naming struct {
 	BuildDir string
 }
 
+// New function returns a fresh Naming struct with defined fields
 func New(program, dist, pkg, version, archiveDir string) *Naming {
 	return &Naming{
 		Container: Container(program, dist, pkg, version),
@@ -61,6 +64,7 @@ func New(program, dist, pkg, version, archiveDir string) *Naming {
 	}
 }
 
+// Container function returns a standardized container name
 func Container(program, dist, pkg, version string) string {
 	// Docker allows only [a-zA-Z0-9][a-zA-Z0-9_.-]
 	// and Debian versioning allows these characters
@@ -77,6 +81,7 @@ func Container(program, dist, pkg, version string) string {
 	)
 }
 
+// Image function returns a standardized image name
 func Image(program, dist string) string {
 	return fmt.Sprintf(
 		"%s:%s",
@@ -86,15 +91,19 @@ func Image(program, dist string) string {
 }
 
 // SOURCE
+// SourceDir function returns simply current directory
 func SourceDir() string {
 	return os.Getenv("PWD")
 }
 
+// SourceParentDir function returns parent of current directory
 func SourceParentDir() string {
 	return filepath.Dir(SourceDir())
 }
 
 // ARCHIVE
+// ArchiveDir function returns archive directory, but already with distribution,
+// so it's not $HOME/deber, but for example $HOME/deber/unstable
 func ArchiveDir(program, dist, dir string) string {
 	if dir == "" {
 		dir = os.Getenv("HOME")
@@ -108,6 +117,7 @@ func ArchiveDir(program, dist, dir string) string {
 	)
 }
 
+// ArchivePackageDir function returns package directory in archive
 func ArchivePackageDir(program, dist, pkg, version, dir string) string {
 	return fmt.Sprintf(
 		"%s/%s_%s",
@@ -118,11 +128,13 @@ func ArchivePackageDir(program, dist, pkg, version, dir string) string {
 }
 
 // CACHE
+// CacheDir function returns image's cache directory on host system
 func CacheDir(program, dist string) string {
 	return filepath.Join("/tmp", Image(program, dist))
 }
 
 // BUILD
+// BuildDir function returns container's build directory on host system
 func BuildDir(program, dist, pkg, version string) string {
 	return filepath.Join("/tmp", Container(program, dist, pkg, version))
 }

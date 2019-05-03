@@ -11,6 +11,7 @@ import (
 
 var lintianFlags = os.Getenv("DEBER_LINTIAN_FLAGS")
 
+// StepTest defines test step
 var StepTest = &stepping.Step{
 	Name: "test",
 	Run:  Test,
@@ -24,6 +25,7 @@ var StepTest = &stepping.Step{
 	},
 }
 
+// Test function executes "debc", "debi" and "lintian" in container
 func Test(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Testing package")
 

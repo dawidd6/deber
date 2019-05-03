@@ -9,6 +9,7 @@ import (
 	"os"
 )
 
+// StepCheck defines check step
 var StepCheck = &stepping.Step{
 	Name: "check",
 	Run:  Check,
@@ -19,6 +20,8 @@ var StepCheck = &stepping.Step{
 	},
 }
 
+// Check function evaluates if package has been already built and
+// is in archive, if it is, then it exits with 0 code
 func Check(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Checking archive")
 

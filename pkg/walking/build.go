@@ -10,6 +10,7 @@ import (
 	"github.com/dawidd6/deber/pkg/stepping"
 )
 
+// StepBuild defines build step
 var StepBuild = &stepping.Step{
 	Name: "build",
 	Run:  Build,
@@ -27,6 +28,10 @@ var StepBuild = &stepping.Step{
 	},
 }
 
+// Build function determines parent image name by querying DockerHub API
+// for available "debian" and "ubuntu" tags and confronting them with
+// debian/changelog's target distribution
+// At last it commands Docker Engine to build image
 func Build(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Building image")
 
@@ -56,7 +61,7 @@ func Build(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 
 				log.Drop()
 
-				args := docker.BuildImageArgs{
+				args := docker.ImageBuildArgs{
 					From: from,
 					Name: name.Image,
 				}

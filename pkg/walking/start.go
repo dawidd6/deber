@@ -8,6 +8,7 @@ import (
 	"github.com/dawidd6/deber/pkg/stepping"
 )
 
+// StepStart defines start step
 var StepStart = &stepping.Step{
 	Name: "start",
 	Run:  Start,
@@ -18,6 +19,7 @@ var StepStart = &stepping.Step{
 	},
 }
 
+// Start function commands Docker Engine to start container
 func Start(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Starting container")
 

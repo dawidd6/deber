@@ -5,6 +5,8 @@ import (
 	"text/template"
 )
 
+// DockerfileTemplate struct defines parameters passed to
+// dockerfile template
 type DockerfileTemplate struct {
 	From       string
 	ArchiveDir string
