@@ -7,7 +7,7 @@ import (
 	"github.com/dawidd6/deber/pkg/stepping"
 )
 
-// StepShellOptional defines optional shell step
+// StepShellOptional defines optional shell step.
 var StepShellOptional = &stepping.Step{
 	Name:     "shell",
 	Run:      ShellOptional,
@@ -19,7 +19,7 @@ var StepShellOptional = &stepping.Step{
 	},
 }
 
-// ShellOptional function interactively executes bash shell in container
+// ShellOptional function interactively executes bash shell in container.
 func ShellOptional(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	args := docker.ContainerExecArgs{
 		Interactive: true,

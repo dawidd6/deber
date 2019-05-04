@@ -7,7 +7,7 @@ import (
 	"github.com/dawidd6/deber/pkg/naming"
 )
 
-// Step struct represents one single step
+// Step struct represents one single step.
 type Step struct {
 	Name        string
 	Description []string
@@ -16,10 +16,10 @@ type Step struct {
 	Excluded    bool
 }
 
-// Steps slice represents a collection of steps in order
+// Steps slice represents a collection of steps in order.
 type Steps []*Step
 
-// IsNameValid checks if entered step name is existent in current collection
+// IsNameValid checks if entered step name is existent in current collection.
 func (steps Steps) IsNameValid(name string) bool {
 	for _, step := range steps {
 		if step.Name == name {
@@ -51,7 +51,7 @@ func (steps Steps) countCharacters(s string) map[string]int {
 }
 
 // Suggest function takes entered invalid step name
-// and searches for best match in collection
+// and searches for best match in collection.
 func (steps Steps) Suggest(name string) string {
 	// returned match string
 	match := ""
@@ -100,7 +100,7 @@ func (steps Steps) Suggest(name string) string {
 }
 
 // Include function disables every non matching step from execution
-// and enables matching
+// and enables matching.
 func (steps Steps) Include(names ...string) error {
 	if len(names) == 0 {
 		return nil
@@ -126,7 +126,7 @@ func (steps Steps) Include(names ...string) error {
 }
 
 // Exclude function disables every matching step from execution
-// and enables non matching
+// and enables non matching.
 func (steps Steps) Exclude(names ...string) error {
 	if len(names) == 0 {
 		return nil
@@ -155,7 +155,7 @@ func (steps Steps) Exclude(names ...string) error {
 	return nil
 }
 
-// Get returns included and excluded steps slices
+// Get returns included and excluded steps slices.
 func (steps Steps) Get() (included, excluded Steps) {
 	included = Steps{}
 	excluded = Steps{}
@@ -172,7 +172,7 @@ func (steps Steps) Get() (included, excluded Steps) {
 }
 
 // Reset sets every optional step to excluded and
-// non optional to included
+// non optional to included.
 func (steps Steps) Reset() {
 	for _, step := range steps {
 		if step.Optional {
@@ -183,7 +183,7 @@ func (steps Steps) Reset() {
 	}
 }
 
-// Run executes enabled steps
+// Run executes enabled steps.
 func (steps Steps) Run(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	included, _ := steps.Get()
 

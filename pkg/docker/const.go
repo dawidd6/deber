@@ -7,6 +7,7 @@ const (
 	APIVersion = "1.30"
 
 	// ImageMaxAge constant defines how old image can be
+	//
 	// If image was created ImageMaxAge time ago, then
 	// it should be rebuilt
 	ImageMaxAge = time.Hour * 24 * 14

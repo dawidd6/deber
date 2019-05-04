@@ -32,8 +32,9 @@ func init() {
 	}
 }
 
-// Run function is the first that should be executed
-// it's the heart of cli
+// Run function is the first that should be executed.
+//
+// It's the heart of cli.
 func Run(program, version, description, examples string) {
 	cmd := &cobra.Command{
 		Use:     program,

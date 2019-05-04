@@ -8,7 +8,7 @@ import (
 	"github.com/dawidd6/deber/pkg/stepping"
 )
 
-// StepStop defines stop step
+// StepStop defines stop step.
 var StepStop = &stepping.Step{
 	Name: "stop",
 	Run:  Stop,
@@ -18,7 +18,7 @@ var StepStop = &stepping.Step{
 	},
 }
 
-// Stop function commands Docker Engine to stop container
+// Stop function commands Docker Engine to stop container.
 func Stop(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Stopping container")
 

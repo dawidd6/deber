@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 )
 
-// StepUpdate defines update step
+// StepUpdate defines update step.
 var StepUpdate = &stepping.Step{
 	Name: "update",
 	Run:  Update,
@@ -21,7 +21,7 @@ var StepUpdate = &stepping.Step{
 }
 
 // Update function executes apt-get update in container and
-// creates "Packages" file in archive if not present
+// creates "Packages" file in archive if not present.
 func Update(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Updating cache")
 

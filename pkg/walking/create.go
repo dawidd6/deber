@@ -12,7 +12,7 @@ import (
 
 var user = fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid())
 
-// StepCreate defines create step
+// StepCreate defines create step.
 var StepCreate = &stepping.Step{
 	Name: "create",
 	Run:  Create,
@@ -22,7 +22,7 @@ var StepCreate = &stepping.Step{
 	},
 }
 
-// Create function commands Docker Engine to create container
+// Create function commands Docker Engine to create container.
 func Create(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Creating container")
 

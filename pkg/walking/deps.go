@@ -8,7 +8,7 @@ import (
 	"github.com/dawidd6/deber/pkg/stepping"
 )
 
-// StepDeps defines deps step
+// StepDeps defines deps step.
 var StepDeps = &stepping.Step{
 	Name: "deps",
 	Run:  Deps,
@@ -18,7 +18,7 @@ var StepDeps = &stepping.Step{
 	},
 }
 
-// Deps function executes "mk-build-deps" in container
+// Deps function executes "mk-build-deps" in container.
 func Deps(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Installing dependencies")
 

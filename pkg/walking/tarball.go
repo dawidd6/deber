@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 )
 
-// StepTarball defines tarball step
+// StepTarball defines tarball step.
 var StepTarball = &stepping.Step{
 	Name: "tarball",
 	Run:  Tarball,
@@ -21,7 +21,7 @@ var StepTarball = &stepping.Step{
 }
 
 // Tarball function moves orig upstream tarball from parent directory
-// to build directory if package is not native
+// to build directory if package is not native.
 func Tarball(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Moving tarball")
 

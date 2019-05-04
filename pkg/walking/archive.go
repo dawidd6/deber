@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-// StepArchive defines archive step
+// StepArchive defines archive step.
 var StepArchive = &stepping.Step{
 	Name: "archive",
 	Run:  Archive,
@@ -19,7 +19,7 @@ var StepArchive = &stepping.Step{
 	},
 }
 
-// Archive function moves successful build to archive by overwriting
+// Archive function moves successful build to archive by overwriting.
 func Archive(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Archiving build")
 

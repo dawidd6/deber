@@ -11,7 +11,7 @@ import (
 
 var dpkgFlags = os.Getenv("DEBER_DPKG_BUILDPACKAGE_FLAGS")
 
-// StepPackage defines package step
+// StepPackage defines package step.
 var StepPackage = &stepping.Step{
 	Name: "package",
 	Run:  Package,
@@ -24,7 +24,7 @@ var StepPackage = &stepping.Step{
 
 // Package function first disables network in container,
 // then executes "dpkg-buildpackage" and at the end,
-// enables network back
+// enables network back.
 func Package(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Packaging software")
 

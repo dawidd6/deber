@@ -8,7 +8,7 @@ import (
 	"github.com/dawidd6/deber/pkg/stepping"
 )
 
-// StepRemove defines remove step
+// StepRemove defines remove step.
 var StepRemove = &stepping.Step{
 	Name: "remove",
 	Run:  Remove,
@@ -18,7 +18,7 @@ var StepRemove = &stepping.Step{
 	},
 }
 
-// Remove function commands Docker Engine to remove container
+// Remove function commands Docker Engine to remove container.
 func Remove(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Removing container")
 

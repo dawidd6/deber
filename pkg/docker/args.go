@@ -1,7 +1,7 @@
 package docker
 
 // ImageBuildArgs struct represents arguments
-// passed to ImageBuild()
+// passed to ImageBuild().
 type ImageBuildArgs struct {
 	// Full parent image name,
 	// placed in Dockerfile's FROM directive
@@ -15,7 +15,7 @@ type ImageBuildArgs struct {
 }
 
 // ContainerCreateArgs struct represents arguments
-// passed to ContainerCreate()
+// passed to ContainerCreate().
 type ContainerCreateArgs struct {
 	SourceDir  string
 	BuildDir   string
@@ -27,7 +27,7 @@ type ContainerCreateArgs struct {
 }
 
 // ContainerExecArgs struct represents arguments
-// passed to ContainerExec()
+// passed to ContainerExec().
 type ContainerExecArgs struct {
 	Interactive bool
 	Name        string
@@ -37,7 +37,7 @@ type ContainerExecArgs struct {
 }
 
 // ContainerExecResizeArgs struct represents arguments
-// passed to ContainerExecResize()
+// passed to ContainerExecResize().
 type ContainerExecResizeArgs struct {
 	Fd     uintptr
 	ExecID string
