@@ -23,6 +23,7 @@ var StepShellOptional = &stepping.Step{
 func ShellOptional(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	args := docker.ContainerExecArgs{
 		Interactive: true,
+		AsRoot:      true,
 		Name:        name.Container,
 	}
 	err := dock.ContainerExec(args)
