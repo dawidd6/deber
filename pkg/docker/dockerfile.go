@@ -2,6 +2,8 @@ package docker
 
 import (
 	"bytes"
+	"fmt"
+	"strings"
 	"text/template"
 )
 
@@ -12,6 +14,7 @@ type DockerfileTemplate struct {
 	ArchiveDir string
 	SourceDir  string
 	Packages   string
+	Backports  string
 }
 
 const dockerfileTemplate = `
@@ -26,6 +29,9 @@ RUN echo "APT::Get::Assume-Yes "true";" > /etc/apt/apt.conf.d/00noconfirm
 
 # Set debconf to be non interactive
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+
+# Backports pinning
+{{ .Backports }}
 
 # Install required packages
 RUN apt-get update && \
@@ -49,6 +55,16 @@ func dockerfileParse(from string) (string, error) {
 		ArchiveDir: ContainerArchiveDir,
 		SourceDir:  ContainerSourceDir,
 		Packages:   "build-essential devscripts debhelper lintian equivs",
+	}
+
+	dist := strings.Split(from, ":")[1]
+
+	if strings.Contains(dist, "-backports") {
+		t.Backports = fmt.Sprintf(
+			"RUN printf \"%s\" > %s",
+			"Package: *\\nPin: release a="+dist+"\\nPin-Priority: 800",
+			"/etc/apt/preferences.d/backports",
+		)
 	}
 
 	temp, err := template.New("dockerfile").Parse(dockerfileTemplate)
