@@ -1,5 +1,3 @@
-![logo](art/logo.svg)
-
 # deber
 
 [![GoDoc](https://godoc.org/github.com/dawidd6/deber?status.svg)](https://godoc.org/github.com/dawidd6/deber)

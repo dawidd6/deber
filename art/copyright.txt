@@ -1,7 +1,0 @@
-Docker icon: CC BY 4.0 License (https://creativecommons.org/licenses/by/4.0/)
-In the Font Awesome Free download, the CC BY 4.0 license applies to all icons
-packaged as SVG and JS file types.
-
-Debian icon: Copyright 1999 Software in the Public Interest.
-
-Go icon: Copyright 2018 The Go Authors. All rights reserved.
