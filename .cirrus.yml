@@ -16,5 +16,6 @@ docker_builder:
   deber_script:
     - deber --version
     - deber -l
-    - deber -c -e remove --no-color
+    - deber -c
+    - deber -e remove --no-color
     - deber -i remove --no-color
