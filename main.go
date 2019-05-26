@@ -5,13 +5,17 @@ import "github.com/dawidd6/deber/pkg/cli"
 const (
 	program = "deber"
 	version = "0.4"
-	desc    = `Debian packaging with Docker`
+	desc    = `Debian packaging with Docker.`
 )
 
 const examples = `
 Basic usage of deber with gbp:
 
     $ gbp buildpackage --git-builder deber
+
+Listing all available steps in order:
+
+	$ deber -l
 
 Excluding some steps:
 
@@ -39,6 +43,8 @@ Run without updating apt's cache:
     $ deber -e update
 
 Launch interactive bash shell session in container:
+Note: this option should be used standalone,
+      when shell exits, deber exits too.
 
     $ deber --shell`
 
