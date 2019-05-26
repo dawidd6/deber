@@ -1,10 +1,15 @@
+// Package 'omap' implements an ordered map and basic operations on it.
 package omap
 
+// OrderedMap struct represents a custom map made of two slices.
 type OrderedMap struct {
 	keys   []string
 	values []interface{}
 }
 
+// Append adds key with its value at the end of the map.
+//
+// If key already exists in map, only its value is updated.
 func (om *OrderedMap) Append(key string, value interface{}) {
 	for i := range om.keys {
 		if key == om.keys[i] {
@@ -17,6 +22,9 @@ func (om *OrderedMap) Append(key string, value interface{}) {
 	om.values = append(om.values, value)
 }
 
+// Prepend adds key with its value at the beginning of the map.
+//
+// If key already exists in map, only its value is updated.
 func (om *OrderedMap) Prepend(key string, value interface{}) {
 	for i := range om.keys {
 		if key == om.keys[i] {
@@ -29,6 +37,9 @@ func (om *OrderedMap) Prepend(key string, value interface{}) {
 	om.values = append([]interface{}{value}, om.values...)
 }
 
+// InsertBefore adds key with its value before specified key in map.
+//
+// If key already exists in map, only its value is updated.
 func (om *OrderedMap) InsertBefore(before, key string, value interface{}) {
 	for i := range om.keys {
 		if key == om.keys[i] {
@@ -46,6 +57,9 @@ func (om *OrderedMap) InsertBefore(before, key string, value interface{}) {
 	}
 }
 
+// InsertAfter adds key with its value after specified key in map.
+//
+// If key already exists in map, only its value is updated.
 func (om *OrderedMap) InsertAfter(after, key string, value interface{}) {
 	for i := range om.keys {
 		if key == om.keys[i] {
@@ -63,6 +77,7 @@ func (om *OrderedMap) InsertAfter(after, key string, value interface{}) {
 	}
 }
 
+// Delete removes specified keys with their values from map.
 func (om *OrderedMap) Delete(keys ...string) {
 	for _, key := range keys {
 		for i := range om.keys {
@@ -75,6 +90,7 @@ func (om *OrderedMap) Delete(keys ...string) {
 	}
 }
 
+// Has checks if specified key exists in map.
 func (om *OrderedMap) Has(key string) bool {
 	for i := range om.keys {
 		if om.keys[i] == key {
@@ -85,23 +101,28 @@ func (om *OrderedMap) Has(key string) bool {
 	return false
 }
 
+// Keys returns all existing keys in map.
 func (om *OrderedMap) Keys() []string {
 	return om.keys
 }
 
+// Values returns all existing values in map.
 func (om *OrderedMap) Values() []interface{} {
 	return om.values
 }
 
+// Count returns the current length of map.
 func (om *OrderedMap) Count() int {
 	return len(om.keys)
 }
 
+// DeleteAll removes all elements from map.
 func (om *OrderedMap) DeleteAll() {
 	om.keys = nil
 	om.values = nil
 }
 
+// DeleteAllExcept remove all elements from maps except those specified.
 func (om *OrderedMap) DeleteAllExcept(keys ...string) {
 	trash := make([]string, 0)
 
