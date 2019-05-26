@@ -1,4 +1,4 @@
-// Package 'omap' implements an ordered map and basic operations on it.
+// Package omap implements an ordered map and basic operations on it.
 package omap
 
 // OrderedMap struct represents a custom map made of two slices.
