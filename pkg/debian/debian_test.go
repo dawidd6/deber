@@ -1,18 +1,15 @@
 package debian_test
 
 import (
+	"fmt"
+	"github.com/stretchr/testify/assert"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/dawidd6/deber/pkg/debian"
 )
-
-func test(t *testing.T, got, expected *debian.Debian) {
-	if *got != *expected {
-		t.Log("got:", got)
-		t.Log("expected:", expected)
-		t.Fatal("got != expected")
-	}
-}
 
 func TestNew1(t *testing.T) {
 	line := "golang-github-alcortesm-tgz (0.0~git20161220.9c5fe88-1) unstable; urgency=medium"
@@ -26,7 +23,7 @@ func TestNew1(t *testing.T) {
 		IsNative:        false,
 	}
 
-	test(t, got, expected)
+	assert.Equal(t, expected, got)
 }
 
 func TestNew2(t *testing.T) {
@@ -41,7 +38,7 @@ func TestNew2(t *testing.T) {
 		IsNative:        false,
 	}
 
-	test(t, got, expected)
+	assert.Equal(t, expected, got)
 }
 
 func TestNew3(t *testing.T) {
@@ -56,7 +53,7 @@ func TestNew3(t *testing.T) {
 		IsNative:        false,
 	}
 
-	test(t, got, expected)
+	assert.Equal(t, expected, got)
 }
 
 func TestNew4(t *testing.T) {
@@ -71,7 +68,7 @@ func TestNew4(t *testing.T) {
 		IsNative:        false,
 	}
 
-	test(t, got, expected)
+	assert.Equal(t, expected, got)
 }
 
 func TestNew5(t *testing.T) {
@@ -86,7 +83,7 @@ func TestNew5(t *testing.T) {
 		IsNative:        true,
 	}
 
-	test(t, got, expected)
+	assert.Equal(t, expected, got)
 }
 
 func TestNew6(t *testing.T) {
@@ -101,7 +98,7 @@ func TestNew6(t *testing.T) {
 		IsNative:        false,
 	}
 
-	test(t, got, expected)
+	assert.Equal(t, expected, got)
 }
 
 func TestNew7(t *testing.T) {
@@ -116,5 +113,83 @@ func TestNew7(t *testing.T) {
 		IsNative:        false,
 	}
 
-	test(t, got, expected)
+	assert.Equal(t, expected, got)
+}
+
+func TestNew8(t *testing.T) {
+	line := "git-buildpackage (1.0.0) UNRELEASED; urgency=medium"
+
+	got := debian.New(line)
+	expected := &debian.Debian{
+		SourceName:      "git-buildpackage",
+		PackageVersion:  "1.0.0",
+		UpstreamVersion: "1.0.0",
+		TargetDist:      "unstable",
+		IsNative:        true,
+	}
+
+	assert.Equal(t, expected, got)
+}
+
+func TestParseChangelog(t *testing.T) {
+	line := "git-buildpackage (1.0.0) UNRELEASED; urgency=medium\n"
+
+	err := os.Mkdir("debian", os.ModePerm)
+	assert.NoError(t, err)
+
+	err = ioutil.WriteFile("debian/changelog", []byte(line), os.ModePerm)
+	assert.NoError(t, err)
+
+	got, err := debian.ParseChangelog()
+	expected := &debian.Debian{
+		SourceName:      "git-buildpackage",
+		PackageVersion:  "1.0.0",
+		UpstreamVersion: "1.0.0",
+		TargetDist:      "unstable",
+		IsNative:        true,
+	}
+
+	assert.NoError(t, err)
+	assert.Equal(t, expected, got)
+	assert.NoError(t, os.RemoveAll("debian"))
+}
+
+func TestLocateTarball1(t *testing.T) {
+	line := "git-buildpackage (1.0.0) UNRELEASED; urgency=medium"
+	got := debian.New(line)
+
+	tarball, err := got.LocateTarball("")
+
+	assert.Equal(t, "", tarball)
+	assert.NoError(t, err)
+}
+
+func TestLocateTarball2(t *testing.T) {
+	line := "ansible (2.7.5+dfsg-1~bpo9+1) stretch-backports; urgency=medium"
+	got := debian.New(line)
+
+	tarball, err := got.LocateTarball("")
+
+	assert.Equal(t, "", tarball)
+	assert.Error(t, err)
+}
+
+func TestLocateTarball3(t *testing.T) {
+	line := "ansible (2.7.5+dfsg-1~bpo9+1) stretch-backports; urgency=medium"
+	got := debian.New(line)
+
+	dir := filepath.Dir(os.Getenv("PWD"))
+	fileName := fmt.Sprintf("%s_%s.orig.tar.xz", got.SourceName, got.UpstreamVersion)
+	filePath := filepath.Join(dir, fileName)
+
+	file, err := os.Create(filePath)
+
+	assert.NoError(t, err)
+
+	tarball, err := got.LocateTarball(dir)
+
+	assert.Equal(t, fileName, tarball)
+	assert.NoError(t, err)
+	assert.NoError(t, file.Close())
+	assert.NoError(t, os.Remove(filePath))
 }
