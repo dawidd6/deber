@@ -1,9 +1,6 @@
 docker_builder:
   env:
     CONTAINER: "deber-xyz-abc"
-    DEBER_LINTIAN_FLAGS: "-i -I --allow-root"
-    DEBER_DPKG_BUILDPACKAGE_FLAGS: "-tc"
-    DEBER_LOG_COLOR: "false"
   create_script:
     - docker create --name $CONTAINER -t -v "$PWD":"/build" -w "/build" golang:1.11.4 sleep inf
   start_script:
@@ -18,6 +15,6 @@ docker_builder:
     - mv deber /usr/bin/
   deber_script:
     - deber --version
-    - deber --list
-    - deber --exclude remove,stop
-    - deber --remove
+    - deber -l
+    - deber -c -e remove --no-log-color
+    - deber -i remove --no-log-color
