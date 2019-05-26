@@ -12,8 +12,6 @@ import (
 	"strings"
 )
 
-type Func = func(*debian.Debian, *docker.Docker, *naming.Naming) error
-
 var (
 	includeSteps []string
 	excludeSteps []string
@@ -212,7 +210,8 @@ func run(cmd *cobra.Command, args []string) error {
 	)
 
 	for _, step := range steps.Values() {
-		err = step.(Func)(deb, dock, name)
+		f := step.(func(*debian.Debian, *docker.Docker, *naming.Naming) error)
+		err = f(deb, dock, name)
 		if err != nil {
 			return err
 		}
