@@ -1,3 +1,4 @@
+// Package cli is the core of deber.
 package cli
 
 import (

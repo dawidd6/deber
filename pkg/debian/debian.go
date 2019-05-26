@@ -1,3 +1,4 @@
+// Package debian holds informations about Debian package.
 package debian
 
 import (

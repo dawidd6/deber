@@ -1,3 +1,4 @@
+// Package naming standardizes some names used internally by deber.
 package naming
 
 import (
