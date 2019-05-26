@@ -32,6 +32,23 @@ const (
 	stepShellOptional = "shell"
 )
 
+var descriptions = map[string]string{
+	stepBuild:   "builds Docker image",
+	stepCreate:  "creates Docker container",
+	stepStart:   "starts Docker container",
+	stepTarball: "moves orig upstream tarball to build directory",
+	stepEnable:  "connects Docker container to network",
+	stepUpdate:  "updates apt cache in Docker container",
+	stepDeps:    "installs Debian package build dependencies in Docker container",
+	stepDisable: "disconnects Docker container from network",
+	stepPackage: "runs dpkg-buildpackage in Docker container",
+	stepTest:    "tests just built Debian package",
+	stepArchive: "moves build directory to archive",
+	stepScan:    "scans archive",
+	stepStop:    "stops Docker container",
+	stepRemove:  "removes Docker container",
+}
+
 func getSteps() *omap.OrderedMap {
 	steps := new(omap.OrderedMap)
 

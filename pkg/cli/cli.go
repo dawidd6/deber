@@ -129,7 +129,7 @@ func run(cmd *cobra.Command, args []string) error {
 
 	if listSteps {
 		for i, step := range steps.Keys() {
-			fmt.Printf("%d\t%s\n", i+1, step)
+			fmt.Printf("%d\t%s\t\t%s\n", i+1, step, descriptions[step])
 		}
 
 		return nil
