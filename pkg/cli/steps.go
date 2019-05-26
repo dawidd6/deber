@@ -423,7 +423,8 @@ func runCheckOptional(deb *debian.Debian, dock *docker.Docker, name *naming.Nami
 
 	info, _ := os.Stat(name.ArchivePackageDir)
 	if info != nil {
-		return log.SkipE()
+		log.Skip()
+		os.Exit(0)
 	}
 
 	return log.DoneE()
