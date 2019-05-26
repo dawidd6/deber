@@ -378,6 +378,7 @@ func (docker *Docker) ContainerExecResize(args ContainerExecResizeArgs) error {
 	return nil
 }
 
+// IsContainerNetworkConnected checks if container is connected to network.
 func (docker *Docker) IsContainerNetworkConnected(name string) (bool, error) {
 	inspect, err := docker.client.ContainerInspect(docker.ctx, name)
 	if err != nil {
