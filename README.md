@@ -13,7 +13,7 @@ Docker containers.
 
 ## Screencast
 
-[![asciicast](https://asciinema.org/a/237780.svg)](https://asciinema.org/a/237780)
+[![asciicast](https://asciinema.org/a/248452.svg)](https://asciinema.org/a/248452)
 
 ## Features
 
@@ -30,6 +30,10 @@ Docker containers.
   so you can easily build another package that depends on previous one
 - Ability to provide custom `dpkg-buildpackage` and `lintian`
   options by exporting a couple of environment variables
+- Packages downloaded by apt are stored in temporary directory,
+  to avoid repetitive unnecessary network load
+- Option to drop into interactive bash shell session in container,
+  for debugging or other purposes
 
 ## Dependencies
 
@@ -66,35 +70,46 @@ gbp buildpackage
 If you run it first time, it will build Docker image and then proceed to build
 your package.
 
-Only one option passed to deber is respected,
-it is pointless to specify multiple options at once.
-
 ## FAQ
 
 **Okay everything went well, but... where the hell is my `.deb`?!**
 
-If you haven't specified `DEBER_ARCHIVE` environment variable, then
-it's located in `~/deber`.
+The location for all build outputs defaults to `$HOME/deber`.
 I made it this way, because it was just hard to look at my parent directory,
 cluttered with `.orig.tar.gz`, `.deb`, `.changes` and God knows what else.
 
 **Where is build directory located?**
 
-`/tmp/$container`
+`/tmp/$CONTAINER`
 
 **Where is apt's cache directory located?**
 
-`/tmp/deber:$dist`
+`/tmp/$IMAGE`
 
 **How images built by deber are named?**
 
-Repository is `deber` and tag is `$dist`
+Repository is `deber` and tag is `$DIST`.
 
 **I have already built image but it is building again?!**
 
 Probably because it is 14 days old and deber decided to
 update it.
 
-## More
+**How to build a package for different distributions?**
 
-Options, environment variables and others are listed and explained in [manpage](doc/deber.md).
+Make a new entry with desired target distribution in `debian/changelog`
+and run `deber`.
+
+**How to cross-build package for different architecture?**
+
+This is not implemented yet. But I'm planning to make use of `qemu`.
+
+**Where is the list of all steps?**
+
+```
+deber -l
+```
+
+## CONTRIBUTING
+
+I appreciate any contributions, so feel free to do so!
