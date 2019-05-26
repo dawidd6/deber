@@ -108,8 +108,6 @@ func TestInsertBefore(t *testing.T) {
 	om.InsertBefore(keys[2], "key", "val")
 	om.InsertBefore(keys[0], "key", "val")
 
-	t.Log(om.Keys())
-
 	assert.Equal(t, keys[:2], om.Keys()[:2])
 	assert.Equal(t, "key", om.Keys()[2])
 	assert.Equal(t, keys[2:], om.Keys()[3:])
@@ -125,8 +123,6 @@ func TestInsertAfter(t *testing.T) {
 
 	om.InsertAfter(keys[2], "key", "val")
 	om.InsertAfter(keys[0], "key", "val")
-
-	t.Log(om.Keys())
 
 	assert.Equal(t, keys[:3], om.Keys()[:3])
 	assert.Equal(t, "key", om.Keys()[3])
