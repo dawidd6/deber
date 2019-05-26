@@ -15,33 +15,30 @@ Basic usage of deber with gbp:
 
 Excluding some steps:
 
-    $ deber --exclude remove,stop,archive
+    $ deber -e remove -e stop -e archive
 
 Removing container after unsuccessful build (if needed):
 
-    $ deber --include remove,stop
+    $ deber -i remove -i stop
 
 Only building image:
 
-    $ deber --include build
+    $ deber -i build
 
 Only moving tarball and creating container:
+Note: this example assumes that you specified 'builder = deber' in 'gbp.conf'.
 
-Note: this example assumes that you specified **builder = deber** in **gbp.conf**.
+    $ gbp buildpackage -i tarball -i create
 
-    $ gbp buildpackage --include tarball,create
+Check archive before starting the machinery:
 
-Build package regardless it's existence in archive:
+    $ deber --check
 
-    $ deber --exclude check
+Run without updating apt's cache:
 
-Build package without checking archive, updating apt's cache and scanning packages:
-
-    $ deber --exclude check,update,scan
+    $ deber -e update
 
 Launch interactive bash shell session in container:
-
-Note: specifying other options after or before this, takes no effect.
 
     $ deber --shell`
 
