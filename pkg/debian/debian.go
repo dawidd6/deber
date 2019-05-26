@@ -119,7 +119,7 @@ func IsNative(line string) bool {
 
 // LocateTarball searches parent directory for orig upstream tarball
 // and returns the complete filename of it, not filepath.
-func (debian *Debian) LocateTarball() (string, error) {
+func (debian *Debian) LocateTarball(dir string) (string, error) {
 	if debian.IsNative {
 		return "", nil
 	}
@@ -128,10 +128,7 @@ func (debian *Debian) LocateTarball() (string, error) {
 	upstreamVersion := debian.UpstreamVersion
 	tarball := fmt.Sprintf("%s_%s.orig.tar", sourceName, upstreamVersion)
 
-	path, err := filepath.Abs(fmt.Sprintf("../%s", tarball))
-	if err != nil {
-		return "", err
-	}
+	path := filepath.Join(dir, tarball)
 
 	for _, ext := range []string{".gz", ".xz", "bz2"} {
 		info, _ := os.Stat(path + ext)
