@@ -24,7 +24,7 @@ var (
 	lintianFlags string
 	archiveDir   string
 
-	logNoColor bool
+	noColor bool
 
 	genManpage bool
 )
@@ -98,8 +98,8 @@ func Run(program, version, description, examples string) {
 	)
 
 	cmd.Flags().BoolVar(
-		&logNoColor,
-		"log-no-color",
+		&noColor,
+		"no-color",
 		false,
 		"do not colorize log output",
 	)
@@ -148,7 +148,7 @@ func run(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	if logNoColor {
+	if noColor {
 		log.SetNoColor()
 	}
 
