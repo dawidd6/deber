@@ -1,36 +1,35 @@
 package cli
 
 import (
-	"errors"
 	"fmt"
 	"github.com/dawidd6/deber/pkg/debian"
 	"github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/log"
 	"github.com/dawidd6/deber/pkg/naming"
-	"github.com/dawidd6/deber/pkg/stepping"
-	"github.com/dawidd6/deber/pkg/walking"
+	"github.com/spf13/cobra"
+	"github.com/spf13/cobra/doc"
 	"os"
 	"strings"
-
-	"github.com/spf13/cobra"
 )
+
+type Func = func(*debian.Debian, *docker.Docker, *naming.Naming) error
 
 var (
-	include string
-	exclude string
-	shell   bool
-	remove  bool
-	list    bool
+	includeSteps []string
+	excludeSteps []string
+	listSteps    bool
 
-	archiveDir = os.Getenv("DEBER_ARCHIVE")
-	logColor   = os.Getenv("DEBER_LOG_COLOR")
+	shell bool
+	check bool
+
+	dpkgFlags    string
+	lintianFlags string
+	archiveDir   string
+
+	logNoColor bool
+
+	genManpage bool
 )
-
-func init() {
-	if logColor == "no" || logColor == "false" || logColor == "off" {
-		log.SetNoColor()
-	}
-}
 
 // Run function is the first that should be executed.
 //
@@ -43,42 +42,78 @@ func Run(program, version, description, examples string) {
 		Example: examples,
 		RunE:    run,
 	}
-	cmd.Flags().StringVarP(
-		&include,
-		"include",
+
+	cmd.Flags().StringArrayVarP(
+		&includeSteps,
+		"include-step",
 		"i",
-		"",
-		"which steps to run only",
+		nil,
+		"which steps should be run exclusively",
 	)
-	cmd.Flags().StringVarP(
-		&exclude,
-		"exclude",
+	cmd.Flags().StringArrayVarP(
+		&excludeSteps,
+		"exclude-step",
 		"e",
-		"",
-		"which steps to exclude from complete set",
+		nil,
+		"which steps should be omitted",
 	)
+	cmd.Flags().BoolVarP(
+		&listSteps,
+		"list-steps",
+		"l",
+		false,
+		"list all available steps in order and exit",
+	)
+
 	cmd.Flags().BoolVarP(
 		&shell,
 		"shell",
 		"s",
 		false,
-		"run bash shell interactively in container",
+		"run only interactive bash session in container",
 	)
 	cmd.Flags().BoolVarP(
-		&remove,
-		"remove",
-		"r",
+		&check,
+		"check",
+		"c",
 		false,
-		"alias for '--include remove,stop'",
-	)
-	cmd.Flags().BoolVarP(
-		&list,
-		"list",
-		"l",
-		false,
-		"list steps in order and exit",
+		"check only if package is already in archive",
 	)
 
+	cmd.Flags().StringVar(
+		&dpkgFlags,
+		"dpkg-flags",
+		"-tc",
+		"additional dpkg-buildpackage flags to be passed",
+	)
+	cmd.Flags().StringVar(
+		&lintianFlags,
+		"lintian-flags",
+		"-i -I",
+		"additional lintian flags to be passed",
+	)
+	cmd.Flags().StringVar(
+		&archiveDir,
+		"archive-dir",
+		os.Getenv("HOME"),
+		"directory where built packages should be kept",
+	)
+
+	cmd.Flags().BoolVar(
+		&logNoColor,
+		"log-no-color",
+		false,
+		"do not colorize log output",
+	)
+
+	cmd.Flags().BoolVar(
+		&genManpage,
+		"gen-manpage",
+		false,
+		"generate manpage in current directory",
+	)
+
+	cmd.Flags().SortFlags = false
 	cmd.SetHelpCommand(&cobra.Command{Hidden: true, Use: "no"})
 	cmd.SilenceErrors = true
 	cmd.SilenceUsage = true
@@ -91,35 +126,71 @@ func Run(program, version, description, examples string) {
 }
 
 func run(cmd *cobra.Command, args []string) error {
-	steps := stepping.Steps{
-		walking.StepCheck,
-		walking.StepBuild,
-		walking.StepCreate,
-		walking.StepStart,
-		walking.StepTarball,
-		walking.StepUpdate,
-		walking.StepDeps,
-		walking.StepPackage,
-		walking.StepTest,
-		walking.StepArchive,
-		walking.StepScan,
-		walking.StepStop,
-		walking.StepRemove,
-		walking.StepShellOptional,
+	steps := getSteps()
+
+	if listSteps {
+		for i, step := range steps.Keys() {
+			fmt.Printf("%d\t%s\n", i+1, step)
+		}
+
+		return nil
 	}
 
-	switch {
-	case list:
-		return printSteps(steps)
-	case remove:
-		include = "remove,stop"
-	case shell:
-		include = "build,create,start,shell"
+	if genManpage {
+		header := &doc.GenManHeader{
+			Title:   strings.Title(cmd.Use),
+			Section: "1",
+		}
+
+		err := doc.GenManTree(cmd, header, "./")
+		if err != nil {
+			return err
+		}
+
+		return nil
 	}
 
-	err := handleIncludeExclude(steps)
-	if err != nil {
-		return err
+	if logNoColor {
+		log.SetNoColor()
+	}
+
+	if shell {
+		steps.InsertAfter(stepStart, stepShellOptional, runShellOptional)
+		includeSteps = append(
+			includeSteps,
+			stepBuild,
+			stepCreate,
+			stepStart,
+			stepShellOptional,
+		)
+	}
+
+	if check {
+		steps.Prepend(stepCheckOptional, runCheckOptional)
+		includeSteps = append(
+			includeSteps,
+			stepCheckOptional,
+		)
+	}
+
+	if includeSteps != nil {
+		for _, step := range includeSteps {
+			if !steps.Has(step) {
+				return fmt.Errorf("step \"%s\" not recognized", step)
+			}
+		}
+
+		steps.DeleteAllExcept(includeSteps...)
+	}
+
+	if excludeSteps != nil {
+		for _, step := range excludeSteps {
+			if !steps.Has(step) {
+				return fmt.Errorf("step \"%s\" not recognized", step)
+			}
+		}
+
+		steps.Delete(excludeSteps...)
 	}
 
 	deb, err := debian.ParseChangelog()
@@ -140,38 +211,8 @@ func run(cmd *cobra.Command, args []string) error {
 		archiveDir,
 	)
 
-	err = steps.Run(deb, dock, name)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func printSteps(steps stepping.Steps) error {
-	for i, step := range steps {
-		fmt.Printf("%d. %s\n\n", i+1, step.Name)
-		for _, desc := range step.Description {
-			fmt.Printf("\t%s\n", desc)
-		}
-
-		if i < len(steps)-1 {
-			fmt.Println()
-		}
-	}
-	return nil
-}
-
-func handleIncludeExclude(steps stepping.Steps) error {
-	if include != "" && exclude != "" {
-		return errors.New("can't specify --include and --exclude together")
-	} else if include != "" {
-		err := steps.Include(strings.Split(include, ",")...)
-		if err != nil {
-			return err
-		}
-	} else if exclude != "" {
-		err := steps.Exclude(strings.Split(exclude, ",")...)
+	for _, step := range steps.Values() {
+		err = step.(Func)(deb, dock, name)
 		if err != nil {
 			return err
 		}

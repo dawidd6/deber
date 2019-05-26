@@ -103,10 +103,6 @@ func SourceParentDir() string {
 // ArchiveDir function returns archive directory, but already with distribution,
 // so it's not $HOME/deber, but for example $HOME/deber/unstable.
 func ArchiveDir(program, dist, dir string) string {
-	if dir == "" {
-		dir = os.Getenv("HOME")
-	}
-
 	return fmt.Sprintf(
 		"%s/%s/%s",
 		dir,

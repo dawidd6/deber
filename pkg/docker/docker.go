@@ -378,6 +378,21 @@ func (docker *Docker) ContainerExecResize(args ContainerExecResizeArgs) error {
 	return nil
 }
 
+func (docker *Docker) IsContainerNetworkConnected(name string) (bool, error) {
+	inspect, err := docker.client.ContainerInspect(docker.ctx, name)
+	if err != nil {
+		return false, err
+	}
+
+	for network := range inspect.NetworkSettings.Networks {
+		if network == "bridge" {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 // ContainerDisableNetwork function disconnects "bridge" network from container.
 func (docker *Docker) ContainerDisableNetwork(name string) error {
 	return docker.client.NetworkDisconnect(docker.ctx, "bridge", name, false)
