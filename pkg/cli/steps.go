@@ -158,7 +158,7 @@ func runStart(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) erro
 func runTarball(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error {
 	log.Info("Moving tarball")
 
-	tarball, err := deb.LocateTarball()
+	tarball, err := deb.LocateTarball(name.SourceParentDir)
 	if err != nil {
 		return log.FailE(err)
 	}
