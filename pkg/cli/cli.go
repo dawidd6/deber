@@ -69,14 +69,14 @@ func Run(program, version, description, examples string) {
 		"shell",
 		"s",
 		false,
-		"run only interactive bash session in container",
+		"run only interactive bash session in container and exit",
 	)
 	cmd.Flags().BoolVarP(
 		&check,
 		"check",
 		"c",
 		false,
-		"check only if package is already in archive",
+		"check if package is already in archive before all steps",
 	)
 
 	cmd.Flags().StringVar(
@@ -137,7 +137,7 @@ func run(cmd *cobra.Command, args []string) error {
 
 	if genManpage {
 		header := &doc.GenManHeader{
-			Title:   strings.Title(cmd.Use),
+			Title:   strings.ToUpper(cmd.Use),
 			Section: "1",
 		}
 
@@ -166,10 +166,6 @@ func run(cmd *cobra.Command, args []string) error {
 
 	if check {
 		steps.Prepend(stepCheckOptional, runCheckOptional)
-		includeSteps = append(
-			includeSteps,
-			stepCheckOptional,
-		)
 	}
 
 	if includeSteps != nil {
