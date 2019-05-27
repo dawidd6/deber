@@ -54,7 +54,7 @@ func dockerfileParse(from string) (string, error) {
 		From:       from,
 		ArchiveDir: ContainerArchiveDir,
 		SourceDir:  ContainerSourceDir,
-		Packages:   "build-essential devscripts debhelper lintian equivs",
+		Packages:   "build-essential devscripts debhelper lintian fakeroot",
 	}
 
 	dist := strings.Split(from, ":")[1]

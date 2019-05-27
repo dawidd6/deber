@@ -262,7 +262,7 @@ func runDeps(deb *debian.Debian, dock *docker.Docker, name *naming.Naming) error
 
 	args := docker.ContainerExecArgs{
 		Name:   name.Container,
-		Cmd:    "mk-build-deps -ri",
+		Cmd:    "apt-get build-dep ./",
 		AsRoot: true,
 	}
 	err := dock.ContainerExec(args)
