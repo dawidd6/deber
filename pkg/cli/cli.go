@@ -192,6 +192,22 @@ var (
 				flagPackages = true
 			}
 
+			if flagImages {
+				listArgs := docker.ImageListArgs{
+					Prefix: "deber",
+				}
+
+				images, err := dock.ImageList(listArgs)
+				if err != nil {
+					return err
+				}
+
+				fmt.Println("Images:")
+				for _, image := range images {
+					fmt.Printf("  - %s\n", image)
+				}
+			}
+
 			if flagContainers {
 				listArgs := docker.ContainerListArgs{
 					Prefix: "deber",
@@ -202,7 +218,14 @@ var (
 					return err
 				}
 
-				fmt.Println(containers)
+				fmt.Println("Containers:")
+				for _, container := range containers {
+					fmt.Printf("  - %s\n", container)
+				}
+			}
+
+			if flagPackages {
+
 			}
 
 			return nil

@@ -199,6 +199,31 @@ func (docker *Docker) ImageBuild(args ImageBuildArgs) error {
 	return nil
 }
 
+// ImageList returns a list of images that match passed criteria.
+func (docker *Docker) ImageList(args ImageListArgs) ([]string, error) {
+	images := make([]string, 0)
+	options := types.ImageListOptions{
+		All: true,
+	}
+
+	list, err := docker.client.ImageList(docker.ctx, options)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, v := range list {
+		for _, name := range v.RepoTags {
+			name = strings.TrimPrefix(name, "/")
+
+			if strings.HasPrefix(name, args.Prefix) {
+				images = append(images, name)
+			}
+		}
+	}
+
+	return images, nil
+}
+
 // ContainerCreate function creates container.
 //
 // It's up to the caller to make to-be-mounted directories on host.
@@ -396,6 +421,8 @@ func (docker *Docker) ContainerList(args ContainerListArgs) ([]string, error) {
 
 	for _, v := range list {
 		for _, name := range v.Names {
+			name = strings.TrimPrefix(name, "/")
+
 			if strings.HasPrefix(name, args.Prefix) {
 				containers = append(containers, name)
 			}

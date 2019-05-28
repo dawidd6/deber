@@ -16,6 +16,12 @@ type ImageBuildArgs struct {
 	Name string
 }
 
+// ImageListArgs struct represents arguments
+// passed to ImageList().
+type ImageListArgs struct {
+	Prefix string
+}
+
 // ContainerCreateArgs struct represents arguments
 // passed to ContainerCreate().
 type ContainerCreateArgs struct {
