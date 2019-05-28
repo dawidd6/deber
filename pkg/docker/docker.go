@@ -14,7 +14,6 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/term"
@@ -199,41 +198,16 @@ func (docker *Docker) ImageBuild(args ImageBuildArgs) error {
 	return nil
 }
 
-// ContainerCreate function creates container and
-// makes required directories and host system.
+// ContainerCreate function creates container.
+//
+// It's up to the caller to make to-be-mounted directories on host.
 func (docker *Docker) ContainerCreate(args ContainerCreateArgs) error {
 	hostConfig := &container.HostConfig{
-		Mounts: []mount.Mount{
-			{
-				Type:   mount.TypeBind,
-				Source: args.SourceDir,
-				Target: ContainerSourceDir,
-			}, {
-				Type:   mount.TypeBind,
-				Source: args.BuildDir,
-				Target: ContainerBuildDir,
-			}, {
-				Type:   mount.TypeBind,
-				Source: args.CacheDir,
-				Target: ContainerCacheDir,
-			}, {
-				Type:   mount.TypeBind,
-				Source: args.ArchiveDir,
-				Target: ContainerArchiveDir,
-			},
-		},
+		Mounts: args.Mounts,
 	}
 	config := &container.Config{
 		Image: args.Image,
 		User:  args.User,
-	}
-
-	// mkdir
-	for _, mnt := range hostConfig.Mounts {
-		err := os.MkdirAll(mnt.Source, os.ModePerm)
-		if err != nil {
-			return err
-		}
 	}
 
 	_, err := docker.client.ContainerCreate(docker.ctx, config, hostConfig, nil, args.Name)
@@ -379,28 +353,30 @@ func (docker *Docker) ContainerExecResize(args ContainerExecResizeArgs) error {
 	return nil
 }
 
-// IsContainerNetworkConnected checks if container is connected to network.
-func (docker *Docker) IsContainerNetworkConnected(name string) (bool, error) {
-	inspect, err := docker.client.ContainerInspect(docker.ctx, name)
+// ContainerNetwork checks if container is connected to network
+// and then connects it or disconnects per caller request.
+func (docker *Docker) ContainerNetwork(args ContainerNetworkArgs) error {
+	network := "bridge"
+	connected := false
+
+	inspect, err := docker.client.ContainerInspect(docker.ctx, args.Name)
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	for network := range inspect.NetworkSettings.Networks {
-		if network == "bridge" {
-			return true, nil
+	for net := range inspect.NetworkSettings.Networks {
+		if net == network {
+			connected = true
 		}
 	}
 
-	return false, nil
-}
+	if args.Connected && !connected {
+		return docker.client.NetworkConnect(docker.ctx, network, args.Name, nil)
+	}
 
-// ContainerDisableNetwork function disconnects "bridge" network from container.
-func (docker *Docker) ContainerDisableNetwork(name string) error {
-	return docker.client.NetworkDisconnect(docker.ctx, "bridge", name, false)
-}
+	if !args.Connected && connected {
+		return docker.client.NetworkDisconnect(docker.ctx, network, args.Name, false)
+	}
 
-// ContainerEnableNetwork function connects "bridge" network to container.
-func (docker *Docker) ContainerEnableNetwork(name string) error {
-	return docker.client.NetworkConnect(docker.ctx, "bridge", name, nil)
+	return nil
 }

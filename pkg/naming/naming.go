@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+const program = "deber"
+
 // Naming struct represents a collection of directory names
 // used on host system.
 type Naming struct {
@@ -15,13 +17,30 @@ type Naming struct {
 	//
 	// Example: deber_unstable_wget_1.0.0-1
 	Container string
+
 	// Docker image name.
 	//
 	// Example: deber:unstable
 	Image string
 
+	// Debian distribution
+	//
+	// Example: unstable
+	Distribution string
+
+	// Debian package name
+	//
+	// Example: wget
+	PackageName string
+
+	// Debian package packageVersion
+	//
+	// Example: 1.0.0-1
+	PackageVersion string
+
 	// Current working directory, where debianized source lives.
 	SourceDir string
+
 	// Parent of current working directory.
 	//
 	// Used for locating orig upstream tarball mostly (if only).
@@ -31,6 +50,7 @@ type Naming struct {
 	//
 	// Example: /home/user/deber/unstable
 	ArchiveDir string
+
 	// Specific directory of package for a distribution in archive.
 	//
 	// Example: /home/user/deber/unstable/wget_1.0.0-1
@@ -48,47 +68,79 @@ type Naming struct {
 }
 
 // New function returns a fresh Naming struct with defined fields.
-func New(program, dist, pkg, version, archiveDir string) *Naming {
+func New(dist, packageName, packageVersion string) *Naming {
 	return &Naming{
-		Container: Container(program, dist, pkg, version),
-		Image:     Image(program, dist),
+		Container: Container(dist, packageName, packageVersion),
+		Image:     Image(dist, packageName, packageVersion),
+
+		Distribution:   Distribution(dist, packageName, packageVersion),
+		PackageName:    PackageName(dist, packageName, packageVersion),
+		PackageVersion: PackageVersion(dist, packageName, packageVersion),
 
 		SourceDir:       SourceDir(),
 		SourceParentDir: SourceParentDir(),
 
-		ArchiveDir:        ArchiveDir(program, dist, archiveDir),
-		ArchivePackageDir: ArchivePackageDir(program, dist, pkg, version, archiveDir),
+		ArchiveDir:        ArchiveDir(dist, packageName, packageVersion),
+		ArchivePackageDir: ArchivePackageDir(dist, packageName, packageVersion),
 
-		CacheDir: CacheDir(program, dist),
+		CacheDir: CacheDir(dist, packageName, packageVersion),
 
-		BuildDir: BuildDir(program, dist, pkg, version),
+		BuildDir: BuildDir(dist, packageName, packageVersion),
 	}
 }
 
 // Container function returns a standardized container name.
-func Container(program, dist, pkg, version string) string {
+func Container(dist, packageName, packageVersion string) string {
 	// Docker allows only [a-zA-Z0-9][a-zA-Z0-9_.-]
-	// and Debian versioning allows these characters
-	version = strings.Replace(version, "~", "-", -1)
-	version = strings.Replace(version, ":", "-", -1)
-	version = strings.Replace(version, "+", "-", -1)
+	// and Debian packageVersioning allows these characters
+	packageVersion = strings.Replace(packageVersion, "~", "-", -1)
+	packageVersion = strings.Replace(packageVersion, ":", "-", -1)
+	packageVersion = strings.Replace(packageVersion, "+", "-", -1)
 
 	return fmt.Sprintf(
 		"%s_%s_%s_%s",
 		program,
-		dist,
-		pkg,
-		version,
+		Distribution(dist, packageName, packageVersion),
+		PackageName(dist, packageName, packageVersion),
+		PackageVersion(dist, packageName, packageVersion),
 	)
 }
 
 // Image function returns a standardized image name.
-func Image(program, dist string) string {
+func Image(dist, packageName, packageVersion string) string {
 	return fmt.Sprintf(
 		"%s:%s",
 		program,
-		dist,
+		Distribution(dist, packageName, packageVersion),
 	)
+}
+
+// Distribution function returns standardized distribution name.
+func Distribution(dist, packageName, packageVersion string) string {
+	if strings.Contains(dist, "-") {
+		dist = strings.Split(dist, "-")[0]
+	}
+
+	// Debian backport
+	if strings.Contains(packageVersion, "bpo") {
+		dist += "-backports"
+	}
+
+	if dist == "UNRELEASED" {
+		dist = "unstable"
+	}
+
+	return dist
+}
+
+// PackageName function just returns passed package name.
+func PackageName(dist, packageName, packageVersion string) string {
+	return packageName
+}
+
+// PackageVersion function just returns passed package version.
+func PackageVersion(dist, packageName, packageVersion string) string {
+	return packageVersion
 }
 
 // SourceDir function returns simply current directory.
@@ -103,31 +155,35 @@ func SourceParentDir() string {
 
 // ArchiveDir function returns archive directory, but already with distribution,
 // so it's not $HOME/deber, but for example $HOME/deber/unstable.
-func ArchiveDir(program, dist, dir string) string {
-	return fmt.Sprintf(
-		"%s/%s/%s",
-		dir,
+func ArchiveDir(dist, packageName, packageVersion string) string {
+	return filepath.Join(
+		os.Getenv("HOME"),
 		program,
-		dist,
+		Distribution(dist, packageName, packageVersion),
 	)
 }
 
 // ArchivePackageDir function returns package directory in archive.
-func ArchivePackageDir(program, dist, pkg, version, dir string) string {
-	return fmt.Sprintf(
-		"%s/%s_%s",
-		ArchiveDir(program, dist, dir),
-		pkg,
-		version,
+func ArchivePackageDir(dist, packageName, packageVersion string) string {
+	return filepath.Join(
+		ArchiveDir(dist, packageName, packageVersion),
+		PackageName(dist, packageName, packageVersion),
+		PackageVersion(dist, packageName, packageVersion),
 	)
 }
 
 // CacheDir function returns image's cache directory on host system.
-func CacheDir(program, dist string) string {
-	return filepath.Join("/tmp", Image(program, dist))
+func CacheDir(dist, packageName, packageVersion string) string {
+	return filepath.Join(
+		"/tmp",
+		Image(dist, packageName, packageVersion),
+	)
 }
 
 // BuildDir function returns container's build directory on host system.
-func BuildDir(program, dist, pkg, version string) string {
-	return filepath.Join("/tmp", Container(program, dist, pkg, version))
+func BuildDir(dist, packageName, packageVersion string) string {
+	return filepath.Join(
+		"/tmp",
+		Container(dist, packageName, packageVersion),
+	)
 }

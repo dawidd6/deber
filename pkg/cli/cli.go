@@ -2,217 +2,185 @@
 package cli
 
 import (
-	"fmt"
-	"github.com/dawidd6/deber/pkg/debian"
 	"github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/log"
 	"github.com/dawidd6/deber/pkg/naming"
+	"github.com/dawidd6/deber/pkg/steps"
 	"github.com/spf13/cobra"
-	"github.com/spf13/cobra/doc"
 	"os"
-	"strings"
+	"pault.ag/go/debian/changelog"
 )
 
+// Commands
 var (
-	includeSteps []string
-	excludeSteps []string
-	listSteps    bool
+	cmdRoot = &cobra.Command{
+		Use:     "deber",
+		Version: "0.5",
+		Short:   "Debian packaging with Docker.",
+		RunE: func(cmd *cobra.Command, a []string) error {
+			dock, err := docker.New()
+			if err != nil {
+				return err
+			}
 
-	shell bool
-	check bool
+			deb, err := changelog.ParseFileOne("debian/changelog")
+			if err != nil {
+				return err
+			}
 
-	dpkgFlags    string
-	lintianFlags string
-	archiveDir   string
+			name := naming.New(
+				deb.Target,
+				deb.Source,
+				deb.Version.String(),
+			)
 
-	noColor bool
+			steps.Build()
+			steps.Create()
+			steps.Tarball()
+			steps.Depends()
+			steps.Package()
+			steps.Archive()
+			steps.Remove()
+		},
+	}
 
-	genManpage bool
+	cmdBuild = &cobra.Command{
+		Use:   "build",
+		Short: "",
+		RunE: func(cmd *cobra.Command, a []string) error {
+			args := steps.BuildArgs{
+				Distribution: flagDistribution,
+				Rebuild:      flagRebuild,
+			}
+
+			if flagDistribution == "" {
+				deb, err := changelog.ParseFileOne("debian/changelog")
+				if err != nil {
+					return err
+				}
+
+				name := naming.New(
+					deb.Target,
+					deb.Source,
+					deb.Version.String(),
+				)
+
+				args.ImageName = name.Image
+				args.Distribution = name.Distribution
+			}
+
+			dock, err := docker.New()
+			if err != nil {
+				return err
+			}
+
+			return steps.Build(dock, args)
+		},
+	}
+
+	cmdCreate = &cobra.Command{
+		Use:   "create",
+		Short: "",
+		RunE: func(cmd *cobra.Command, a []string) error {
+
+		},
+	}
+
+	cmdList = &cobra.Command{
+		Use:   "list",
+		Short: "",
+		RunE: func(cmd *cobra.Command, a []string) error {
+
+		},
+	}
+
+	cmdShell = &cobra.Command{
+		Use:   "shell",
+		Short: "",
+		RunE: func(cmd *cobra.Command, a []string) error {
+
+		},
+	}
+
+	cmdRemove = &cobra.Command{
+		Use:   "remove",
+		Short: "",
+		RunE: func(cmd *cobra.Command, a []string) error {
+
+		},
+	}
 )
+
+// Flags
+var (
+	// Root flags
+	flagDpkgFlags    string
+	flagLintianFlags string
+	flagWithNetwork  bool
+
+	// Root|Create flags
+	flagExtraPackages []string
+
+	// List flags
+	flagImages     bool
+	flagContainers bool
+	flagPackages   bool
+
+	// Build flags
+	flagDistribution string
+	flagRebuild      bool
+
+	// Remove flags
+	flagAll bool
+
+	// Root-Global flags
+	flagNoColor bool
+)
+
+func init() {
+	cmdRoot.SetHelpCommand(&cobra.Command{Hidden: true, Use: "no"})
+	cmdRoot.Flags().SortFlags = false
+	cmdRoot.SilenceErrors = true
+	cmdRoot.SilenceUsage = true
+
+	cmdRoot.AddCommand(
+		cmdBuild,
+		cmdCreate,
+		cmdList,
+		cmdShell,
+		cmdRemove,
+	)
+
+	// Root flags
+	cmdRoot.Flags().StringVarP(&flagDpkgFlags, "dpkg-flags", "d", "-tc", "")
+	cmdRoot.Flags().StringVarP(&flagLintianFlags, "lintian-flags", "l", "-i -I", "")
+	cmdRoot.Flags().BoolVarP(&flagWithNetwork, "with-network", "n", false, "")
+	cmdRoot.PersistentFlags().BoolVar(&flagNoColor, "no-color", false, "")
+	cmdRoot.Flags().StringArrayVarP(&flagExtraPackages, "extra-package", "p", nil, "")
+
+	// Build flags
+	cmdBuild.Flags().StringVarP(&flagDistribution, "distribution", "d", "", "")
+	cmdBuild.Flags().BoolVarP(&flagRebuild, "rebuild", "r", false, "")
+
+	// Create flags
+	cmdCreate.Flags().StringArrayVarP(&flagExtraPackages, "extra-package", "p", nil, "")
+
+	// List flags
+	cmdList.Flags().BoolVarP(&flagImages, "images", "i", false, "")
+	cmdList.Flags().BoolVarP(&flagContainers, "containers", "c", false, "")
+	cmdList.Flags().BoolVarP(&flagPackages, "packages", "p", false, "")
+
+	// Remove flags
+	cmdRemove.Flags().BoolVarP(&flagAll, "all", "a", false, "")
+}
 
 // Run function is the first that should be executed.
 //
 // It's the heart of cli.
-func Run(program, version, description, examples string) {
-	cmd := &cobra.Command{
-		Use:     program,
-		Version: version,
-		Short:   description,
-		Example: examples,
-		RunE:    run,
-	}
-
-	cmd.Flags().StringArrayVarP(
-		&includeSteps,
-		"include-step",
-		"i",
-		nil,
-		"which steps should be run exclusively",
-	)
-	cmd.Flags().StringArrayVarP(
-		&excludeSteps,
-		"exclude-step",
-		"e",
-		nil,
-		"which steps should be omitted",
-	)
-	cmd.Flags().BoolVarP(
-		&listSteps,
-		"list-steps",
-		"l",
-		false,
-		"list all available steps in order and exit",
-	)
-
-	cmd.Flags().BoolVarP(
-		&shell,
-		"shell",
-		"s",
-		false,
-		"run only interactive bash session in container and exit",
-	)
-	cmd.Flags().BoolVarP(
-		&check,
-		"check",
-		"c",
-		false,
-		"check if package is already in archive before all steps",
-	)
-
-	cmd.Flags().StringVar(
-		&dpkgFlags,
-		"dpkg-flags",
-		"-tc",
-		"additional dpkg-buildpackage flags to be passed",
-	)
-	cmd.Flags().StringVar(
-		&lintianFlags,
-		"lintian-flags",
-		"-i -I",
-		"additional lintian flags to be passed",
-	)
-	cmd.Flags().StringVar(
-		&archiveDir,
-		"archive-dir",
-		os.Getenv("HOME"),
-		"directory where built packages should be kept",
-	)
-
-	cmd.Flags().BoolVar(
-		&noColor,
-		"no-color",
-		false,
-		"do not colorize log output",
-	)
-
-	cmd.Flags().BoolVar(
-		&genManpage,
-		"gen-manpage",
-		false,
-		"generate manpage in current directory",
-	)
-
-	cmd.Flags().SortFlags = false
-	cmd.SetHelpCommand(&cobra.Command{Hidden: true, Use: "no"})
-	cmd.SilenceErrors = true
-	cmd.SilenceUsage = true
-
-	err := cmd.Execute()
+func Run() {
+	err := cmdRoot.Execute()
 	if err != nil {
 		log.Error(err)
 		os.Exit(1)
 	}
-}
-
-func run(cmd *cobra.Command, args []string) error {
-	steps := getSteps()
-
-	if listSteps {
-		for i, step := range steps.Keys() {
-			fmt.Printf("%d\t%s\t\t%s\n", i+1, step, descriptions[step])
-		}
-
-		return nil
-	}
-
-	if genManpage {
-		header := &doc.GenManHeader{
-			Title:   strings.ToUpper(cmd.Use),
-			Section: "1",
-		}
-
-		err := doc.GenManTree(cmd, header, "./")
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	if noColor {
-		log.SetNoColor()
-	}
-
-	if shell {
-		steps.InsertAfter(stepStart, stepShellOptional, runShellOptional)
-		includeSteps = append(
-			includeSteps,
-			stepBuild,
-			stepCreate,
-			stepStart,
-			stepShellOptional,
-		)
-	}
-
-	if check {
-		steps.Prepend(stepCheckOptional, runCheckOptional)
-	}
-
-	if includeSteps != nil {
-		for _, step := range includeSteps {
-			if !steps.Has(step) {
-				return fmt.Errorf("step \"%s\" not recognized", step)
-			}
-		}
-
-		steps.DeleteAllExcept(includeSteps...)
-	}
-
-	if excludeSteps != nil {
-		for _, step := range excludeSteps {
-			if !steps.Has(step) {
-				return fmt.Errorf("step \"%s\" not recognized", step)
-			}
-		}
-
-		steps.Delete(excludeSteps...)
-	}
-
-	deb, err := debian.ParseChangelog()
-	if err != nil {
-		return err
-	}
-
-	dock, err := docker.New()
-	if err != nil {
-		return err
-	}
-
-	name := naming.New(
-		cmd.Use,
-		deb.TargetDist,
-		deb.SourceName,
-		deb.PackageVersion,
-		archiveDir,
-	)
-
-	for _, step := range steps.Values() {
-		f := step.(func(*debian.Debian, *docker.Docker, *naming.Naming) error)
-		err = f(deb, dock, name)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }

@@ -10,11 +10,10 @@ import (
 // DockerfileTemplate struct defines parameters passed to
 // dockerfile template.
 type DockerfileTemplate struct {
-	From       string
-	ArchiveDir string
-	SourceDir  string
-	Packages   string
-	Backports  string
+	From      string
+	SourceDir string
+	Packages  string
+	Backports string
 }
 
 const dockerfileTemplate = `
@@ -37,11 +36,6 @@ RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selectio
 RUN apt-get update && \
 	apt-get install --no-install-recommends -y {{ .Packages }}
 
-# Add local apt repository.
-RUN mkdir -p {{ .ArchiveDir }} && \
-    touch {{ .ArchiveDir }}/Packages && \
-    echo "deb [trusted=yes] file://{{ .ArchiveDir }} ./" > /etc/apt/sources.list.d/a.list
-
 # Set working directory.
 WORKDIR {{ .SourceDir }}
 
@@ -51,10 +45,9 @@ CMD ["sleep", "inf"]
 
 func dockerfileParse(from string) (string, error) {
 	t := DockerfileTemplate{
-		From:       from,
-		ArchiveDir: ContainerArchiveDir,
-		SourceDir:  ContainerSourceDir,
-		Packages:   "build-essential devscripts debhelper lintian fakeroot",
+		From:      from,
+		SourceDir: ContainerSourceDir,
+		Packages:  "build-essential devscripts debhelper lintian fakeroot",
 	}
 
 	dist := strings.Split(from, ":")[1]

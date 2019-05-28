@@ -1,5 +1,7 @@
 package docker
 
+import "github.com/docker/docker/api/types/mount"
+
 // ImageBuildArgs struct represents arguments
 // passed to ImageBuild().
 type ImageBuildArgs struct {
@@ -17,13 +19,10 @@ type ImageBuildArgs struct {
 // ContainerCreateArgs struct represents arguments
 // passed to ContainerCreate().
 type ContainerCreateArgs struct {
-	SourceDir  string
-	BuildDir   string
-	ArchiveDir string
-	CacheDir   string
-	Image      string
-	Name       string
-	User       string
+	Mounts []mount.Mount
+	Image  string
+	Name   string
+	User   string
 }
 
 // ContainerExecArgs struct represents arguments
@@ -41,4 +40,11 @@ type ContainerExecArgs struct {
 type ContainerExecResizeArgs struct {
 	Fd     uintptr
 	ExecID string
+}
+
+// ContainerNetworkArgs struct represents arguments
+// passed to ContainerNetwork().
+type ContainerNetworkArgs struct {
+	Name      string
+	Connected bool
 }
