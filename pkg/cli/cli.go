@@ -195,6 +195,8 @@ var (
 			}
 
 			if flagImages {
+				fmt.Println("Images:")
+
 				listArgs := docker.ImageListArgs{
 					Prefix: "deber",
 				}
@@ -204,13 +206,14 @@ var (
 					return err
 				}
 
-				fmt.Println("Images:")
 				for _, image := range images {
 					fmt.Printf("  - %s\n", image)
 				}
 			}
 
 			if flagContainers {
+				fmt.Println("Containers:")
+
 				listArgs := docker.ContainerListArgs{
 					Prefix: "deber",
 				}
@@ -220,16 +223,18 @@ var (
 					return err
 				}
 
-				fmt.Println("Containers:")
 				for _, container := range containers {
 					fmt.Printf("  - %s\n", container)
 				}
 			}
 
 			if flagPackages {
+				fmt.Println("Packages:")
+
+				// TODO standarize
 				base := filepath.Join(os.Getenv("HOME"), "deber")
 
-				err := walk.Walk(base, 2, func(node walk.Node) {
+				err := walk.Walk(base, 3, func(node walk.Node) {
 					indent := ""
 
 					for i := 0; i < node.Depth; i++ {

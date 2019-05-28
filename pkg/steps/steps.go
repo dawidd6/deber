@@ -158,7 +158,7 @@ func Depends(dock *docker.Docker, args DependsArgs) error {
 
 	commands := []string{
 		"apt-get update",
-		"apt-get build-dep ./",
+		"apt-get build-dep " + docker.ContainerSourceDir,
 	}
 
 	if args.ExtraPackages != nil {
