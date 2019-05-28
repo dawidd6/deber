@@ -198,22 +198,22 @@ func Package(dock *docker.Docker, args PackageArgs) error {
 
 	log.Drop()
 
-	if !args.IsPackageNative {
+	if strings.Contains(args.PackageVersion, "-") {
 		tarball := fmt.Sprintf(
 			"%s_%s.orig.tar",
 			args.PackageName,
-			args.PackageUpstreamVersion,
+			strings.Split(args.PackageVersion, "-")[0],
 		)
 
 		found := false
-		path := filepath.Join(args.SourceDir, tarball)
+		path := filepath.Join(args.TarballSourceDir, tarball)
 
 		for _, ext := range []string{".gz", ".xz", "bz2"} {
 			info, _ := os.Stat(path + ext)
 			if info != nil {
 				tarball += ext
-				source := filepath.Join(args.SourceDir, tarball)
-				target := filepath.Join(args.TargetDir, tarball)
+				source := filepath.Join(args.TarballSourceDir, tarball)
+				target := filepath.Join(args.TarballTargetDir, tarball)
 
 				source, err := filepath.EvalSymlinks(source)
 				if err != nil {

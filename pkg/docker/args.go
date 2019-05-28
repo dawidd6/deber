@@ -48,3 +48,9 @@ type ContainerNetworkArgs struct {
 	Name      string
 	Connected bool
 }
+
+// ContainerListArgs struct represents arguments
+// passed to ContainerList().
+type ContainerListArgs struct {
+	Prefix string
+}

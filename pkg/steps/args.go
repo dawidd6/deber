@@ -29,16 +29,15 @@ type DependsArgs struct {
 }
 
 type PackageArgs struct {
-	ContainerName          string
-	DpkgFlags              string
-	LintianFlags           string
-	IsTestNeeded           bool
-	IsNetworkNeeded        bool
-	PackageName            string
-	PackageUpstreamVersion string
-	IsPackageNative        bool
-	SourceDir              string
-	TargetDir              string
+	ContainerName    string
+	DpkgFlags        string
+	LintianFlags     string
+	IsTestNeeded     bool
+	IsNetworkNeeded  bool
+	PackageName      string
+	PackageVersion   string
+	TarballSourceDir string
+	TarballTargetDir string
 }
 
 type ArchiveArgs struct {

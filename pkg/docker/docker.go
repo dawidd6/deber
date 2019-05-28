@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -379,4 +380,27 @@ func (docker *Docker) ContainerNetwork(args ContainerNetworkArgs) error {
 	}
 
 	return nil
+}
+
+// ContainerList returns a list of containers that match passed criteria.
+func (docker *Docker) ContainerList(args ContainerListArgs) ([]string, error) {
+	containers := make([]string, 0)
+	options := types.ContainerListOptions{
+		All: true,
+	}
+
+	list, err := docker.client.ContainerList(docker.ctx, options)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, v := range list {
+		for _, name := range v.Names {
+			if strings.HasPrefix(name, args.Prefix) {
+				containers = append(containers, name)
+			}
+		}
+	}
+
+	return containers, nil
 }
