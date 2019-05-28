@@ -113,13 +113,14 @@ func Create(dock *docker.Docker, args CreateArgs) error {
 		if info == nil {
 			return log.FailE(err)
 		}
-		if !info.IsDir() || !strings.HasSuffix(source, ".deb") {
+		if !info.IsDir() && !strings.HasSuffix(source, ".deb") {
 			return log.FailE(errors.New("please specify a directory or .deb file"))
 		}
 
 		target := filepath.Join(docker.ContainerArchiveDir, filepath.Base(source))
 
 		mnt := mount.Mount{
+			Type:     mount.TypeBind,
 			Source:   source,
 			Target:   target,
 			ReadOnly: true,
