@@ -34,13 +34,67 @@ var (
 				deb.Version.String(),
 			)
 
-			steps.Build()
-			steps.Create()
-			steps.Tarball()
-			steps.Depends()
-			steps.Package()
-			steps.Archive()
-			steps.Remove()
+			buildArgs := steps.BuildArgs{
+				ImageName:    name.Image,
+				Distribution: name.Distribution,
+			}
+
+			createArgs := steps.CreateArgs{
+				ImageName:     name.Image,
+				ContainerName: name.Container,
+				SourceDir:     name.SourceDir,
+				BuildDir:      name.BuildDir,
+				CacheDir:      name.CacheDir,
+				ExtraPackages: flagExtraPackages,
+			}
+
+			dependsArgs := steps.DependsArgs{
+				ContainerName: name.Container,
+				ExtraPackages: flagExtraPackages,
+			}
+
+			packageArgs := steps.PackageArgs{}
+
+			archiveArgs := steps.ArchiveArgs{
+				ArchivePackageDir: name.ArchivePackageDir,
+				BuildDir:          name.BuildDir,
+			}
+
+			removeArgs := steps.RemoveArgs{
+				ContainerName: name.Container,
+			}
+
+			err = steps.Build(dock, buildArgs)
+			if err != nil {
+				return err
+			}
+
+			err = steps.Create(dock, createArgs)
+			if err != nil {
+				return err
+			}
+
+			err = steps.Depends(dock, dependsArgs)
+			if err != nil {
+				return err
+			}
+
+			err = steps.Package(dock, packageArgs)
+			if err != nil {
+				return err
+			}
+
+			err = steps.Archive(dock, archiveArgs)
+			if err != nil {
+				return err
+			}
+
+			err = steps.Remove(dock, removeArgs)
+			if err != nil {
+				return err
+			}
+
+			return nil
 		},
 	}
 

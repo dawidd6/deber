@@ -141,89 +141,27 @@ func Create(dock *docker.Docker, args CreateArgs) error {
 	return log.DoneE()
 }
 
-// Tarball function moves orig upstream tarball from parent directory
-// to build directory if package is not native.
-func Tarball(dock *docker.Docker, args TarballArgs) error {
-	log.Info("Moving tarball")
-
-	if args.IsPackageNative {
-		return log.SkipE()
-	}
-
-	tarball := fmt.Sprintf(
-		"%s_%s.orig.tar",
-		args.PackageName,
-		args.PackageUpstreamVersion,
-	)
-
-	path := filepath.Join(args.SourceDir, tarball)
-
-	for _, ext := range []string{".gz", ".xz", "bz2"} {
-		info, _ := os.Stat(path + ext)
-		if info != nil {
-			tarball += ext
-			source := filepath.Join(args.SourceDir, tarball)
-			target := filepath.Join(args.TargetDir, tarball)
-
-			source, err := filepath.EvalSymlinks(source)
-			if err != nil {
-				return log.FailE(err)
-			}
-
-			err = os.Rename(source, target)
-			if err != nil {
-				return log.FailE(err)
-			}
-
-			return log.DoneE()
-		}
-	}
-
-	return log.FailE(errors.New("tarball not found"))
-}
-
-// Network connects container to network or disconnects from it.
-func Network(dock *docker.Docker, args NetworkArgs) error {
-	log.Info("Enabling network")
-
-	isContainerNetworkConnected, err := dock.IsContainerNetworkConnected(args.ContainerName)
-	if err != nil {
-		return log.FailE(err)
-	}
-	if isContainerNetworkConnected {
-		if args.IsConnected {
-			return log.SkipE()
-		} else {
-			err = dock.ContainerDisableNetwork(args.ContainerName)
-			if err != nil {
-				return log.FailE(err)
-			}
-		}
-	} else {
-		if args.IsConnected {
-			err = dock.ContainerEnableNetwork(args.ContainerName)
-			if err != nil {
-				return log.FailE(err)
-			}
-		} else {
-			return log.SkipE()
-		}
-	}
-
-	return log.DoneE()
-}
-
 func Depends(dock *docker.Docker, args DependsArgs) error {
 	log.Info("Installing dependencies")
 
 	log.Drop()
+
+	containerNetworkArgs := docker.ContainerNetworkArgs{
+		Name:      args.ContainerName,
+		Connected: true,
+	}
+
+	err := dock.ContainerNetwork(containerNetworkArgs)
+	if err != nil {
+		return log.FailE(err)
+	}
 
 	commands := []string{
 		"apt-get update",
 		"apt-get build-dep ./",
 	}
 
-	if args.IsArchiveNeeded {
+	if args.ExtraPackages != nil {
 		commands = append(
 			[]string{
 				fmt.Sprintf(
@@ -260,22 +198,51 @@ func Package(dock *docker.Docker, args PackageArgs) error {
 
 	log.Drop()
 
-	if args.IsNetworkNeeded {
+	if !args.IsPackageNative {
+		tarball := fmt.Sprintf(
+			"%s_%s.orig.tar",
+			args.PackageName,
+			args.PackageUpstreamVersion,
+		)
 
+		found := false
+		path := filepath.Join(args.SourceDir, tarball)
+
+		for _, ext := range []string{".gz", ".xz", "bz2"} {
+			info, _ := os.Stat(path + ext)
+			if info != nil {
+				tarball += ext
+				source := filepath.Join(args.SourceDir, tarball)
+				target := filepath.Join(args.TargetDir, tarball)
+
+				source, err := filepath.EvalSymlinks(source)
+				if err != nil {
+					return log.FailE(err)
+				}
+
+				err = os.Rename(source, target)
+				if err != nil {
+					return log.FailE(err)
+				}
+
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			return log.FailE(errors.New("tarball not found"))
+		}
+	}
+
+	containerNetworkArgs := docker.ContainerNetworkArgs{
+		Name:      args.ContainerName,
+		Connected: args.IsNetworkNeeded,
 	}
 
 	containerArgs := docker.ContainerExecArgs{
 		Name: args.ContainerName,
 		Cmd:  "dpkg-buildpackage" + " " + args.DpkgFlags,
-	}
-
-	err := dock.ContainerExec(containerArgs)
-	if err != nil {
-		return log.FailE(err)
-	}
-
-	if !args.IsTestNeeded {
-		return log.DoneE()
 	}
 
 	commands := []string{
@@ -284,16 +251,28 @@ func Package(dock *docker.Docker, args PackageArgs) error {
 		"lintian" + " " + args.LintianFlags,
 	}
 
-	for _, cmd := range commands {
-		containerArgs := docker.ContainerExecArgs{
-			Name:   args.ContainerName,
-			Cmd:    cmd,
-			AsRoot: true,
-		}
+	err := dock.ContainerNetwork(containerNetworkArgs)
+	if err != nil {
+		return log.FailE(err)
+	}
 
-		err := dock.ContainerExec(containerArgs)
-		if err != nil {
-			return log.FailE(err)
+	err = dock.ContainerExec(containerArgs)
+	if err != nil {
+		return log.FailE(err)
+	}
+
+	if args.IsTestNeeded {
+		for _, cmd := range commands {
+			containerArgs := docker.ContainerExecArgs{
+				Name:   args.ContainerName,
+				Cmd:    cmd,
+				AsRoot: true,
+			}
+
+			err := dock.ContainerExec(containerArgs)
+			if err != nil {
+				return log.FailE(err)
+			}
 		}
 	}
 
