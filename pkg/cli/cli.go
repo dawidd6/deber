@@ -7,8 +7,10 @@ import (
 	"github.com/dawidd6/deber/pkg/log"
 	"github.com/dawidd6/deber/pkg/naming"
 	"github.com/dawidd6/deber/pkg/steps"
+	"github.com/dawidd6/deber/pkg/walk"
 	"github.com/spf13/cobra"
 	"os"
+	"path/filepath"
 	"pault.ag/go/debian/changelog"
 )
 
@@ -225,7 +227,21 @@ var (
 			}
 
 			if flagPackages {
+				base := filepath.Join(os.Getenv("HOME"), "deber")
 
+				err := walk.Walk(base, 2, func(node walk.Node) {
+					indent := ""
+
+					for i := 0; i < node.Depth; i++ {
+						indent += "  "
+					}
+
+					fmt.Printf("%s- %s\n", indent, filepath.Base(node.Path))
+				})
+
+				if err != nil {
+					return err
+				}
 			}
 
 			return nil
