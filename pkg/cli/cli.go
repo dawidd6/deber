@@ -7,7 +7,6 @@ import (
 	"github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/log"
 	"github.com/dawidd6/deber/pkg/naming"
-	"github.com/dawidd6/deber/pkg/steps"
 	"github.com/dawidd6/deber/pkg/walk"
 	"github.com/spf13/cobra"
 	"os"
@@ -69,7 +68,7 @@ func init() {
 	cmdRoot.Flags().StringVarP(&flagDpkgFlags, "dpkg-flags", "d", "-tc", "")
 	cmdRoot.Flags().StringVarP(&flagLintianFlags, "lintian-flags", "l", "-i -I", "")
 	cmdRoot.Flags().BoolVarP(&flagWithNetwork, "with-network", "n", false, "")
-	cmdRoot.PersistentFlags().BoolVar(&flagNoColor, "no-color", false, "")
+	cmdRoot.Flags().BoolVar(&flagNoColor, "no-color", false, "")
 	cmdRoot.Flags().StringArrayVarP(&flagExtraPackages, "extra-package", "p", nil, "")
 
 	// List flags
@@ -90,6 +89,10 @@ func Run() {
 }
 
 func run(cmd *cobra.Command, args []string) error {
+	if flagNoColor {
+		log.SetNoColor()
+	}
+
 	dock, err := docker.New()
 	if err != nil {
 		return err
@@ -102,24 +105,55 @@ func run(cmd *cobra.Command, args []string) error {
 
 	name := naming.New(deb)
 
-	opts := &steps.Options{
-		Naming:        name,
-		DpkgFlags:     flagDpkgFlags,
-		LintianFlags:  flagLintianFlags,
-		Network:       flagWithNetwork,
-		ExtraPackages: flagExtraPackages,
+	needBuild, err := needBuild(dock, name.Image.Name())
+	if err != nil {
+		return err
+	}
+	if needBuild {
+		log.Info("Building image")
+		err := runBuild(dock, name.Image.Name())
+		if err != nil {
+			return err
+		}
 	}
 
-	functions := []func(*docker.Docker, *steps.Options) error{
-		steps.Build,
-		steps.Create,
-		steps.Package,
-		steps.Archive,
-		steps.Remove,
+	needCreate, err := needCreate(dock, name.Container.Name())
+	if err != nil {
+		return err
+	}
+	if needCreate {
+		log.Info("Creating container")
+		err := runCreate(dock, name)
+		if err != nil {
+			return err
+		}
 	}
 
-	for _, fn := range functions {
-		err := fn(dock, opts)
+	log.Info("Moving tarball")
+	err = runTarball(name)
+	if err != nil {
+		return err
+	}
+
+	log.Info("Packaging software")
+	err = runPackage(dock, name)
+	if err != nil {
+		return err
+	}
+
+	log.Info("Archiving build")
+	err = runArchive(name)
+	if err != nil {
+		return err
+	}
+
+	needRemove, err := needRemove(dock, name.Container.Name())
+	if err != nil {
+		return err
+	}
+	if needRemove {
+		log.Info("Removing container")
+		err := runRemove(dock, name.Container.Name())
 		if err != nil {
 			return err
 		}
