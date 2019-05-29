@@ -20,19 +20,199 @@ var (
 		Use:     app.Name,
 		Version: app.Version,
 		Short:   app.Description,
-		RunE:    run,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			if flagNoColor {
+				log.SetNoColor()
+			}
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dock, err := docker.New()
+			if err != nil {
+				return err
+			}
+
+			deb, err := changelog.ParseFileOne("debian/changelog")
+			if err != nil {
+				return err
+			}
+
+			name := naming.New(deb)
+
+			needBuild, err := needBuild(dock, name)
+			if err != nil {
+				return err
+			}
+			if needBuild {
+				log.Info("Building image")
+				err := runBuild(dock, name)
+				if err != nil {
+					return err
+				}
+			}
+
+			needCreate, err := needCreate(dock, name)
+			if err != nil {
+				return err
+			}
+			if needCreate || flagRecreate {
+				log.Info("Creating container")
+				err := runCreate(dock, name)
+				if err != nil {
+					return err
+				}
+			}
+
+			log.Info("Moving tarball")
+			err = runTarball(name)
+			if err != nil {
+				return err
+			}
+
+			log.Info("Packaging software")
+			err = runPackage(dock, name)
+			if err != nil {
+				return err
+			}
+
+			log.Info("Archiving build")
+			err = runArchive(name)
+			if err != nil {
+				return err
+			}
+
+			needRemove, err := needRemove(dock, name)
+			if err != nil {
+				return err
+			}
+			if needRemove {
+				log.Info("Removing container")
+				err := runRemove(dock, name)
+				if err != nil {
+					return err
+				}
+			}
+
+			return nil
+		},
 	}
 
 	cmdList = &cobra.Command{
 		Use:   "list",
 		Short: "",
-		RunE:  runList,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dock, err := docker.New()
+			if err != nil {
+				return err
+			}
+
+			if !flagContainers && !flagImages && !flagPackages {
+				flagContainers = true
+				flagImages = true
+				flagPackages = true
+			}
+
+			if flagImages {
+				fmt.Println("Images:")
+
+				images, err := dock.ImageList(app.Name)
+				if err != nil {
+					return err
+				}
+
+				for _, image := range images {
+					fmt.Printf("  - %s\n", image)
+				}
+			}
+
+			if flagContainers {
+				fmt.Println("Containers:")
+
+				containers, err := dock.ContainerList(app.Name)
+				if err != nil {
+					return err
+				}
+
+				for _, container := range containers {
+					fmt.Printf("  - %s\n", container)
+				}
+			}
+
+			if flagPackages {
+				fmt.Println("Packages:")
+
+				err := walk.Walk(naming.ArchiveBase, 3, func(node walk.Node) {
+					indent := ""
+
+					for i := 0; i < node.Depth; i++ {
+						indent += "  "
+					}
+
+					fmt.Printf("%s- %s\n", indent, filepath.Base(node.Path))
+				})
+
+				if err != nil {
+					return err
+				}
+			}
+
+			return nil
+		},
 	}
 
 	cmdShell = &cobra.Command{
 		Use:   "shell",
 		Short: "",
-		RunE:  runShell,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dock, err := docker.New()
+			if err != nil {
+				return err
+			}
+
+			deb, err := changelog.ParseFileOne("debian/changelog")
+			if err != nil {
+				return err
+			}
+
+			name := naming.New(deb)
+
+			needBuild, err := needBuild(dock, name)
+			if err != nil {
+				return err
+			}
+			if needBuild {
+				log.Info("Building image")
+				err := runBuild(dock, name)
+				if err != nil {
+					return err
+				}
+			}
+
+			needCreate, err := needCreate(dock, name)
+			if err != nil {
+				return err
+			}
+			if needCreate {
+				log.Info("Creating container")
+				err := runCreate(dock, name)
+				if err != nil {
+					return err
+				}
+			}
+
+			containerArgs := docker.ContainerExecArgs{
+				Interactive: true,
+				AsRoot:      true,
+				Name:        name.Container.Name(),
+			}
+
+			err = dock.ContainerExec(containerArgs)
+			if err != nil {
+				return err
+			}
+
+			return err
+		},
 	}
 )
 
@@ -43,6 +223,7 @@ var (
 	flagLintianFlags  string
 	flagWithNetwork   bool
 	flagExtraPackages []string
+	flagRecreate      bool
 
 	// List flags
 	flagImages     bool
@@ -68,7 +249,8 @@ func init() {
 	cmdRoot.Flags().StringVarP(&flagDpkgFlags, "dpkg-flags", "d", "-tc", "")
 	cmdRoot.Flags().StringVarP(&flagLintianFlags, "lintian-flags", "l", "-i -I", "")
 	cmdRoot.Flags().BoolVarP(&flagWithNetwork, "with-network", "n", false, "")
-	cmdRoot.Flags().BoolVar(&flagNoColor, "no-color", false, "")
+	cmdRoot.PersistentFlags().BoolVar(&flagNoColor, "no-color", false, "")
+	cmdRoot.Flags().BoolVarP(&flagRecreate, "recreate", "r", false, "")
 	cmdRoot.Flags().StringArrayVarP(&flagExtraPackages, "extra-package", "p", nil, "")
 
 	// List flags
@@ -86,164 +268,4 @@ func Run() {
 		log.Error(err)
 		os.Exit(1)
 	}
-}
-
-func run(cmd *cobra.Command, args []string) error {
-	if flagNoColor {
-		log.SetNoColor()
-	}
-
-	dock, err := docker.New()
-	if err != nil {
-		return err
-	}
-
-	deb, err := changelog.ParseFileOne("debian/changelog")
-	if err != nil {
-		return err
-	}
-
-	name := naming.New(deb)
-
-	needBuild, err := needBuild(dock, name)
-	if err != nil {
-		return err
-	}
-	if needBuild {
-		log.Info("Building image")
-		err := runBuild(dock, name)
-		if err != nil {
-			return err
-		}
-	}
-
-	needCreate, err := needCreate(dock, name)
-	if err != nil {
-		return err
-	}
-	if needCreate {
-		log.Info("Creating container")
-		err := runCreate(dock, name)
-		if err != nil {
-			return err
-		}
-	}
-
-	log.Info("Moving tarball")
-	err = runTarball(name)
-	if err != nil {
-		return err
-	}
-
-	log.Info("Packaging software")
-	err = runPackage(dock, name)
-	if err != nil {
-		return err
-	}
-
-	log.Info("Archiving build")
-	err = runArchive(name)
-	if err != nil {
-		return err
-	}
-
-	needRemove, err := needRemove(dock, name)
-	if err != nil {
-		return err
-	}
-	if needRemove {
-		log.Info("Removing container")
-		err := runRemove(dock, name)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func runShell(cmd *cobra.Command, args []string) error {
-	dock, err := docker.New()
-	if err != nil {
-		return err
-	}
-
-	deb, err := changelog.ParseFileOne("debian/changelog")
-	if err != nil {
-		return err
-	}
-
-	name := naming.New(deb)
-
-	containerArgs := docker.ContainerExecArgs{
-		Interactive: true,
-		AsRoot:      true,
-		Name:        name.Container.Name(),
-	}
-
-	err = dock.ContainerExec(containerArgs)
-	if err != nil {
-		return err
-	}
-
-	return err
-}
-
-func runList(cmd *cobra.Command, args []string) error {
-	dock, err := docker.New()
-	if err != nil {
-		return err
-	}
-
-	if !flagContainers && !flagImages && !flagPackages {
-		flagContainers = true
-		flagImages = true
-		flagPackages = true
-	}
-
-	if flagImages {
-		fmt.Println("Images:")
-
-		images, err := dock.ImageList(app.Name)
-		if err != nil {
-			return err
-		}
-
-		for _, image := range images {
-			fmt.Printf("  - %s\n", image)
-		}
-	}
-
-	if flagContainers {
-		fmt.Println("Containers:")
-
-		containers, err := dock.ContainerList(app.Name)
-		if err != nil {
-			return err
-		}
-
-		for _, container := range containers {
-			fmt.Printf("  - %s\n", container)
-		}
-	}
-
-	if flagPackages {
-		fmt.Println("Packages:")
-
-		err := walk.Walk(naming.ArchiveBase, 3, func(node walk.Node) {
-			indent := ""
-
-			for i := 0; i < node.Depth; i++ {
-				indent += "  "
-			}
-
-			fmt.Printf("%s- %s\n", indent, filepath.Base(node.Path))
-		})
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }

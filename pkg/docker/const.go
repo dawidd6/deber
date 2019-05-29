@@ -12,10 +12,6 @@ const (
 	// it should be rebuilt
 	ImageMaxAge = time.Hour * 24 * 14
 
-	// ContainerStopTimeout constant represents how long Docker Engine
-	// will wait for container before stopping it
-	ContainerStopTimeout = time.Millisecond * 10
-
 	// ContainerStateRunning constants defines that container is running
 	ContainerStateRunning = "running"
 	// ContainerStateCreated constants defines that container is created

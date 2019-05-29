@@ -114,11 +114,6 @@ func runCreate(dock *docker.Docker, name *naming.Naming) error {
 		return err
 	}
 
-	err = dock.ContainerStart(name.Container.Name())
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -203,12 +198,7 @@ func runPackage(dock *docker.Docker, name *naming.Naming) error {
 }
 
 func runRemove(dock *docker.Docker, name *naming.Naming) error {
-	err := dock.ContainerStop(name.Container.Name())
-	if err != nil {
-		return err
-	}
-
-	err = dock.ContainerRemove(name.Container.Name())
+	err := dock.ContainerRemove(name.Container.Name())
 	if err != nil {
 		return err
 	}

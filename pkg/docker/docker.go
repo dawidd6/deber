@@ -236,33 +236,26 @@ func (docker *Docker) ContainerCreate(args ContainerCreateArgs) error {
 		User:  args.User,
 	}
 
-	_, err := docker.client.ContainerCreate(docker.ctx, config, hostConfig, nil, args.Name)
+	removeOptions := types.ContainerRemoveOptions{
+		Force: true,
+	}
+
+	startOptions := types.ContainerStartOptions{}
+
+	err := docker.client.ContainerRemove(docker.ctx, args.Name, removeOptions)
+	_, err = docker.client.ContainerCreate(docker.ctx, config, hostConfig, nil, args.Name)
 	if err != nil {
 		return err
 	}
 
-	return nil
-}
-
-// ContainerStart function starts container, just that.
-func (docker *Docker) ContainerStart(name string) error {
-	options := types.ContainerStartOptions{}
-
-	return docker.client.ContainerStart(docker.ctx, name, options)
-}
-
-// ContainerStop function stops container, just that.
-//
-// It utilizes ContainerStopTimeout constant.
-func (docker *Docker) ContainerStop(name string) error {
-	timeout := ContainerStopTimeout
-
-	return docker.client.ContainerStop(docker.ctx, name, &timeout)
+	return docker.client.ContainerStart(docker.ctx, args.Name, startOptions)
 }
 
 // ContainerRemove function removes container, just that.
 func (docker *Docker) ContainerRemove(name string) error {
-	options := types.ContainerRemoveOptions{}
+	options := types.ContainerRemoveOptions{
+		Force: true,
+	}
 
 	return docker.client.ContainerRemove(docker.ctx, name, options)
 }
