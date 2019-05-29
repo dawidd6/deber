@@ -105,19 +105,19 @@ func run(cmd *cobra.Command, args []string) error {
 
 	name := naming.New(deb)
 
-	needBuild, err := needBuild(dock, name.Image.Name())
+	needBuild, err := needBuild(dock, name)
 	if err != nil {
 		return err
 	}
 	if needBuild {
 		log.Info("Building image")
-		err := runBuild(dock, name.Image.Name())
+		err := runBuild(dock, name)
 		if err != nil {
 			return err
 		}
 	}
 
-	needCreate, err := needCreate(dock, name.Container.Name())
+	needCreate, err := needCreate(dock, name)
 	if err != nil {
 		return err
 	}
@@ -147,13 +147,13 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	needRemove, err := needRemove(dock, name.Container.Name())
+	needRemove, err := needRemove(dock, name)
 	if err != nil {
 		return err
 	}
 	if needRemove {
 		log.Info("Removing container")
-		err := runRemove(dock, name.Container.Name())
+		err := runRemove(dock, name)
 		if err != nil {
 			return err
 		}

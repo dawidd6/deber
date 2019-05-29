@@ -11,26 +11,28 @@ import (
 	"strings"
 )
 
-func needBuild(dock *docker.Docker, name string) (bool, error) {
-	isImageBuilt, err := dock.IsImageBuilt(name)
+func needBuild(dock *docker.Docker, name *naming.Naming) (bool, error) {
+	isImageBuilt, err := dock.IsImageBuilt(name.Image.Name())
 	if err != nil {
 		return false, err
 	}
 	if isImageBuilt {
-		isImageOld, err := dock.IsImageOld(name)
+		isImageOld, err := dock.IsImageOld(name.Image.Name())
 		if err != nil {
 			return false, err
 		}
 		if isImageOld {
 			return true, nil
 		}
+
+		return false, nil
 	}
 
 	return true, nil
 }
 
-func needCreate(dock *docker.Docker, name string) (bool, error) {
-	isContainerCreated, err := dock.IsContainerCreated(name)
+func needCreate(dock *docker.Docker, name *naming.Naming) (bool, error) {
+	isContainerCreated, err := dock.IsContainerCreated(name.Container.Name())
 	if err != nil {
 		return false, err
 	}
@@ -41,8 +43,8 @@ func needCreate(dock *docker.Docker, name string) (bool, error) {
 	return true, nil
 }
 
-func needRemove(dock *docker.Docker, name string) (bool, error) {
-	isContainerCreated, err := dock.IsContainerCreated(name)
+func needRemove(dock *docker.Docker, name *naming.Naming) (bool, error) {
+	isContainerCreated, err := dock.IsContainerCreated(name.Container.Name())
 	if err != nil {
 		return false, err
 	}
@@ -53,15 +55,15 @@ func needRemove(dock *docker.Docker, name string) (bool, error) {
 	return false, nil
 }
 
-func runBuild(dock *docker.Docker, tag string) error {
-	repo, err := determineRepo(tag)
+func runBuild(dock *docker.Docker, name *naming.Naming) error {
+	repo, err := determineRepo(name.Image.Tag())
 	if err != nil {
 		return err
 	}
 
 	buildArgs := docker.ImageBuildArgs{
-		From: fmt.Sprintf("%s:%s", repo, tag),
-		Name: tag,
+		From: fmt.Sprintf("%s:%s", repo, name.Image.Tag()),
+		Name: name.Image.Name(),
 	}
 
 	err = dock.ImageBuild(buildArgs)
@@ -144,19 +146,23 @@ func runPackage(dock *docker.Docker, name *naming.Naming) error {
 		{
 			Name:    name.Container.Name(),
 			Cmd:     "echo deb [trusted=yes] file://" + docker.ContainerArchiveDir + " ./ > a.list",
+			AsRoot:  true,
 			WorkDir: "/etc/apt/sources.list.d",
 		}, {
 			Name:    name.Container.Name(),
 			Cmd:     "dpkg-scanpackages -m . > Packages",
+			AsRoot:  true,
 			WorkDir: docker.ContainerArchiveDir,
 		}, {
 			Name:    name.Container.Name(),
 			Cmd:     "apt-get update",
+			AsRoot:  true,
 			Network: true,
 		}, {
 			Name:    name.Container.Name(),
-			Cmd:     "apt-get build-dep",
+			Cmd:     "apt-get build-dep ./",
 			Network: true,
+			AsRoot:  true,
 			WorkDir: docker.ContainerSourceDir,
 		}, {
 			Name:    name.Container.Name(),
@@ -196,13 +202,13 @@ func runPackage(dock *docker.Docker, name *naming.Naming) error {
 	return nil
 }
 
-func runRemove(dock *docker.Docker, name string) error {
-	err := dock.ContainerStop(name)
+func runRemove(dock *docker.Docker, name *naming.Naming) error {
+	err := dock.ContainerStop(name.Container.Name())
 	if err != nil {
 		return err
 	}
 
-	err = dock.ContainerRemove(name)
+	err = dock.ContainerRemove(name.Container.Name())
 	if err != nil {
 		return err
 	}
