@@ -16,12 +16,6 @@ type ImageBuildArgs struct {
 	Name string
 }
 
-// ImageListArgs struct represents arguments
-// passed to ImageList().
-type ImageListArgs struct {
-	Prefix string
-}
-
 // ContainerCreateArgs struct represents arguments
 // passed to ContainerCreate().
 type ContainerCreateArgs struct {
@@ -39,24 +33,6 @@ type ContainerExecArgs struct {
 	Cmd         string
 	WorkDir     string
 	AsRoot      bool
-}
-
-// ContainerExecResizeArgs struct represents arguments
-// passed to ContainerExecResize().
-type ContainerExecResizeArgs struct {
-	Fd     uintptr
-	ExecID string
-}
-
-// ContainerNetworkArgs struct represents arguments
-// passed to ContainerNetwork().
-type ContainerNetworkArgs struct {
-	Name      string
-	Connected bool
-}
-
-// ContainerListArgs struct represents arguments
-// passed to ContainerList().
-type ContainerListArgs struct {
-	Prefix string
+	Skip        bool
+	Network     bool
 }

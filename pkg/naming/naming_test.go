@@ -33,7 +33,7 @@ func TestNew(t *testing.T) {
 		Package: pkg,
 	}
 
-	dirs := &naming.Directories{
+	dirs := &naming.Dirs{
 		Source: &naming.Source{
 			Base: os.Getenv("PWD"),
 		}, Build: &naming.Build{
@@ -71,7 +71,7 @@ func TestNew(t *testing.T) {
 	assert.Equal(
 		t,
 		dirs,
-		name.Directories,
+		name.Dirs,
 	)
 }
 

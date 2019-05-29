@@ -10,14 +10,20 @@ import (
 	"strings"
 )
 
+var (
+	BuildBase   = "/tmp"
+	CacheBase   = "/tmp"
+	ArchiveBase = filepath.Join(os.Getenv("HOME"), app.Name)
+)
+
 type Naming struct {
-	Container   *Container
-	Image       *Image
-	Directories *Directories
-	Package     *Package
+	Container *Container
+	Image     *Image
+	Dirs      *Dirs
+	Package   *Package
 }
 
-type Directories struct {
+type Dirs struct {
 	Build   *Build
 	Cache   *Cache
 	Archive *Archive
@@ -68,26 +74,26 @@ func New(debian *changelog.ChangelogEntry) *Naming {
 		Package: pkg,
 	}
 
-	dirs := &Directories{
+	dirs := &Dirs{
 		Source: &Source{
 			Base: os.Getenv("PWD"),
 		}, Build: &Build{
-			Base:      "/tmp",
+			Base:      BuildBase,
 			Container: container,
 		}, Cache: &Cache{
-			Base:  "/tmp",
+			Base:  CacheBase,
 			Image: image,
 		}, Archive: &Archive{
-			Base:    filepath.Join(os.Getenv("HOME"), app.Name),
+			Base:    ArchiveBase,
 			Package: pkg,
 		},
 	}
 
 	return &Naming{
-		Container:   container,
-		Image:       image,
-		Package:     pkg,
-		Directories: dirs,
+		Container: container,
+		Image:     image,
+		Package:   pkg,
+		Dirs:      dirs,
 	}
 }
 

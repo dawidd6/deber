@@ -200,7 +200,7 @@ func (docker *Docker) ImageBuild(args ImageBuildArgs) error {
 }
 
 // ImageList returns a list of images that match passed criteria.
-func (docker *Docker) ImageList(args ImageListArgs) ([]string, error) {
+func (docker *Docker) ImageList(prefix string) ([]string, error) {
 	images := make([]string, 0)
 	options := types.ImageListOptions{
 		All: true,
@@ -215,7 +215,7 @@ func (docker *Docker) ImageList(args ImageListArgs) ([]string, error) {
 		for _, name := range v.RepoTags {
 			name = strings.TrimPrefix(name, "/")
 
-			if strings.HasPrefix(name, args.Prefix) {
+			if strings.HasPrefix(name, prefix) {
 				images = append(images, name)
 			}
 		}
@@ -290,12 +290,21 @@ func (docker *Docker) ContainerExec(args ContainerExecArgs) error {
 		Detach: false,
 	}
 
+	if args.Skip {
+		return nil
+	}
+
 	if args.AsRoot {
 		config.User = "root"
 	}
 
 	if args.Cmd != "" {
 		config.Cmd = append(config.Cmd, "-c", args.Cmd)
+	}
+
+	err := docker.ContainerNetwork(args.Name, args.Network)
+	if err != nil {
+		return err
 	}
 
 	response, err := docker.client.ContainerExecCreate(docker.ctx, args.Name, config)
@@ -318,16 +327,12 @@ func (docker *Docker) ContainerExec(args ContainerExecArgs) error {
 			}
 			defer term.RestoreTerminal(fd, oldState)
 
-			args := ContainerExecResizeArgs{
-				Fd:     fd,
-				ExecID: response.ID,
-			}
-			err = docker.ContainerExecResize(args)
+			err = docker.ContainerExecResize(response.ID, fd)
 			if err != nil {
 				return err
 			}
 
-			go docker.resizeIfChanged(args)
+			go docker.resizeIfChanged(response.ID, fd)
 			go io.Copy(hijack.Conn, os.Stdin)
 		}
 	}
@@ -349,19 +354,19 @@ func (docker *Docker) ContainerExec(args ContainerExecArgs) error {
 	return nil
 }
 
-func (docker *Docker) resizeIfChanged(args ContainerExecResizeArgs) {
+func (docker *Docker) resizeIfChanged(execID string, fd uintptr) {
 	channel := make(chan os.Signal)
 	signal.Notify(channel, syscall.SIGWINCH)
 
 	for {
 		<-channel
-		docker.ContainerExecResize(args)
+		docker.ContainerExecResize(execID, fd)
 	}
 }
 
 // ContainerExecResize function resizes TTY for exec process.
-func (docker *Docker) ContainerExecResize(args ContainerExecResizeArgs) error {
-	winSize, err := term.GetWinsize(args.Fd)
+func (docker *Docker) ContainerExecResize(execID string, fd uintptr) error {
+	winSize, err := term.GetWinsize(fd)
 	if err != nil {
 		return err
 	}
@@ -371,7 +376,7 @@ func (docker *Docker) ContainerExecResize(args ContainerExecResizeArgs) error {
 		Width:  uint(winSize.Width),
 	}
 
-	err = docker.client.ContainerExecResize(docker.ctx, args.ExecID, options)
+	err = docker.client.ContainerExecResize(docker.ctx, execID, options)
 	if err != nil {
 		return err
 	}
@@ -381,34 +386,34 @@ func (docker *Docker) ContainerExecResize(args ContainerExecResizeArgs) error {
 
 // ContainerNetwork checks if container is connected to network
 // and then connects it or disconnects per caller request.
-func (docker *Docker) ContainerNetwork(args ContainerNetworkArgs) error {
+func (docker *Docker) ContainerNetwork(name string, wantConnected bool) error {
 	network := "bridge"
-	connected := false
+	gotConnected := false
 
-	inspect, err := docker.client.ContainerInspect(docker.ctx, args.Name)
+	inspect, err := docker.client.ContainerInspect(docker.ctx, name)
 	if err != nil {
 		return err
 	}
 
 	for net := range inspect.NetworkSettings.Networks {
 		if net == network {
-			connected = true
+			gotConnected = true
 		}
 	}
 
-	if args.Connected && !connected {
-		return docker.client.NetworkConnect(docker.ctx, network, args.Name, nil)
+	if wantConnected && !gotConnected {
+		return docker.client.NetworkConnect(docker.ctx, network, name, nil)
 	}
 
-	if !args.Connected && connected {
-		return docker.client.NetworkDisconnect(docker.ctx, network, args.Name, false)
+	if !wantConnected && gotConnected {
+		return docker.client.NetworkDisconnect(docker.ctx, network, name, false)
 	}
 
 	return nil
 }
 
 // ContainerList returns a list of containers that match passed criteria.
-func (docker *Docker) ContainerList(args ContainerListArgs) ([]string, error) {
+func (docker *Docker) ContainerList(prefix string) ([]string, error) {
 	containers := make([]string, 0)
 	options := types.ContainerListOptions{
 		All: true,
@@ -423,7 +428,7 @@ func (docker *Docker) ContainerList(args ContainerListArgs) ([]string, error) {
 		for _, name := range v.Names {
 			name = strings.TrimPrefix(name, "/")
 
-			if strings.HasPrefix(name, args.Prefix) {
+			if strings.HasPrefix(name, prefix) {
 				containers = append(containers, name)
 			}
 		}

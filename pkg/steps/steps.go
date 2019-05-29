@@ -3,8 +3,10 @@ package steps
 import (
 	"errors"
 	"fmt"
+	"github.com/dawidd6/deber/pkg/app"
 	"github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/log"
+	"github.com/dawidd6/deber/pkg/naming"
 	"github.com/docker/docker/api/types/mount"
 	"os"
 	"path/filepath"
@@ -16,15 +18,46 @@ import (
 // debian/changelog's target distribution.
 //
 // At last it commands Docker Engine to build image.
-func Build(dock *docker.Docker, args BuildArgs) error {
+
+type Options struct {
+	*naming.Naming
+
+	DpkgFlags     string
+	LintianFlags  string
+	Network       bool
+	Rebuild       bool
+	All           bool
+	ExtraPackages []string
+}
+
+func determineRepo(dist string) (string, error) {
+	repos := []string{"debian", "ubuntu"}
+
+	for _, repo := range repos {
+		tags, err := docker.GetTags(repo)
+		if err != nil {
+			return "", err
+		}
+
+		for _, tag := range tags {
+			if tag.Name == dist {
+				return repo, nil
+			}
+		}
+	}
+
+	return "", errors.New("distribution image not found")
+}
+
+func Build(dock *docker.Docker, opts *Options) error {
 	log.Info("Building image")
 
-	isImageBuilt, err := dock.IsImageBuilt(args.Image.Name())
+	isImageBuilt, err := dock.IsImageBuilt(opts.Image.Name())
 	if err != nil {
 		return log.FailE(err)
 	}
-	if isImageBuilt && !args.IsRebuildNeeded {
-		isImageOld, err := dock.IsImageOld(args.Image.Name())
+	if isImageBuilt && !opts.Rebuild {
+		isImageOld, err := dock.IsImageOld(opts.Image.Name())
 		if err != nil {
 			return log.FailE(err)
 		}
@@ -33,40 +66,31 @@ func Build(dock *docker.Docker, args BuildArgs) error {
 		}
 	}
 
-	for _, repo := range []string{"debian", "ubuntu"} {
-		tags, err := docker.GetTags(repo)
-		if err != nil {
-			return log.FailE(err)
-		}
-
-		for _, tag := range tags {
-			if tag.Name == args.Image.Tag() {
-				from := fmt.Sprintf("%s:%s", repo, args.Image.Tag())
-
-				log.Drop()
-
-				args := docker.ImageBuildArgs{
-					From: from,
-					Name: args.Image.Name(),
-				}
-				err := dock.ImageBuild(args)
-				if err != nil {
-					return log.FailE(err)
-				}
-
-				return log.DoneE()
-			}
-		}
+	repo, err := determineRepo(opts.Image.Tag())
+	if err != nil {
+		return err
 	}
 
-	return log.FailE(errors.New("distribution image not found"))
+	log.Drop()
+
+	args := docker.ImageBuildArgs{
+		From: fmt.Sprintf("%s:%s", repo, opts.Image.Tag()),
+		Name: opts.Image.Name(),
+	}
+
+	err = dock.ImageBuild(args)
+	if err != nil {
+		return log.FailE(err)
+	}
+
+	return log.DoneE()
 }
 
 // Create function commands Docker Engine to create and start container.
-func Create(dock *docker.Docker, args CreateArgs) error {
+func Create(dock *docker.Docker, opts *Options) error {
 	log.Info("Creating container")
 
-	isContainerCreated, err := dock.IsContainerCreated(args.ContainerName)
+	isContainerCreated, err := dock.IsContainerCreated(opts.Container.Name())
 	if err != nil {
 		return log.FailE(err)
 	}
@@ -74,47 +98,68 @@ func Create(dock *docker.Docker, args CreateArgs) error {
 		return log.SkipE()
 	}
 
-	containerArgs := docker.ContainerCreateArgs{
+	args := docker.ContainerCreateArgs{
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
-				Source: args.SourceDir,
+				Source: opts.Dirs.Source.SourcePath(),
 				Target: docker.ContainerSourceDir,
 			}, {
 				Type:   mount.TypeBind,
-				Source: args.BuildDir,
+				Source: opts.Dirs.Build.ContainerPath(),
 				Target: docker.ContainerBuildDir,
 			}, {
 				Type:   mount.TypeBind,
-				Source: args.CacheDir,
+				Source: opts.Dirs.Cache.ImagePath(),
 				Target: docker.ContainerCacheDir,
 			},
 		},
-		Image: args.ImageName,
-		Name:  args.ContainerName,
+		Image: opts.Image.Name(),
+		Name:  opts.Container.Name(),
 		User:  fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid()),
 	}
 
-	for _, mnt := range containerArgs.Mounts {
+	for _, mnt := range args.Mounts {
 		err := os.MkdirAll(mnt.Source, os.ModePerm)
 		if err != nil {
 			return log.FailE(err)
 		}
 	}
 
-	// TODO check
-	for _, pkg := range args.ExtraPackages {
+	mounts, err := extraPackages(opts.ExtraPackages)
+	if err != nil {
+		return log.FailE(err)
+	}
+	args.Mounts = append(args.Mounts, mounts...)
+
+	err = dock.ContainerCreate(args)
+	if err != nil {
+		return log.FailE(err)
+	}
+
+	err = dock.ContainerStart(opts.Container.Name())
+	if err != nil {
+		return log.FailE(err)
+	}
+
+	return log.DoneE()
+}
+
+func extraPackages(packages []string) ([]mount.Mount, error) {
+	mounts := make([]mount.Mount, 0)
+
+	for _, pkg := range packages {
 		source, err := filepath.Abs(pkg)
 		if err != nil {
-			return log.FailE(err)
+			return nil, err
 		}
 
 		info, err := os.Stat(source)
 		if info == nil {
-			return log.FailE(err)
+			return nil, err
 		}
 		if !info.IsDir() && !strings.HasSuffix(source, ".deb") {
-			return log.FailE(errors.New("please specify a directory or .deb file"))
+			return nil, errors.New("please specify a directory or .deb file")
 		}
 
 		target := filepath.Join(docker.ContainerArchiveDir, filepath.Base(source))
@@ -126,154 +171,116 @@ func Create(dock *docker.Docker, args CreateArgs) error {
 			ReadOnly: true,
 		}
 
-		containerArgs.Mounts = append(containerArgs.Mounts, mnt)
+		mounts = append(mounts, mnt)
 	}
 
-	err = dock.ContainerCreate(containerArgs)
-	if err != nil {
-		return log.FailE(err)
-	}
-
-	err = dock.ContainerStart(args.ContainerName)
-	if err != nil {
-		return log.FailE(err)
-	}
-
-	return log.DoneE()
+	return mounts, nil
 }
 
-func Depends(dock *docker.Docker, args DependsArgs) error {
-	log.Info("Installing dependencies")
+func findTarball(pkg *naming.Package, in string) (string, error) {
+	tarball := fmt.Sprintf(
+		"%s/%s_%s.orig.tar",
+		in,
+		pkg.Source,
+		pkg.Version.Version,
+	)
+	extensions := []string{".gz", ".xz", "bz2"}
 
-	log.Drop()
-
-	containerNetworkArgs := docker.ContainerNetworkArgs{
-		Name:      args.ContainerName,
-		Connected: true,
-	}
-
-	err := dock.ContainerNetwork(containerNetworkArgs)
-	if err != nil {
-		return log.FailE(err)
-	}
-
-	commands := []string{
-		"apt-get update",
-		"apt-get build-dep " + docker.ContainerSourceDir,
-	}
-
-	if args.ExtraPackages != nil {
-		commands = append(
-			[]string{
-				fmt.Sprintf(
-					"echo deb [trusted=yes] file://%s %s > %s\n",
-					docker.ContainerArchiveDir,
-					"./",
-					"/etc/apt/sources.list.d/a.list",
-				),
-				"dpkg-scanpackages -m . > Packages",
-			},
-			commands...,
-		)
-	}
-
-	for _, cmd := range commands {
-		containerArgs := docker.ContainerExecArgs{
-			Name:    args.ContainerName,
-			Cmd:     cmd,
-			WorkDir: docker.ContainerArchiveDir,
-			AsRoot:  true,
-		}
-
-		err := dock.ContainerExec(containerArgs)
-		if err != nil {
-			return log.FailE(err)
+	for _, ext := range extensions {
+		info, _ := os.Stat(tarball + ext)
+		if info != nil {
+			return tarball + ext, nil
 		}
 	}
 
-	return log.DoneE()
+	return "", errors.New("tarball not found")
 }
 
-func Package(dock *docker.Docker, args PackageArgs) error {
+func moveTarball(tarball, dir string) error {
+	source, err := filepath.EvalSymlinks(tarball)
+	if err != nil {
+		return err
+	}
+
+	target := filepath.Join(dir, filepath.Base(tarball))
+	err = os.Rename(source, target)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func Package(dock *docker.Docker, opts *Options) error {
 	log.Info("Packaging software")
 
 	log.Drop()
 
-	if strings.Contains(args.PackageVersion, "-") {
-		tarball := fmt.Sprintf(
-			"%s_%s.orig.tar",
-			args.PackageName,
-			strings.Split(args.PackageVersion, "-")[0],
-		)
-
-		found := false
-		path := filepath.Join(args.TarballSourceDir, tarball)
-
-		for _, ext := range []string{".gz", ".xz", "bz2"} {
-			info, _ := os.Stat(path + ext)
-			if info != nil {
-				tarball += ext
-				source := filepath.Join(args.TarballSourceDir, tarball)
-				target := filepath.Join(args.TarballTargetDir, tarball)
-
-				source, err := filepath.EvalSymlinks(source)
-				if err != nil {
-					return log.FailE(err)
-				}
-
-				err = os.Rename(source, target)
-				if err != nil {
-					return log.FailE(err)
-				}
-
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			return log.FailE(errors.New("tarball not found"))
-		}
-	}
-
-	containerNetworkArgs := docker.ContainerNetworkArgs{
-		Name:      args.ContainerName,
-		Connected: args.IsNetworkNeeded,
-	}
-
-	containerArgs := docker.ContainerExecArgs{
-		Name: args.ContainerName,
-		Cmd:  "dpkg-buildpackage" + " " + args.DpkgFlags,
-	}
-
-	commands := []string{
-		"debc",
-		"debi --with-depends",
-		"lintian" + " " + args.LintianFlags,
-	}
-
-	err := dock.ContainerNetwork(containerNetworkArgs)
-	if err != nil {
-		return log.FailE(err)
-	}
-
-	err = dock.ContainerExec(containerArgs)
-	if err != nil {
-		return log.FailE(err)
-	}
-
-	if args.IsTestNeeded {
-		for _, cmd := range commands {
-			containerArgs := docker.ContainerExecArgs{
-				Name:   args.ContainerName,
-				Cmd:    cmd,
-				AsRoot: true,
-			}
-
-			err := dock.ContainerExec(containerArgs)
+	if !opts.Package.Version.IsNative() {
+		tarball, err := findTarball(opts.Package, opts.Dirs.Build.ContainerPath())
+		if err != nil {
+			tarball, err = findTarball(opts.Package, opts.Dirs.Source.ParentPath())
 			if err != nil {
 				return log.FailE(err)
 			}
+
+			err = moveTarball(tarball, opts.Dirs.Build.ContainerPath())
+			if err != nil {
+				return log.FailE(err)
+			}
+		}
+	}
+
+	args := []docker.ContainerExecArgs{
+		{
+			Name:    opts.Container.Name(),
+			Cmd:     "echo deb [trusted=yes] file://" + docker.ContainerArchiveDir + " ./ > a.list",
+			WorkDir: "/etc/apt/sources.list.d",
+		}, {
+			Name:    opts.Container.Name(),
+			Cmd:     "dpkg-scanpackages -m . > Packages",
+			WorkDir: docker.ContainerArchiveDir,
+		}, {
+			Name:    opts.Container.Name(),
+			Cmd:     "apt-get update",
+			Network: true,
+		}, {
+			Name:    opts.Container.Name(),
+			Cmd:     "apt-get build-dep",
+			Network: true,
+			WorkDir: docker.ContainerSourceDir,
+		}, {
+			Name:    opts.Container.Name(),
+			Cmd:     "dpkg-buildpackage " + opts.DpkgFlags,
+			Network: opts.Network,
+		}, {
+			Name: opts.Container.Name(),
+			Cmd:  "debc",
+		}, {
+			Name:    opts.Container.Name(),
+			Cmd:     "debi --with-depends",
+			Network: true,
+			AsRoot:  true,
+		}, {
+			Name: opts.Container.Name(),
+			Cmd:  "lintian " + opts.LintianFlags,
+		},
+	}
+
+	if opts.ExtraPackages == nil {
+		args[0].Skip = true
+		args[1].Skip = true
+	}
+
+	err := dock.ContainerNetwork(opts.Container.Name(), opts.Network)
+	if err != nil {
+		return log.FailE(err)
+	}
+
+	for _, arg := range args {
+		err = dock.ContainerExec(arg)
+		if err != nil {
+			return log.FailE(err)
 		}
 	}
 
@@ -281,23 +288,23 @@ func Package(dock *docker.Docker, args PackageArgs) error {
 }
 
 // Archive function moves successful build to archive by overwriting.
-func Archive(dock *docker.Docker, args ArchiveArgs) error {
+func Archive(dock *docker.Docker, opts *Options) error {
 	log.Info("Archiving build")
 
-	info, _ := os.Stat(args.ArchivePackageDir)
+	info, _ := os.Stat(opts.Dirs.Archive.PackageVersionPath())
 	if info != nil {
-		err := os.RemoveAll(args.ArchivePackageDir)
+		err := os.RemoveAll(opts.Dirs.Archive.PackageVersionPath())
 		if err != nil {
 			return log.FailE(err)
 		}
 	}
 
-	err := os.MkdirAll(filepath.Dir(args.ArchivePackageDir), os.ModePerm)
+	err := os.MkdirAll(opts.Dirs.Archive.PackageSourcePath(), os.ModePerm)
 	if err != nil {
 		return log.FailE(err)
 	}
 
-	err = os.Rename(args.BuildDir, args.ArchivePackageDir)
+	err = os.Rename(opts.Dirs.Build.ContainerPath(), opts.Dirs.Archive.PackageVersionPath())
 	if err != nil {
 		return log.FailE(err)
 	}
@@ -305,11 +312,31 @@ func Archive(dock *docker.Docker, args ArchiveArgs) error {
 	return log.DoneE()
 }
 
+func removeAll(dock *docker.Docker) error {
+	list, err := dock.ContainerList(app.Name)
+	if err != nil {
+		return log.FailE(err)
+	}
+
+	for _, container := range list {
+		err = dock.ContainerRemove(container)
+		if err != nil {
+			return log.FailE(err)
+		}
+	}
+
+	return nil
+}
+
 // Remove function commands Docker Engine to stop and remove container.
-func Remove(dock *docker.Docker, args RemoveArgs) error {
+func Remove(dock *docker.Docker, opts *Options) error {
 	log.Info("Removing container")
 
-	isContainerCreated, err := dock.IsContainerCreated(args.ContainerName)
+	if opts.All {
+		return removeAll(dock)
+	}
+
+	isContainerCreated, err := dock.IsContainerCreated(opts.Container.Name())
 	if err != nil {
 		return log.FailE(err)
 	}
@@ -317,37 +344,18 @@ func Remove(dock *docker.Docker, args RemoveArgs) error {
 		return log.SkipE()
 	}
 
-	isContainerStopped, err := dock.IsContainerStopped(args.ContainerName)
+	isContainerStopped, err := dock.IsContainerStopped(opts.Container.Name())
 	if err != nil {
 		return log.FailE(err)
 	}
 	if !isContainerStopped {
-		err = dock.ContainerStop(args.ContainerName)
+		err = dock.ContainerStop(opts.Container.Name())
 		if err != nil {
 			return log.FailE(err)
 		}
 	}
 
-	err = dock.ContainerRemove(args.ContainerName)
-	if err != nil {
-		return log.FailE(err)
-	}
-
-	return log.DoneE()
-}
-
-// Shell function interactively executes bash shell in container.
-func Shell(dock *docker.Docker, args ShellArgs) error {
-	log.Info("Launching shell")
-
-	log.Drop()
-
-	containerArgs := docker.ContainerExecArgs{
-		Interactive: true,
-		AsRoot:      true,
-		Name:        args.ContainerName,
-	}
-	err := dock.ContainerExec(containerArgs)
+	err = dock.ContainerRemove(opts.Container.Name())
 	if err != nil {
 		return log.FailE(err)
 	}
