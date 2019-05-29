@@ -2,6 +2,7 @@ package docker
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -42,4 +43,22 @@ func GetTags(repo string) ([]Tag, error) {
 	}
 
 	return *tags, nil
+}
+
+func MatchRepo(repos []string, tag string) (string, error) {
+	for _, repo := range repos {
+		tags, err := GetTags(repo)
+		if err != nil {
+			return "", err
+		}
+
+		for _, t := range tags {
+			if t.Name == tag {
+				return repo, nil
+			}
+		}
+	}
+
+	return "", errors.New("couldn't match tag with repo")
+
 }

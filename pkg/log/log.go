@@ -10,8 +10,6 @@ var (
 	blue   = "\033[0;34m"
 	red    = "\033[0;31m"
 	normal = "\033[0m"
-
-	drop bool
 )
 
 // SetNoColor function empties color string constants.
@@ -23,8 +21,6 @@ func SetNoColor() {
 
 // Info function prints informational log messages.
 func Info(v interface{}) {
-	drop = false
-
 	fmt.Printf("%s%s:info:%s %s ...\n", blue, app.Name, normal, v)
 }
 

@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"github.com/docker/docker/api/types/mount"
 	"io"
 	"os"
 	"os/signal"
@@ -258,6 +259,27 @@ func (docker *Docker) ContainerRemove(name string) error {
 	}
 
 	return docker.client.ContainerRemove(docker.ctx, name, options)
+}
+
+func (docker *Docker) ContainerMounts(name string) ([]mount.Mount, error) {
+	inspect, err := docker.client.ContainerInspect(docker.ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	mounts := make([]mount.Mount, 0)
+
+	for _, v := range inspect.Mounts {
+		mnt := mount.Mount{
+			Source:   v.Source,
+			Target:   v.Destination,
+			Type:     v.Type,
+			ReadOnly: !v.RW,
+		}
+		mounts = append(mounts, mnt)
+	}
+
+	return mounts, nil
 }
 
 // ContainerExec function executes a command in running container.

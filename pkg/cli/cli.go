@@ -55,7 +55,7 @@ var (
 			if err != nil {
 				return err
 			}
-			if needCreate || flagRecreate {
+			if needCreate {
 				log.Info("Creating container")
 				err := runCreate(dock, name)
 				if err != nil {
@@ -64,7 +64,7 @@ var (
 			}
 
 			log.Info("Moving tarball")
-			err = runTarball(name)
+			err = runTarball(dock, name)
 			if err != nil {
 				return err
 			}
@@ -76,7 +76,7 @@ var (
 			}
 
 			log.Info("Archiving build")
-			err = runArchive(name)
+			err = runArchive(dock, name)
 			if err != nil {
 				return err
 			}
@@ -200,13 +200,13 @@ var (
 				}
 			}
 
-			containerArgs := docker.ContainerExecArgs{
-				Interactive: true,
-				AsRoot:      true,
-				Name:        name.Container.Name(),
-			}
-
-			err = dock.ContainerExec(containerArgs)
+			err = dock.ContainerExec(
+				docker.ContainerExecArgs{
+					Interactive: true,
+					AsRoot:      true,
+					Name:        name.Container.Name(),
+				},
+			)
 			if err != nil {
 				return err
 			}
@@ -221,9 +221,7 @@ var (
 	// Root flags
 	flagDpkgFlags     string
 	flagLintianFlags  string
-	flagWithNetwork   bool
 	flagExtraPackages []string
-	flagRecreate      bool
 
 	// List flags
 	flagImages     bool
@@ -248,9 +246,7 @@ func init() {
 	// Root flags
 	cmdRoot.Flags().StringVarP(&flagDpkgFlags, "dpkg-flags", "d", "-tc", "")
 	cmdRoot.Flags().StringVarP(&flagLintianFlags, "lintian-flags", "l", "-i -I", "")
-	cmdRoot.Flags().BoolVarP(&flagWithNetwork, "with-network", "n", false, "")
 	cmdRoot.PersistentFlags().BoolVar(&flagNoColor, "no-color", false, "")
-	cmdRoot.Flags().BoolVarP(&flagRecreate, "recreate", "r", false, "")
 	cmdRoot.Flags().StringArrayVarP(&flagExtraPackages, "extra-package", "p", nil, "")
 
 	// List flags
