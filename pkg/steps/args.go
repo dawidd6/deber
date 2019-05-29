@@ -1,54 +1,46 @@
 package steps
 
+import "github.com/dawidd6/deber/pkg/naming"
+
 type BuildArgs struct {
-	ImageName    string
-	Distribution string
-	Rebuild      bool
+	*naming.Naming
+	IsRebuildNeeded bool
 }
 
 type CreateArgs struct {
-	ImageName     string
-	ContainerName string
-	SourceDir     string
-	BuildDir      string
-	CacheDir      string
+	*naming.Naming
 	ExtraPackages []string
 }
 
-type TarballArgs struct {
-}
-
 type NetworkArgs struct {
-	ContainerName string
-	IsConnected   bool
+	*naming.Naming
+	IsConnectionNeeded bool
 }
 
 type DependsArgs struct {
-	ContainerName string
+	*naming.Naming
 	ExtraPackages []string
 }
 
 type PackageArgs struct {
-	ContainerName    string
+	*naming.Naming
 	DpkgFlags        string
 	LintianFlags     string
 	IsTestNeeded     bool
 	IsNetworkNeeded  bool
-	PackageName      string
-	PackageVersion   string
 	TarballSourceDir string
 	TarballTargetDir string
 }
 
 type ArchiveArgs struct {
-	ArchivePackageDir string
-	BuildDir          string
+	*naming.Naming
 }
 
 type RemoveArgs struct {
-	ContainerName string
+	*naming.Naming
+	IsAllSelected bool
 }
 
 type ShellArgs struct {
-	ContainerName string
+	*naming.Naming
 }

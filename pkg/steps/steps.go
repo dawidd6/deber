@@ -19,12 +19,12 @@ import (
 func Build(dock *docker.Docker, args BuildArgs) error {
 	log.Info("Building image")
 
-	isImageBuilt, err := dock.IsImageBuilt(args.ImageName)
+	isImageBuilt, err := dock.IsImageBuilt(args.Image.Name())
 	if err != nil {
 		return log.FailE(err)
 	}
-	if isImageBuilt && !args.Rebuild {
-		isImageOld, err := dock.IsImageOld(args.ImageName)
+	if isImageBuilt && !args.IsRebuildNeeded {
+		isImageOld, err := dock.IsImageOld(args.Image.Name())
 		if err != nil {
 			return log.FailE(err)
 		}
@@ -40,14 +40,14 @@ func Build(dock *docker.Docker, args BuildArgs) error {
 		}
 
 		for _, tag := range tags {
-			if tag.Name == args.Distribution {
-				from := fmt.Sprintf("%s:%s", repo, args.Distribution)
+			if tag.Name == args.Image.Tag() {
+				from := fmt.Sprintf("%s:%s", repo, args.Image.Tag())
 
 				log.Drop()
 
 				args := docker.ImageBuildArgs{
 					From: from,
-					Name: args.ImageName,
+					Name: args.Image.Name(),
 				}
 				err := dock.ImageBuild(args)
 				if err != nil {

@@ -91,7 +91,7 @@ func New(debian *changelog.ChangelogEntry) *Naming {
 	}
 }
 
-func (image Image) Name() string {
+func (image *Image) Name() string {
 	return fmt.Sprintf(
 		"%s:%s",
 		app.Name,
@@ -99,7 +99,15 @@ func (image Image) Name() string {
 	)
 }
 
-func (container Container) Name() string {
+func (image *Image) Repo() string {
+	return app.Name
+}
+
+func (image *Image) Tag() string {
+	return standardizeImageTag(image.Package)
+}
+
+func (container *Container) Name() string {
 	return fmt.Sprintf(
 		"%s_%s_%s_%s",
 		app.Name,
@@ -137,28 +145,28 @@ func standardizeImageTag(pkg *Package) string {
 	return pkg.Target
 }
 
-func (build Build) ContainerPath() string {
+func (build *Build) ContainerPath() string {
 	return filepath.Join(
 		build.Base,
 		build.Container.Name(),
 	)
 }
 
-func (cache Cache) ImagePath() string {
+func (cache *Cache) ImagePath() string {
 	return filepath.Join(
 		cache.Base,
 		cache.Image.Name(),
 	)
 }
 
-func (archive Archive) PackageTargetPath() string {
+func (archive *Archive) PackageTargetPath() string {
 	return filepath.Join(
 		archive.Base,
 		archive.Package.Target,
 	)
 }
 
-func (archive Archive) PackageSourcePath() string {
+func (archive *Archive) PackageSourcePath() string {
 	return filepath.Join(
 		archive.Base,
 		archive.Package.Target,
@@ -166,7 +174,7 @@ func (archive Archive) PackageSourcePath() string {
 	)
 }
 
-func (archive Archive) PackageVersionPath() string {
+func (archive *Archive) PackageVersionPath() string {
 	return filepath.Join(
 		archive.Base,
 		archive.Package.Target,
@@ -175,11 +183,11 @@ func (archive Archive) PackageVersionPath() string {
 	)
 }
 
-func (source Source) SourcePath() string {
+func (source *Source) SourcePath() string {
 	return source.Base
 }
 
-func (source Source) ParentPath() string {
+func (source *Source) ParentPath() string {
 	return filepath.Dir(
 		source.Base,
 	)
