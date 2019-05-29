@@ -3,70 +3,189 @@ package naming
 
 import (
 	"fmt"
+	"github.com/dawidd6/deber/pkg/app"
 	"os"
 	"path/filepath"
+	"pault.ag/go/debian/changelog"
 	"strings"
 )
 
-const program = "deber"
-
-// Naming struct represents a collection of directory names
-// used on host system.
 type Naming struct {
-	// Docker container name.
-	//
-	// Example: deber_unstable_wget_1.0.0-1
-	Container string
-
-	// Docker image name.
-	//
-	// Example: deber:unstable
-	Image string
-
-	// Debian distribution
-	//
-	// Example: unstable
-	Distribution string
-
-	// Debian package name
-	//
-	// Example: wget
-	PackageName string
-
-	// Debian package packageVersion
-	//
-	// Example: 1.0.0-1
-	PackageVersion string
-
-	// Current working directory, where debianized source lives.
-	SourceDir string
-
-	// Parent of current working directory.
-	//
-	// Used for locating orig upstream tarball mostly (if only).
-	SourceParentDir string
-
-	// Directory where built packages for a specific distribution live.
-	//
-	// Example: /home/user/deber/unstable
-	ArchiveDir string
-
-	// Specific directory of package for a distribution in archive.
-	//
-	// Example: /home/user/deber/unstable/wget_1.0.0-1
-	ArchivePackageDir string
-
-	// Directory where image's apt cache is stored
-	//
-	// Example: /tmp/deber:unstable
-	CacheDir string
-
-	// Directory where package building output is gathered.
-	//
-	// Example: /tmp/deber_unstable_wget_1.0.0-1
-	BuildDir string
+	Container   *Container
+	Image       *Image
+	Directories *Directories
+	Package     *Package
 }
 
+type Directories struct {
+	Build   *Build
+	Cache   *Cache
+	Archive *Archive
+	Source  *Source
+}
+
+type Package struct {
+	*changelog.ChangelogEntry
+}
+
+type Image struct {
+	Package *Package
+}
+
+type Container struct {
+	Package *Package
+}
+
+type Build struct {
+	Base      string
+	Container *Container
+}
+
+type Cache struct {
+	Base  string
+	Image *Image
+}
+
+type Archive struct {
+	Base    string
+	Package *Package
+}
+
+type Source struct {
+	Base string
+}
+
+func New(debian *changelog.ChangelogEntry) *Naming {
+	pkg := &Package{
+		debian,
+	}
+
+	container := &Container{
+		Package: pkg,
+	}
+
+	image := &Image{
+		Package: pkg,
+	}
+
+	dirs := &Directories{
+		Source: &Source{
+			Base: os.Getenv("PWD"),
+		}, Build: &Build{
+			Base:      "/tmp",
+			Container: container,
+		}, Cache: &Cache{
+			Base:  "/tmp",
+			Image: image,
+		}, Archive: &Archive{
+			Base:    filepath.Join(os.Getenv("HOME"), app.Name),
+			Package: pkg,
+		},
+	}
+
+	return &Naming{
+		Container:   container,
+		Image:       image,
+		Package:     pkg,
+		Directories: dirs,
+	}
+}
+
+func (image Image) Name() string {
+	return fmt.Sprintf(
+		"%s:%s",
+		app.Name,
+		standardizeImageTag(image.Package),
+	)
+}
+
+func (container Container) Name() string {
+	return fmt.Sprintf(
+		"%s_%s_%s_%s",
+		app.Name,
+		container.Package.Target,
+		container.Package.Source,
+		standardizePackageVersion(container.Package.Version.String()),
+	)
+}
+
+func standardizePackageVersion(version string) string {
+	// Docker allows only [a-zA-Z0-9][a-zA-Z0-9_.-]
+	// and Debian package versioning allows these characters
+	version = strings.Replace(version, "~", "-", -1)
+	version = strings.Replace(version, ":", "-", -1)
+	version = strings.Replace(version, "+", "-", -1)
+
+	return version
+}
+
+func standardizeImageTag(pkg *Package) string {
+	if strings.Contains(pkg.Version.String(), "bpo") {
+		if strings.Contains(pkg.Target, "backports") {
+			return pkg.Target
+		}
+
+		if pkg.Target == "UNRELEASED" {
+			return "unstable"
+		}
+	}
+
+	if strings.Contains(pkg.Target, "-") {
+		return strings.Split(pkg.Target, "-")[0]
+	}
+
+	return pkg.Target
+}
+
+func (build Build) ContainerPath() string {
+	return filepath.Join(
+		build.Base,
+		build.Container.Name(),
+	)
+}
+
+func (cache Cache) ImagePath() string {
+	return filepath.Join(
+		cache.Base,
+		cache.Image.Name(),
+	)
+}
+
+func (archive Archive) PackageTargetPath() string {
+	return filepath.Join(
+		archive.Base,
+		archive.Package.Target,
+	)
+}
+
+func (archive Archive) PackageSourcePath() string {
+	return filepath.Join(
+		archive.Base,
+		archive.Package.Target,
+		archive.Package.Source,
+	)
+}
+
+func (archive Archive) PackageVersionPath() string {
+	return filepath.Join(
+		archive.Base,
+		archive.Package.Target,
+		archive.Package.Source,
+		archive.Package.Version.String(),
+	)
+}
+
+func (source Source) SourcePath() string {
+	return source.Base
+}
+
+func (source Source) ParentPath() string {
+	return filepath.Dir(
+		source.Base,
+	)
+}
+
+/*
 // New function returns a fresh Naming struct with defined fields.
 func New(dist, packageName, packageVersion string) *Naming {
 	return &Naming{
@@ -99,7 +218,7 @@ func Container(dist, packageName, packageVersion string) string {
 
 	return fmt.Sprintf(
 		"%s_%s_%s_%s",
-		program,
+		app.Name,
 		Distribution(dist, packageName, packageVersion),
 		PackageName(dist, packageName, packageVersion),
 		PackageVersion(dist, packageName, packageVersion),
@@ -110,7 +229,7 @@ func Container(dist, packageName, packageVersion string) string {
 func Image(dist, packageName, packageVersion string) string {
 	return fmt.Sprintf(
 		"%s:%s",
-		program,
+		app.Name,
 		Distribution(dist, packageName, packageVersion),
 	)
 }
@@ -158,7 +277,7 @@ func SourceParentDir() string {
 func ArchiveDir(dist, packageName, packageVersion string) string {
 	return filepath.Join(
 		os.Getenv("HOME"),
-		program,
+		app.Name,
 		Distribution(dist, packageName, packageVersion),
 	)
 }
@@ -187,3 +306,4 @@ func BuildDir(dist, packageName, packageVersion string) string {
 		Container(dist, packageName, packageVersion),
 	)
 }
+*/

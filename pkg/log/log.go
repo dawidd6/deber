@@ -3,6 +3,7 @@ package log
 
 import (
 	"fmt"
+	"github.com/dawidd6/deber/pkg/app"
 )
 
 var (
@@ -24,7 +25,7 @@ func SetNoColor() {
 func Info(v interface{}) {
 	drop = false
 
-	fmt.Printf("%sdeber:info:%s %s ...", blue, normal, v)
+	fmt.Printf("%s%s:info:%s %s ...", blue, app.Name, normal, v)
 }
 
 // Error function prints error log messages.
@@ -32,7 +33,7 @@ func Info(v interface{}) {
 // It is effectively used only once
 // so there is for it to be struct method.
 func Error(v interface{}) {
-	fmt.Printf("%sdeber:error:%s %s\n", red, normal, v)
+	fmt.Printf("%s%s:error:%s %s\n", red, app.Name, normal, v)
 }
 
 // Drop function prints just a new line

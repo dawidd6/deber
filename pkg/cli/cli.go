@@ -3,6 +3,7 @@ package cli
 
 import (
 	"fmt"
+	"github.com/dawidd6/deber/pkg/app"
 	"github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/log"
 	"github.com/dawidd6/deber/pkg/naming"
@@ -17,296 +18,40 @@ import (
 // Commands
 var (
 	cmdRoot = &cobra.Command{
-		Use:     "deber",
-		Version: "0.5",
-		Short:   "Debian packaging with Docker.",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			dock, err := docker.New()
-			if err != nil {
-				return err
-			}
-
-			deb, err := changelog.ParseFileOne("debian/changelog")
-			if err != nil {
-				return err
-			}
-
-			name := naming.New(
-				deb.Target,
-				deb.Source,
-				deb.Version.String(),
-			)
-
-			buildArgs := steps.BuildArgs{
-				ImageName:    name.Image,
-				Distribution: name.Distribution,
-			}
-
-			createArgs := steps.CreateArgs{
-				ImageName:     name.Image,
-				ContainerName: name.Container,
-				SourceDir:     name.SourceDir,
-				BuildDir:      name.BuildDir,
-				CacheDir:      name.CacheDir,
-				ExtraPackages: flagExtraPackages,
-			}
-
-			dependsArgs := steps.DependsArgs{
-				ContainerName: name.Container,
-				ExtraPackages: flagExtraPackages,
-			}
-
-			packageArgs := steps.PackageArgs{
-				ContainerName:    name.Container,
-				DpkgFlags:        flagDpkgFlags,
-				LintianFlags:     flagLintianFlags,
-				IsTestNeeded:     true,
-				IsNetworkNeeded:  flagWithNetwork,
-				PackageName:      name.PackageName,
-				PackageVersion:   name.PackageVersion,
-				TarballSourceDir: name.SourceParentDir,
-				TarballTargetDir: name.BuildDir,
-			}
-
-			archiveArgs := steps.ArchiveArgs{
-				ArchivePackageDir: name.ArchivePackageDir,
-				BuildDir:          name.BuildDir,
-			}
-
-			removeArgs := steps.RemoveArgs{
-				ContainerName: name.Container,
-			}
-
-			err = steps.Build(dock, buildArgs)
-			if err != nil {
-				return err
-			}
-
-			err = steps.Create(dock, createArgs)
-			if err != nil {
-				return err
-			}
-
-			err = steps.Depends(dock, dependsArgs)
-			if err != nil {
-				return err
-			}
-
-			err = steps.Package(dock, packageArgs)
-			if err != nil {
-				return err
-			}
-
-			err = steps.Archive(dock, archiveArgs)
-			if err != nil {
-				return err
-			}
-
-			err = steps.Remove(dock, removeArgs)
-			if err != nil {
-				return err
-			}
-
-			return nil
-		},
+		Use:     app.Name,
+		Version: app.Version,
+		Short:   app.Description,
+		RunE:    run,
 	}
 
 	cmdBuild = &cobra.Command{
 		Use:   "build",
 		Short: "",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			buildArgs := steps.BuildArgs{
-				ImageName:    "deber:" + flagDistribution,
-				Distribution: flagDistribution,
-				Rebuild:      flagRebuild,
-			}
-
-			if flagDistribution == "" {
-				deb, err := changelog.ParseFileOne("debian/changelog")
-				if err != nil {
-					return err
-				}
-
-				name := naming.New(
-					deb.Target,
-					deb.Source,
-					deb.Version.String(),
-				)
-
-				buildArgs.ImageName = name.Image
-				buildArgs.Distribution = name.Distribution
-			}
-
-			dock, err := docker.New()
-			if err != nil {
-				return err
-			}
-
-			return steps.Build(dock, buildArgs)
-		},
+		RunE:  runBuild,
 	}
 
 	cmdCreate = &cobra.Command{
 		Use:   "create",
 		Short: "",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			dock, err := docker.New()
-			if err != nil {
-				return err
-			}
-
-			deb, err := changelog.ParseFileOne("debian/changelog")
-			if err != nil {
-				return err
-			}
-
-			name := naming.New(
-				deb.Target,
-				deb.Source,
-				deb.Version.String(),
-			)
-
-			createArgs := steps.CreateArgs{
-				ImageName:     name.Image,
-				ContainerName: name.Container,
-				SourceDir:     name.SourceDir,
-				BuildDir:      name.BuildDir,
-				CacheDir:      name.CacheDir,
-				ExtraPackages: flagExtraPackages,
-			}
-
-			return steps.Create(dock, createArgs)
-		},
+		RunE:  runCreate,
 	}
 
 	cmdList = &cobra.Command{
 		Use:   "list",
 		Short: "",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			dock, err := docker.New()
-			if err != nil {
-				return err
-			}
-
-			if !flagContainers && !flagImages && !flagPackages {
-				flagContainers = true
-				flagImages = true
-				flagPackages = true
-			}
-
-			if flagImages {
-				fmt.Println("Images:")
-
-				listArgs := docker.ImageListArgs{
-					Prefix: "deber",
-				}
-
-				images, err := dock.ImageList(listArgs)
-				if err != nil {
-					return err
-				}
-
-				for _, image := range images {
-					fmt.Printf("  - %s\n", image)
-				}
-			}
-
-			if flagContainers {
-				fmt.Println("Containers:")
-
-				listArgs := docker.ContainerListArgs{
-					Prefix: "deber",
-				}
-
-				containers, err := dock.ContainerList(listArgs)
-				if err != nil {
-					return err
-				}
-
-				for _, container := range containers {
-					fmt.Printf("  - %s\n", container)
-				}
-			}
-
-			if flagPackages {
-				fmt.Println("Packages:")
-
-				// TODO standarize
-				base := filepath.Join(os.Getenv("HOME"), "deber")
-
-				err := walk.Walk(base, 3, func(node walk.Node) {
-					indent := ""
-
-					for i := 0; i < node.Depth; i++ {
-						indent += "  "
-					}
-
-					fmt.Printf("%s- %s\n", indent, filepath.Base(node.Path))
-				})
-
-				if err != nil {
-					return err
-				}
-			}
-
-			return nil
-		},
+		RunE:  runList,
 	}
 
 	cmdShell = &cobra.Command{
 		Use:   "shell",
 		Short: "",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			dock, err := docker.New()
-			if err != nil {
-				return err
-			}
-
-			deb, err := changelog.ParseFileOne("debian/changelog")
-			if err != nil {
-				return err
-			}
-
-			name := naming.New(
-				deb.Target,
-				deb.Source,
-				deb.Version.String(),
-			)
-
-			shellArgs := steps.ShellArgs{
-				ContainerName: name.Container,
-			}
-
-			return steps.Shell(dock, shellArgs)
-		},
+		RunE:  runShell,
 	}
 
 	cmdRemove = &cobra.Command{
 		Use:   "remove",
 		Short: "",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			dock, err := docker.New()
-			if err != nil {
-				return err
-			}
-
-			deb, err := changelog.ParseFileOne("debian/changelog")
-			if err != nil {
-				return err
-			}
-
-			name := naming.New(
-				deb.Target,
-				deb.Source,
-				deb.Version.String(),
-			)
-
-			removeArgs := steps.RemoveArgs{
-				ContainerName: name.Container,
-			}
-
-			return steps.Remove(dock, removeArgs)
-		},
+		RunE:  runRemove,
 	}
 )
 
@@ -382,4 +127,260 @@ func Run() {
 		log.Error(err)
 		os.Exit(1)
 	}
+}
+
+func run(cmd *cobra.Command, args []string) error {
+	dock, err := docker.New()
+	if err != nil {
+		return err
+	}
+
+	deb, err := changelog.ParseFileOne("debian/changelog")
+	if err != nil {
+		return err
+	}
+
+	name := naming.New(
+		deb.Target,
+		deb.Source,
+		deb.Version.String(),
+	)
+
+	buildArgs := steps.BuildArgs{
+		ImageName:    name.Image,
+		Distribution: name.Distribution,
+	}
+
+	createArgs := steps.CreateArgs{
+		ImageName:     name.Image,
+		ContainerName: name.Container,
+		SourceDir:     name.SourceDir,
+		BuildDir:      name.BuildDir,
+		CacheDir:      name.CacheDir,
+		ExtraPackages: flagExtraPackages,
+	}
+
+	dependsArgs := steps.DependsArgs{
+		ContainerName: name.Container,
+		ExtraPackages: flagExtraPackages,
+	}
+
+	packageArgs := steps.PackageArgs{
+		ContainerName:    name.Container,
+		DpkgFlags:        flagDpkgFlags,
+		LintianFlags:     flagLintianFlags,
+		IsTestNeeded:     true,
+		IsNetworkNeeded:  flagWithNetwork,
+		PackageName:      name.PackageName,
+		PackageVersion:   name.PackageVersion,
+		TarballSourceDir: name.SourceParentDir,
+		TarballTargetDir: name.BuildDir,
+	}
+
+	archiveArgs := steps.ArchiveArgs{
+		ArchivePackageDir: name.ArchivePackageDir,
+		BuildDir:          name.BuildDir,
+	}
+
+	removeArgs := steps.RemoveArgs{
+		ContainerName: name.Container,
+	}
+
+	err = steps.Build(dock, buildArgs)
+	if err != nil {
+		return err
+	}
+
+	err = steps.Create(dock, createArgs)
+	if err != nil {
+		return err
+	}
+
+	err = steps.Depends(dock, dependsArgs)
+	if err != nil {
+		return err
+	}
+
+	err = steps.Package(dock, packageArgs)
+	if err != nil {
+		return err
+	}
+
+	err = steps.Archive(dock, archiveArgs)
+	if err != nil {
+		return err
+	}
+
+	err = steps.Remove(dock, removeArgs)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func runBuild(cmd *cobra.Command, args []string) error {
+	buildArgs := steps.BuildArgs{
+		ImageName:    fmt.Sprintf("%s:%s", app.Name, flagDistribution),
+		Distribution: flagDistribution,
+		Rebuild:      flagRebuild,
+	}
+
+	if flagDistribution == "" {
+		deb, err := changelog.ParseFileOne("debian/changelog")
+		if err != nil {
+			return err
+		}
+
+		name := naming.New(
+			deb.Target,
+			deb.Source,
+			deb.Version.String(),
+		)
+
+		buildArgs.ImageName = name.Image
+		buildArgs.Distribution = name.Distribution
+	}
+
+	dock, err := docker.New()
+	if err != nil {
+		return err
+	}
+
+	return steps.Build(dock, buildArgs)
+}
+
+func runCreate(cmd *cobra.Command, args []string) error {
+	dock, err := docker.New()
+	if err != nil {
+		return err
+	}
+
+	deb, err := changelog.ParseFileOne("debian/changelog")
+	if err != nil {
+		return err
+	}
+
+	name := naming.New(deb)
+
+	createArgs := steps.CreateArgs{
+		ImageName:     name.Image.Name(),
+		ContainerName: name.Container,
+		SourceDir:     name.SourceDir,
+		BuildDir:      name.BuildDir,
+		CacheDir:      name.CacheDir,
+		ExtraPackages: flagExtraPackages,
+	}
+
+	return steps.Create(dock, createArgs)
+}
+
+func runShell(cmd *cobra.Command, args []string) error {
+	dock, err := docker.New()
+	if err != nil {
+		return err
+	}
+
+	deb, err := changelog.ParseFileOne("debian/changelog")
+	if err != nil {
+		return err
+	}
+
+	name := naming.New(deb)
+
+	shellArgs := steps.ShellArgs{
+		ContainerName: name.Container.Name(),
+	}
+
+	return steps.Shell(dock, shellArgs)
+}
+
+func runRemove(cmd *cobra.Command, args []string) error {
+	dock, err := docker.New()
+	if err != nil {
+		return err
+	}
+
+	deb, err := changelog.ParseFileOne("debian/changelog")
+	if err != nil {
+		return err
+	}
+
+	name := naming.New(deb)
+
+	removeArgs := steps.RemoveArgs{
+		ContainerName: name.Container.Name(),
+	}
+
+	return steps.Remove(dock, removeArgs)
+}
+
+func runList(cmd *cobra.Command, args []string) error {
+	dock, err := docker.New()
+	if err != nil {
+		return err
+	}
+
+	if !flagContainers && !flagImages && !flagPackages {
+		flagContainers = true
+		flagImages = true
+		flagPackages = true
+	}
+
+	if flagImages {
+		fmt.Println("Images:")
+
+		listArgs := docker.ImageListArgs{
+			Prefix: app.Name,
+		}
+
+		images, err := dock.ImageList(listArgs)
+		if err != nil {
+			return err
+		}
+
+		for _, image := range images {
+			fmt.Printf("  - %s\n", image)
+		}
+	}
+
+	if flagContainers {
+		fmt.Println("Containers:")
+
+		listArgs := docker.ContainerListArgs{
+			Prefix: app.Name,
+		}
+
+		containers, err := dock.ContainerList(listArgs)
+		if err != nil {
+			return err
+		}
+
+		for _, container := range containers {
+			fmt.Printf("  - %s\n", container)
+		}
+	}
+
+	if flagPackages {
+		fmt.Println("Packages:")
+
+		// TODO standarize
+		base := filepath.Join(os.Getenv("HOME"), "deber")
+
+		err := walk.Walk(base, 3, func(node walk.Node) {
+			indent := ""
+
+			for i := 0; i < node.Depth; i++ {
+				indent += "  "
+			}
+
+			fmt.Printf("%s- %s\n", indent, filepath.Base(node.Path))
+		})
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
