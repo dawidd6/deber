@@ -2,7 +2,7 @@ package util_test
 
 import (
 	"fmt"
-	"github.com/dawidd6/deber/pkg/walk"
+	"github.com/dawidd6/deber/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/dawidd6/deber/pkg/app"
 	"github.com/dawidd6/deber/pkg/docker"
+	"github.com/dawidd6/deber/pkg/logger"
 	"github.com/dawidd6/deber/pkg/util"
 	"github.com/docker/docker/api/types/mount"
 	"os"
@@ -28,7 +29,8 @@ func Run(a *app.App) error {
 
 	for _, step := range steps {
 		err := step(a)
-		if err != nil {
+		a.Result(err)
+		if err != nil && err != logger.Skip {
 			return err
 		}
 	}
@@ -42,7 +44,6 @@ func Run(a *app.App) error {
 //
 // At last it commands Docker Engine to build image.
 func runBuild(a *app.App) error {
-	var err error
 	a.Info("Building image")
 
 	isImageBuilt, err := a.IsImageBuilt(a.ImageName())
@@ -55,7 +56,7 @@ func runBuild(a *app.App) error {
 			return err
 		}
 		if !isImageOld {
-			return nil
+			return logger.Skip
 		}
 	}
 
@@ -86,7 +87,7 @@ func runCreate(a *app.App) error {
 		return err
 	}
 	if isContainerCreated {
-		return nil
+		return logger.Skip
 	}
 
 	mounts := []mount.Mount{
@@ -166,7 +167,7 @@ func runStart(a *app.App) error {
 		return err
 	}
 	if isContainerStarted {
-		return nil
+		return logger.Skip
 	}
 
 	err = a.ContainerStart(a.ContainerName())
@@ -204,6 +205,7 @@ func runTarball(a *app.App) error {
 
 func runDepends(a *app.App) error {
 	a.Info("Installing dependencies")
+	a.Drop()
 
 	args := make([]docker.ContainerExecArgs, 0)
 
