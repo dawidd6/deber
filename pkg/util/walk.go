@@ -1,4 +1,4 @@
-package walk
+package util
 
 import (
 	"io/ioutil"
