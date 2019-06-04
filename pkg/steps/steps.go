@@ -66,6 +66,8 @@ func runBuild(a *app.App) error {
 		return err
 	}
 
+	a.Drop()
+
 	args := docker.ImageBuildArgs{
 		From: fmt.Sprintf("%s:%s", repo, a.ImageTag()),
 		Name: a.ImageName(),
@@ -257,6 +259,7 @@ func runDepends(a *app.App) error {
 // enables network back.
 func runPackage(a *app.App) error {
 	a.Info("Packaging software")
+	a.Drop()
 
 	args := docker.ContainerExecArgs{
 		Name: a.ContainerName(),
@@ -273,6 +276,7 @@ func runPackage(a *app.App) error {
 // runTest function executes "debc", "debi" and "lintian" in container.
 func runTest(a *app.App) error {
 	a.Info("Testing package")
+	a.Drop()
 
 	args := []docker.ContainerExecArgs{
 		{
