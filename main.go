@@ -2,10 +2,10 @@ package main
 
 import (
 	"github.com/dawidd6/deber/pkg/app"
-	"github.com/dawidd6/deber/pkg/config"
+	"github.com/dawidd6/deber/pkg/cli"
 	"github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/logger"
-	"github.com/dawidd6/deber/pkg/steps"
+	"github.com/dawidd6/deber/pkg/naming"
 	"github.com/spf13/pflag"
 	"path/filepath"
 
@@ -40,10 +40,16 @@ func main() {
 	debian, err := changelog.ParseFileOne("debian/changelog")
 	check(log, err)
 
-	conf := &config.Config{
+	options := &cli.Options{
 		DpkgFlags:     *dpkgFlags,
 		LintianFlags:  *lintianFlags,
 		ExtraPackages: *extraPackages,
+	}
+
+	name := &naming.Naming{
+		Program: Name,
+
+		ChangelogEntry: debian,
 
 		ArchiveBaseDir: *archiveDir,
 		CacheBaseDir:   *cacheDir,
@@ -52,15 +58,13 @@ func main() {
 	}
 
 	a := &app.App{
-		Name: Name,
-
-		Logger:         log,
-		Config:         conf,
-		Docker:         dock,
-		ChangelogEntry: debian,
+		Logger:  log,
+		Docker:  dock,
+		Naming:  name,
+		Options: options,
 	}
 
-	err = steps.Run(a)
+	err = a.Run()
 	check(log, err)
 }
 

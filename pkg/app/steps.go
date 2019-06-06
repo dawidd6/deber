@@ -1,9 +1,8 @@
-package steps
+package app
 
 import (
 	"errors"
 	"fmt"
-	"github.com/dawidd6/deber/pkg/app"
 	"github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/logger"
 	"github.com/dawidd6/deber/pkg/util"
@@ -13,22 +12,22 @@ import (
 	"strings"
 )
 
-func Run(a *app.App) error {
-	steps := []func(*app.App) error{
-		runBuild,
-		runCreate,
-		runStart,
-		runTarball,
-		runDepends,
-		runPackage,
-		runTest,
-		runArchive,
-		runStop,
-		runRemove,
+func (a *App) Run() error {
+	steps := []func() error{
+		a.runBuild,
+		a.runCreate,
+		a.runStart,
+		a.runTarball,
+		a.runDepends,
+		a.runPackage,
+		a.runTest,
+		a.runArchive,
+		a.runStop,
+		a.runRemove,
 	}
 
 	for _, step := range steps {
-		err := step(a)
+		err := step()
 		a.Result(err)
 		if err != nil && err != logger.Skip {
 			return err
@@ -43,7 +42,7 @@ func Run(a *app.App) error {
 // debian/changelog's target distribution.
 //
 // At last it commands Docker Engine to build image.
-func runBuild(a *app.App) error {
+func (a *App) runBuild() error {
 	a.Info("Building image")
 
 	isImageBuilt, err := a.IsImageBuilt(a.ImageName())
@@ -81,7 +80,7 @@ func runBuild(a *app.App) error {
 }
 
 // runCreate function commands Docker Engine to create container.
-func runCreate(a *app.App) error {
+func (a *App) runCreate() error {
 	a.Info("Creating container")
 
 	isContainerCreated, err := a.IsContainerCreated(a.ContainerName())
@@ -91,6 +90,7 @@ func runCreate(a *app.App) error {
 	if isContainerCreated {
 		return logger.Skip
 	}
+	//TODO check if mounts are equal
 
 	mounts := []mount.Mount{
 		{
@@ -161,7 +161,7 @@ func runCreate(a *app.App) error {
 }
 
 // runStart function commands Docker Engine to start container.
-func runStart(a *app.App) error {
+func (a *App) runStart() error {
 	a.Info("Starting container")
 
 	isContainerStarted, err := a.IsContainerStarted(a.ContainerName())
@@ -182,30 +182,36 @@ func runStart(a *app.App) error {
 
 // runTarball function moves orig upstream tarball from parent directory
 // to build directory if package is not native.
-func runTarball(a *app.App) error {
+func (a *App) runTarball() error {
 	a.Info("Moving tarball")
 
-	file, dir, err := util.FindTarball(a)
+	if a.Version.IsNative() {
+		return logger.Skip
+	}
+
+	// Skip if tarball is already in build directory.
+	tarball, found := util.FindTarball(a.ChangelogEntry, a.BuildDir())
+	if found {
+		return logger.Skip
+	}
+
+	tarball, found = util.FindTarball(a.ChangelogEntry, a.SourceParentDir())
+	if !found {
+		return errors.New("tarball not found")
+	}
+
+	source := filepath.Join(a.SourceParentDir(), tarball)
+	dest := filepath.Join(a.BuildDir(), tarball)
+
+	source, err := filepath.EvalSymlinks(source)
 	if err != nil {
 		return err
 	}
 
-	source := filepath.Join(dir, file)
-	source, err = filepath.EvalSymlinks(source)
-	if err != nil {
-		return err
-	}
-
-	dest := filepath.Join(a.BuildDir(), file)
-	err = os.Rename(source, dest)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return os.Rename(source, dest)
 }
 
-func runDepends(a *app.App) error {
+func (a *App) runDepends() error {
 	a.Info("Installing dependencies")
 	a.Drop()
 
@@ -257,7 +263,7 @@ func runDepends(a *app.App) error {
 // runPackage function first disables network in container,
 // then executes "dpkg-buildpackage" and at the end,
 // enables network back.
-func runPackage(a *app.App) error {
+func (a *App) runPackage() error {
 	a.Info("Packaging software")
 	a.Drop()
 
@@ -274,7 +280,7 @@ func runPackage(a *app.App) error {
 }
 
 // runTest function executes "debc", "debi" and "lintian" in container.
-func runTest(a *app.App) error {
+func (a *App) runTest() error {
 	a.Info("Testing package")
 	a.Drop()
 
@@ -304,7 +310,7 @@ func runTest(a *app.App) error {
 }
 
 // runArchive function moves successful build to archive by overwriting.
-func runArchive(a *app.App) error {
+func (a *App) runArchive() error {
 	a.Info("Archiving build")
 
 	err := os.MkdirAll(a.ArchiveSourceDir(), os.ModePerm)
@@ -329,7 +335,7 @@ func runArchive(a *app.App) error {
 }
 
 // runStop function commands Docker Engine to stop container.
-func runStop(a *app.App) error {
+func (a *App) runStop() error {
 	a.Info("Stopping container")
 
 	isContainerStopped, err := a.IsContainerStopped(a.ContainerName())
@@ -349,7 +355,7 @@ func runStop(a *app.App) error {
 }
 
 // runRemove function commands Docker Engine to remove container.
-func runRemove(a *app.App) error {
+func (a *App) runRemove() error {
 	a.Info("Removing container")
 
 	isContainerCreated, err := a.IsContainerCreated(a.ContainerName())
@@ -369,7 +375,7 @@ func runRemove(a *app.App) error {
 }
 
 // runShellOptional function interactively executes bash shell in container.
-func runShellOptional(a *app.App) error {
+func (a *App) runShellOptional() error {
 	a.Info("Launching shell")
 
 	args := docker.ContainerExecArgs{
@@ -387,7 +393,7 @@ func runShellOptional(a *app.App) error {
 
 // runCheck function evaluates if package has been already built and
 // is in archive, if it is, then it exits with 0 code.
-func runCheckOptional(a *app.App) error {
+func (a *App) runCheckOptional() error {
 	a.Info("Checking archive")
 
 	info, _ := os.Stat(a.ArchiveVersionDir())

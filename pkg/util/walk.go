@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 )
 
-type Func = func(node Node)
+type Func = func(node Node) bool
 
 type Node struct {
 	Path  string
@@ -24,7 +24,10 @@ func Walk(root string, maxDepth int, fn Func) error {
 
 func loop(nodes []Node, fn Func) {
 	for _, node := range nodes {
-		fn(node)
+		exit := fn(node)
+		if exit {
+			return
+		}
 		loop(node.Nodes, fn)
 	}
 }

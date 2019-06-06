@@ -1,32 +1,33 @@
 package util
 
 import (
-	"errors"
 	"fmt"
-	"github.com/dawidd6/deber/pkg/app"
-	"os"
 	"path/filepath"
+	"pault.ag/go/debian/changelog"
+	"strings"
 )
 
-func FindTarball(a *app.App) (string, string, error) {
-	if a.Version.IsNative() {
-		return "", "", nil
-	}
+func GetTarballBaseFileName(debian *changelog.ChangelogEntry) string {
+	return fmt.Sprintf("%s_%s.orig.tar", debian.Source, debian.Version.Version)
+}
 
-	file := fmt.Sprintf("%s_%s.orig.tar", a.Source, a.Version.Version)
-	extensions := []string{".gz", ".xz", "bz2"}
-	dirs := []string{a.BuildDir(), a.SourceParentDir()}
+func FindTarball(debian *changelog.ChangelogEntry, dir string) (string, bool) {
+	tarball := GetTarballBaseFileName(debian)
+	found := false
 
-	for _, dir := range dirs {
-		for _, ext := range extensions {
-			path := filepath.Join(dir, file+ext)
-
-			info, _ := os.Stat(path)
-			if info != nil {
-				return file + ext, dir, nil
-			}
+	err := Walk(dir, 1, func(node Node) bool {
+		file := filepath.Base(node.Path)
+		if strings.HasPrefix(file, tarball) {
+			tarball = file
+			found = true
+			return true
 		}
+
+		return false
+	})
+	if err != nil {
+		return "", false
 	}
 
-	return "", "", errors.New("tarball not found")
+	return tarball, found
 }
