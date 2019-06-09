@@ -1,76 +1,230 @@
 package main
 
 import (
+	"fmt"
 	"github.com/dawidd6/deber/pkg/app"
-	"github.com/dawidd6/deber/pkg/cli"
 	"github.com/dawidd6/deber/pkg/docker"
-	"github.com/dawidd6/deber/pkg/logger"
-	"github.com/dawidd6/deber/pkg/naming"
-	"github.com/spf13/pflag"
-	"path/filepath"
-
+	"github.com/dawidd6/deber/pkg/util"
+	"github.com/spf13/cobra"
 	"os"
 	"pault.ag/go/debian/changelog"
 )
 
-const (
-	Name        = "deber"
-	Version     = "0.5"
-	Description = "Debian packaging with Docker."
-)
+var a = &app.App{
+	Name:        "deber",
+	Version:     "0.5",
+	Description: "Debian packaging with Docker.",
+}
 
 var (
-	dpkgFlags     = pflag.String("dpkg-flags", "-tc", "")
-	lintianFlags  = pflag.String("lintian-flags", "-i -I", "")
-	extraPackages = pflag.StringArray("extra-package", nil, "")
+	err error
 
-	archiveDir = pflag.String("archive-base-dir", filepath.Join(os.Getenv("HOME"), Name), "")
-	cacheDir   = pflag.String("cache-base-dir", "/tmp", "")
-	buildDir   = pflag.String("build-base-dir", "/tmp", "")
+	cmdRoot = &cobra.Command{
+		Use:     a.Name,
+		Version: a.Version,
+		Short:   a.Description,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			a.Docker, err = docker.New()
+			if err != nil {
+				return err
+			}
+
+			a.Debian, err = changelog.ParseFileOne(a.Config.Changelog)
+			if err != nil {
+				return err
+			}
+
+			for _, step := range a.Steps() {
+				err := step()
+				if err != nil {
+					return err
+				}
+			}
+
+			return nil
+		},
+	}
+
+	cmdBuild = &cobra.Command{
+		Use:   "build",
+		Short: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			a.Docker, err = docker.New()
+			if err != nil {
+				return err
+			}
+
+			if a.Config.Dist == "" {
+				a.Debian, err = changelog.ParseFileOne(a.Config.Changelog)
+				if err != nil {
+					return err
+				}
+			} else {
+				a.Debian = new(changelog.ChangelogEntry)
+				a.Debian.Target = a.Config.Dist
+			}
+
+			return a.RunBuild()
+		},
+	}
+
+	cmdCreate = &cobra.Command{
+		Use:   "create",
+		Short: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			a.Docker, err = docker.New()
+			if err != nil {
+				return err
+			}
+
+			a.Debian, err = changelog.ParseFileOne(a.Config.Changelog)
+			if err != nil {
+				return err
+			}
+
+			err = a.RunCreate()
+			if err != nil {
+				return err
+			}
+
+			if a.Config.Start {
+				err = a.RunStart()
+				if err != nil {
+					return err
+				}
+			}
+
+			return nil
+		},
+	}
+
+	cmdRemove = &cobra.Command{
+		Use:   "remove",
+		Short: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			a.Docker, err = docker.New()
+			if err != nil {
+				return err
+			}
+
+			a.Debian, err = changelog.ParseFileOne(a.Config.Changelog)
+			if err != nil {
+				return err
+			}
+
+			if a.Config.Stop {
+				err = a.RunStop()
+				if err != nil {
+					return err
+				}
+			}
+
+			err = a.RunRemove()
+			if err != nil {
+				return err
+			}
+
+			return nil
+		},
+	}
+
+	cmdShell = &cobra.Command{
+		Use:   "shell",
+		Short: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			a.Docker, err = docker.New()
+			if err != nil {
+				return err
+			}
+
+			a.Debian, err = changelog.ParseFileOne(a.Config.Changelog)
+			if err != nil {
+				return err
+			}
+
+			return a.RunShellOptional()
+		},
+	}
+
+	cmdList = &cobra.Command{
+		Use:   "list",
+		Short: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			a.Docker, err = docker.New()
+			if err != nil {
+				return err
+			}
+
+			images, err := a.Docker.ImageList(a.Name)
+			if err != nil {
+				return err
+			}
+
+			containers, err := a.Docker.ContainerList(a.Name)
+			if err != nil {
+				return err
+			}
+
+			fmt.Println("Images:")
+			for i := range images {
+				fmt.Printf("  - %s\n", images[i])
+			}
+
+			fmt.Println("Containers:")
+			for i := range containers {
+				fmt.Printf("  - %s\n", containers[i])
+			}
+
+			fmt.Println("Packages:")
+			return util.Walk(a.Config.ArchiveBaseDir, 3, func(node util.Node) bool {
+				indent := ""
+				for i := 0; i < node.Depth; i++ {
+					indent += "  "
+				}
+
+				fmt.Printf("%s- %s\n", indent, node.Base())
+
+				return false
+			})
+		},
+	}
 )
 
 func main() {
-	pflag.Parse()
+	a.Configure()
 
-	log := logger.New(Name)
+	cmdRoot.Flags().StringVar(&a.Config.DpkgFlags, "dpkg-flags", a.Config.DpkgFlags, "")
+	cmdRoot.Flags().StringVar(&a.Config.LintianFlags, "lintian-flags", a.Config.LintianFlags, "")
+	cmdRoot.Flags().StringArrayVar(&a.Config.ExtraPackages, "extra-package", a.Config.ExtraPackages, "")
+	cmdRoot.Flags().StringVar(&a.Config.ArchiveBaseDir, "archive-base-dir", a.Config.ArchiveBaseDir, "")
+	cmdRoot.Flags().StringVar(&a.Config.CacheBaseDir, "cache-base-dir", a.Config.CacheBaseDir, "")
+	cmdRoot.Flags().StringVar(&a.Config.BuildBaseDir, "build-base-dir", a.Config.BuildBaseDir, "")
+	cmdRoot.Flags().BoolVar(&a.Config.LogNoColor, "log-no-color", a.Config.LogNoColor, "")
 
-	dock, err := docker.New()
-	check(log, err)
+	cmdBuild.Flags().BoolVarP(&a.Config.NoRebuild, "no-rebuild", "n", a.Config.NoRebuild, "")
+	cmdBuild.Flags().StringVarP(&a.Config.Dist, "distribution", "d", a.Config.Dist, "")
 
-	debian, err := changelog.ParseFileOne("debian/changelog")
-	check(log, err)
+	cmdCreate.Flags().BoolVarP(&a.Config.Start, "start", "s", a.Config.Start, "")
+	cmdCreate.Flags().StringArrayVar(&a.Config.ExtraPackages, "extra-package", a.Config.ExtraPackages, "")
 
-	options := &cli.Options{
-		DpkgFlags:     *dpkgFlags,
-		LintianFlags:  *lintianFlags,
-		ExtraPackages: *extraPackages,
-	}
+	cmdRemove.Flags().BoolVarP(&a.Config.Stop, "stop", "s", a.Config.Stop, "")
+	cmdList.Flags().StringVar(&a.Config.ArchiveBaseDir, "archive-base-dir", a.Config.ArchiveBaseDir, "")
 
-	name := &naming.Naming{
-		Program: Name,
+	cmdRoot.Flags().SortFlags = false
+	cmdRoot.SetHelpCommand(&cobra.Command{Hidden: true, Use: "no"})
+	cmdRoot.SilenceErrors = true
+	cmdRoot.SilenceUsage = true
+	cmdRoot.AddCommand(
+		cmdBuild,
+		cmdCreate,
+		cmdRemove,
+		cmdShell,
+		cmdList,
+	)
 
-		ChangelogEntry: debian,
-
-		ArchiveBaseDir: *archiveDir,
-		CacheBaseDir:   *cacheDir,
-		BuildBaseDir:   *buildDir,
-		SourceBaseDir:  os.Getenv("PWD"),
-	}
-
-	a := &app.App{
-		Logger:  log,
-		Docker:  dock,
-		Naming:  name,
-		Options: options,
-	}
-
-	err = a.Run()
-	check(log, err)
-}
-
-func check(log *logger.Logger, err error) {
+	err := cmdRoot.Execute()
 	if err != nil {
-		log.Error(err)
+		a.LogError(err)
 		os.Exit(1)
 	}
 }

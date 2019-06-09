@@ -14,6 +14,14 @@ type Node struct {
 	Nodes []Node
 }
 
+func (node Node) Base() string {
+	return filepath.Base(node.Path)
+}
+
+func (node Node) Dir() string {
+	return filepath.Dir(node.Path)
+}
+
 func Walk(root string, maxDepth int, fn Func) error {
 	nodes, err := walk(root, maxDepth, 0)
 
