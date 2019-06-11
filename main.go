@@ -201,6 +201,26 @@ var (
 			})
 		},
 	}
+
+	cmdInfo = &cobra.Command{
+		Use:   "info",
+		Short: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dock, err := docker.New()
+			if err != nil {
+				return err
+			}
+
+			deb, err := debian.New()
+			if err != nil {
+				return err
+			}
+
+			n := naming.New(deb)
+
+			return steps.RunInfoOptional(dock, deb, n)
+		},
+	}
 )
 
 func main() {
@@ -235,6 +255,7 @@ func main() {
 		cmdRemove,
 		cmdShell,
 		cmdList,
+		cmdInfo,
 	)
 
 	err := cmdRoot.Execute()

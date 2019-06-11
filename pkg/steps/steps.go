@@ -403,3 +403,25 @@ func RunCheckOptional(dock *docker.Docker, deb *debian.Debian, n *naming.Naming)
 
 	return log.Result(nil)
 }
+
+func RunInfoOptional(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
+	fmt.Println("Debian:")
+	fmt.Printf("  DpkgFlags = %s\n", DpkgFlags)
+	fmt.Printf("  LintianFlags = %s\n", LintianFlags)
+	fmt.Printf("  DebianSource = %s\n", deb.Source)
+	fmt.Printf("  DebianPackageVersion = %s\n", deb.Version.Package)
+	fmt.Printf("  DebianPackageUpstream = %s\n", deb.Version.Upstream)
+	fmt.Printf("  DebianTarget = %s\n", deb.Target)
+
+	fmt.Println()
+
+	fmt.Println("Docker:")
+	fmt.Printf("  Image = %s\n", n.ImageName())
+	fmt.Printf("  Container = %s\n", n.ContainerName())
+	fmt.Printf("  ArchiveSourceDir = %s\n", n.ArchiveSourceDir())
+	fmt.Printf("  BuildDir = %s\n", n.BuildDir())
+	fmt.Printf("  CacheDir = %s\n", n.CacheDir())
+	fmt.Printf("  SourceDir = %s\n", n.SourceDir())
+
+	return nil
+}
