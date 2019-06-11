@@ -1,4 +1,4 @@
-package util_test
+package walk_test
 
 import (
 	"fmt"
@@ -8,10 +8,10 @@ import (
 )
 
 func TestWalk(t *testing.T) {
-	err := util.Walk(
+	err := walk.Walk(
 		"./",
 		11,
-		func(node util.Node) {
+		func(node walk.Node) {
 			fmt.Println(node.Depth, node.Path)
 		},
 	)
