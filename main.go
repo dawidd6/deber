@@ -234,6 +234,7 @@ func main() {
 	cmdRoot.Flags().StringVar(&naming.CacheBaseDir, "cache-base-dir", naming.CacheBaseDir, "")
 	cmdRoot.Flags().StringVar(&naming.BuildBaseDir, "build-base-dir", naming.BuildBaseDir, "")
 	cmdRoot.Flags().BoolVar(&log.NoColor, "log-no-color", log.NoColor, "")
+	cmdRoot.Flags().BoolVarP(&steps.NoRebuild, "no-rebuild", "n", steps.NoRebuild, "")
 
 	cmdBuild.Flags().BoolVarP(&steps.NoRebuild, "no-rebuild", "n", steps.NoRebuild, "")
 	cmdBuild.Flags().StringVarP(&dist, "distribution", "d", dist, "")

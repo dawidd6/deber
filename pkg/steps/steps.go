@@ -208,19 +208,27 @@ func RunTarball(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error
 		return log.Result(err)
 	}
 
-	return os.Rename(source, dest)
+	err = os.Rename(source, dest)
+	if err != nil {
+		return log.Result(err)
+	}
+
+	return log.Result(nil)
 }
 
 func RunDepends(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 	log.Info("Installing dependencies")
 	log.Drop()
 
-	args := make([]docker.ContainerExecArgs, 0)
-
-	extraPreArgs := []docker.ContainerExecArgs{
+	args := []docker.ContainerExecArgs{
 		{
 			Name:    n.ContainerName(),
-			Cmd:     "echo deb [trusted=yes] file://" + docker.ContainerArchiveDir + " ./ > n.list",
+			Cmd:     "rm -f a.list",
+			AsRoot:  true,
+			WorkDir: "/etc/apt/sources.list.d",
+		}, {
+			Name:    n.ContainerName(),
+			Cmd:     "echo deb [trusted=yes] file://" + docker.ContainerArchiveDir + " ./ > a.list",
 			AsRoot:  true,
 			WorkDir: "/etc/apt/sources.list.d",
 		}, {
@@ -228,11 +236,7 @@ func RunDepends(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error
 			Cmd:     "dpkg-scanpackages -m . > Packages",
 			AsRoot:  true,
 			WorkDir: docker.ContainerArchiveDir,
-		},
-	}
-
-	standardArgs := []docker.ContainerExecArgs{
-		{
+		}, {
 			Name:    n.ContainerName(),
 			Cmd:     "apt-get update",
 			AsRoot:  true,
@@ -245,10 +249,10 @@ func RunDepends(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error
 		},
 	}
 
-	if ExtraPackages != nil {
-		args = append(args, extraPreArgs...)
+	if ExtraPackages == nil {
+		args[1].Skip = true
+		args[2].Skip = true
 	}
-	args = append(args, standardArgs...)
 
 	for _, arg := range args {
 		err := dock.ContainerExec(arg)
