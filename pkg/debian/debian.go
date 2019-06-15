@@ -3,7 +3,6 @@ package debian
 import (
 	"fmt"
 	"github.com/dawidd6/deber/pkg/walk"
-	"path/filepath"
 	"pault.ag/go/debian/changelog"
 	"strings"
 )
@@ -47,10 +46,9 @@ func (debian *Debian) FindTarball(dir string) (string, bool) {
 	tarball := debian.GetTarballBaseFileName()
 	found := false
 
-	err := walk.Walk(dir, 1, func(node walk.Node) bool {
-		file := filepath.Base(node.Path)
-		if strings.HasPrefix(file, tarball) {
-			tarball = file
+	err := walk.Walk(dir, 1, func(node *walk.Node) bool {
+		if strings.HasPrefix(node.Name(), tarball) {
+			tarball = node.Name()
 			found = true
 			return true
 		}

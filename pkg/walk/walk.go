@@ -6,20 +6,21 @@ import (
 	"path/filepath"
 )
 
-type Func = func(node Node) bool
+type Func = func(node *Node) bool
 
 type Node struct {
-	Path  string
-	Depth int
-	Nodes []Node
+	os.FileInfo
+	dir   string
+	depth int
+	nodes []*Node
 }
 
-func (node Node) Base() string {
-	return filepath.Base(node.Path)
+func (node *Node) Dir() string {
+	return node.dir
 }
 
-func (node Node) Dir() string {
-	return filepath.Dir(node.Path)
+func (node *Node) Depth() int {
+	return node.depth
 }
 
 func Walk(root string, maxDepth int, fn Func) error {
@@ -30,19 +31,19 @@ func Walk(root string, maxDepth int, fn Func) error {
 	return err
 }
 
-func loop(nodes []Node, fn Func) {
+func loop(nodes []*Node, fn Func) {
 	for _, node := range nodes {
 		exit := fn(node)
 		if exit {
 			return
 		}
-		loop(node.Nodes, fn)
+		loop(node.nodes, fn)
 	}
 }
 
-func walk(root string, maxDepth int, currentDepth int) ([]Node, error) {
-	rootNodes := make([]Node, 0)
-	newNodes := make([]Node, 0)
+func walk(root string, maxDepth int, currentDepth int) ([]*Node, error) {
+	rootNodes := make([]*Node, 0)
+	newNodes := make([]*Node, 0)
 
 	// Maximum depth reached, end recursion
 	if currentDepth == maxDepth {
@@ -78,11 +79,18 @@ func walk(root string, maxDepth int, currentDepth int) ([]Node, error) {
 			return nil, err
 		}
 
+		// Get info about current file
+		info, err = os.Stat(path)
+		if info == nil {
+			return nil, err
+		}
+
 		// Construct new node
-		newNode := Node{
-			Path:  path,
-			Depth: currentDepth,
-			Nodes: newNodes,
+		newNode := &Node{
+			FileInfo: info,
+			depth:    currentDepth,
+			dir:      root,
+			nodes:    newNodes,
 		}
 
 		// Append a node to the rest

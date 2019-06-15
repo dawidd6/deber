@@ -22,25 +22,25 @@ var (
 
 func Steps() []func(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 	return []func(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error{
-		RunBuild,
-		RunCreate,
-		RunStart,
-		RunTarball,
-		RunDepends,
-		RunPackage,
-		RunTest,
-		RunArchive,
-		RunStop,
-		RunRemove,
+		Build,
+		Create,
+		Start,
+		Tarball,
+		Depends,
+		Package,
+		Test,
+		Archive,
+		Stop,
+		Remove,
 	}
 }
 
-// RunBuild function determines parent image name by querying DockerHub API
+// Build function determines parent image name by querying DockerHub API
 // for available "debian" and "ubuntu" tags and confronting them with
 // debian/changelog's target distribution.
 //
 // At last it commands Docker Engine to build image.
-func RunBuild(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
+func Build(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 	log.Info("Building image")
 
 	isImageBuilt, err := dock.IsImageBuilt(n.ImageName())
@@ -79,8 +79,8 @@ func RunBuild(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 	return log.Result(nil)
 }
 
-// RunCreate function commands Docker Engine to create container.
-func RunCreate(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
+// Create function commands Docker Engine to create container.
+func Create(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 	log.Info("Creating container")
 
 	isContainerCreated, err := dock.IsContainerCreated(n.ContainerName())
@@ -160,8 +160,8 @@ func RunCreate(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error 
 	return log.Result(nil)
 }
 
-// RunStart function commands Docker Engine to start container.
-func RunStart(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
+// Start function commands Docker Engine to start container.
+func Start(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 	log.Info("Starting container")
 
 	isContainerStarted, err := dock.IsContainerStarted(n.ContainerName())
@@ -180,9 +180,9 @@ func RunStart(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 	return log.Result(nil)
 }
 
-// RunTarball function moves orig upstream tarball from parent directory
+// Tarball function moves orig upstream tarball from parent directory
 // to build directory if package is not native.
-func RunTarball(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
+func Tarball(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 	log.Info("Moving tarball")
 
 	if deb.Version.Native {
@@ -216,7 +216,7 @@ func RunTarball(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error
 	return log.Result(nil)
 }
 
-func RunDepends(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
+func Depends(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 	log.Info("Installing dependencies")
 	log.Drop()
 
@@ -264,10 +264,10 @@ func RunDepends(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error
 	return log.Result(nil)
 }
 
-// RunPackage function first disables network in container,
+// Package function first disables network in container,
 // then executes "dpkg-buildpackage" and at the end,
 // enables network back.
-func RunPackage(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
+func Package(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 	log.Info("Packaging software")
 	log.Drop()
 
@@ -283,8 +283,8 @@ func RunPackage(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error
 	return log.Result(nil)
 }
 
-// RunTest function executes "debc", "debi" and "lintian" in container.
-func RunTest(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
+// Test function executes "debc", "debi" and "lintian" in container.
+func Test(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 	log.Info("Testing package")
 	log.Drop()
 
@@ -313,8 +313,8 @@ func RunTest(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 	return log.Result(nil)
 }
 
-// RunArchive function moves successful build to archive by overwriting.
-func RunArchive(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
+// Archive function moves successful build to archive by overwriting.
+func Archive(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 	log.Info("Archiving build")
 
 	err := os.MkdirAll(n.ArchiveSourceDir(), os.ModePerm)
@@ -338,8 +338,8 @@ func RunArchive(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error
 	return log.Result(nil)
 }
 
-// RunStop function commands Docker Engine to stop container.
-func RunStop(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
+// Stop function commands Docker Engine to stop container.
+func Stop(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 	log.Info("Stopping container")
 
 	isContainerStopped, err := dock.IsContainerStopped(n.ContainerName())
@@ -358,8 +358,8 @@ func RunStop(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 	return log.Result(nil)
 }
 
-// RunRemove function commands Docker Engine to remove container.
-func RunRemove(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
+// Remove function commands Docker Engine to remove container.
+func Remove(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 	log.Info("Removing container")
 
 	isContainerCreated, err := dock.IsContainerCreated(n.ContainerName())
@@ -378,8 +378,8 @@ func RunRemove(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error 
 	return log.Result(nil)
 }
 
-// RunShellOptional function interactively executes bash shell in container.
-func RunShellOptional(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
+// ShellOptional function interactively executes bash shell in container.
+func ShellOptional(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 	log.Info("Launching shell")
 
 	args := docker.ContainerExecArgs{
@@ -395,9 +395,9 @@ func RunShellOptional(dock *docker.Docker, deb *debian.Debian, n *naming.Naming)
 	return log.Result(nil)
 }
 
-// RunCheck function evaluates if package has been already built and
+// Check function evaluates if package has been already built and
 // is in archive, if it is, then it exits with 0 code.
-func RunCheckOptional(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
+func CheckOptional(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 	log.Info("Checking archive")
 
 	info, _ := os.Stat(n.ArchiveVersionDir())
@@ -408,7 +408,7 @@ func RunCheckOptional(dock *docker.Docker, deb *debian.Debian, n *naming.Naming)
 	return log.Result(nil)
 }
 
-func RunInfoOptional(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
+func InfoOptional(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 	fmt.Println("Debian:")
 	fmt.Printf("  DpkgFlags = %s\n", DpkgFlags)
 	fmt.Printf("  LintianFlags = %s\n", LintianFlags)
