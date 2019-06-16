@@ -13,7 +13,8 @@ import (
 )
 
 var (
-	keep bool
+	keep  bool
+	check bool
 )
 
 var cmdRoot = &cobra.Command{
@@ -42,8 +43,11 @@ func init() {
 	cmdRoot.Flags().StringVar(&naming.CacheBaseDir, "cache-base-dir", naming.CacheBaseDir, "")
 	cmdRoot.Flags().StringVar(&naming.BuildBaseDir, "build-base-dir", naming.BuildBaseDir, "")
 	cmdRoot.Flags().BoolVar(&log.NoColor, "log-no-color", log.NoColor, "")
-	cmdRoot.Flags().BoolVarP(&steps.NoRebuild, "no-rebuild", "n", steps.NoRebuild, "")
+	cmdRoot.Flags().BoolVarP(&steps.NoRebuild, "no-rebuild", "r", steps.NoRebuild, "")
+	cmdRoot.Flags().BoolVarP(&steps.NoUpdate, "no-update", "u", steps.NoUpdate, "")
+	cmdRoot.Flags().BoolVarP(&steps.WithNetwork, "with-network", "n", steps.WithNetwork, "")
 	cmdRoot.Flags().BoolVarP(&keep, "keep-container", "k", false, "")
+	cmdRoot.Flags().BoolVarP(&check, "check-before", "c", check, "")
 
 	cmdRoot.Flags().SortFlags = false
 	cmdRoot.SetHelpCommand(&cobra.Command{Hidden: true, Use: "no"})
@@ -72,8 +76,15 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		s = s[:len(s)-1]
 	}
 
+	if check {
+		err = steps.CheckOptional(dock, deb, n)
+		if err != nil {
+			return err
+		}
+	}
+
 	for _, step := range s {
-		err := step(dock, deb, n)
+		err = step(dock, deb, n)
 		if err != nil {
 			return err
 		}

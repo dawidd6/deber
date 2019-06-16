@@ -1,4 +1,4 @@
-package docker
+package dockerfile
 
 import (
 	"bytes"
@@ -7,11 +7,12 @@ import (
 	"text/template"
 )
 
-// DockerfileTemplate struct defines parameters passed to
+// TODO this package needs a rewrite
+
+// Template struct defines parameters passed to
 // dockerfile template.
-type DockerfileTemplate struct {
+type Template struct {
 	From      string
-	SourceDir string
 	Packages  string
 	Backports string
 }
@@ -37,17 +38,16 @@ RUN apt-get update && \
 	apt-get install --no-install-recommends -y {{ .Packages }}
 
 # Set working directory.
-WORKDIR {{ .SourceDir }}
+WORKDIR /build/source
 
 # Sleep all the time and just wait for commands.
 CMD ["sleep", "inf"]
 `
 
-func dockerfileParse(from string) (string, error) {
-	t := DockerfileTemplate{
-		From:      from,
-		SourceDir: ContainerSourceDir,
-		Packages:  "build-essential devscripts debhelper lintian fakeroot",
+func Parse(from string) (string, error) {
+	t := Template{
+		From:     from,
+		Packages: "build-essential devscripts debhelper lintian fakeroot",
 	}
 
 	dist := strings.Split(from, ":")[1]

@@ -23,15 +23,11 @@ const (
 // ImageBuildArgs struct represents arguments
 // passed to ImageBuild().
 type ImageBuildArgs struct {
-	// Full parent image name,
-	// placed in Dockerfile's FROM directive
-	//
-	// Example: ubuntu:bionic
-	From string
 	// Full to-be-built image name
 	//
 	// Example: deber:unstable
-	Name string
+	Name       string
+	Dockerfile string
 }
 
 // IsImageBuilt function check if image with given name is built.
@@ -77,16 +73,11 @@ func (docker *Docker) IsImageOld(name string) (bool, error) {
 // ImageBuild function build image from dockerfile
 // and prints output to Stdout.
 func (docker *Docker) ImageBuild(args ImageBuildArgs) error {
-	dockerfile, err := dockerfileParse(args.From)
-	if err != nil {
-		return err
-	}
-
 	buffer := new(bytes.Buffer)
 	writer := tar.NewWriter(buffer)
 	header := &tar.Header{
 		Name: "Dockerfile",
-		Size: int64(len(dockerfile)),
+		Size: int64(len(args.Dockerfile)),
 	}
 	options := types.ImageBuildOptions{
 		Tags:       []string{args.Name},
@@ -94,12 +85,12 @@ func (docker *Docker) ImageBuild(args ImageBuildArgs) error {
 		PullParent: true,
 	}
 
-	err = writer.WriteHeader(header)
+	err := writer.WriteHeader(header)
 	if err != nil {
 		return err
 	}
 
-	_, err = writer.Write([]byte(dockerfile))
+	_, err = writer.Write([]byte(args.Dockerfile))
 	if err != nil {
 		return err
 	}

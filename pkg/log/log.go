@@ -1,7 +1,6 @@
 package log
 
 import (
-	"errors"
 	"fmt"
 	"github.com/dawidd6/deber/pkg/app"
 )
@@ -13,9 +12,9 @@ const (
 )
 
 var (
-	Skip    = errors.New("SKIP")
-	NoColor = false
-	newLine = true
+	NoColor         = false
+	ExtraInfoIndent = "  "
+	newLine         = true
 )
 
 func Drop() {
@@ -23,22 +22,38 @@ func Drop() {
 	fmt.Println()
 }
 
-func Result(err error) error {
-	if newLine {
-		return err
+func None() error {
+	return nil
+}
+
+func Failed(err error) error {
+	if !newLine {
+		fmt.Printf("failed\n")
 	}
 
-	switch err {
-	case Skip:
-		fmt.Printf("skipped\n")
-		return nil
-	case nil:
+	return err
+}
+
+func Done() error {
+	if !newLine {
 		fmt.Printf("done\n")
-		return nil
-	default:
-		fmt.Printf("failed\n")
-		return err
 	}
+
+	return nil
+}
+
+func Skipped() error {
+	if !newLine {
+		fmt.Printf("skipped\n")
+	}
+
+	return nil
+}
+
+func ExtraInfo(v interface{}) {
+	fmt.Printf("%s%s ...", ExtraInfoIndent, v)
+
+	newLine = false
 }
 
 func Info(v interface{}) {

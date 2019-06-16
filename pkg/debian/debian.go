@@ -2,7 +2,7 @@ package debian
 
 import (
 	"fmt"
-	"github.com/dawidd6/deber/pkg/walk"
+	"io/ioutil"
 	"pault.ag/go/debian/changelog"
 	"strings"
 )
@@ -43,21 +43,16 @@ func (debian *Debian) GetTarballBaseFileName() string {
 }
 
 func (debian *Debian) FindTarball(dir string) (string, bool) {
-	tarball := debian.GetTarballBaseFileName()
-	found := false
-
-	err := walk.Walk(dir, 1, func(node *walk.Node) bool {
-		if strings.HasPrefix(node.Name(), tarball) {
-			tarball = node.Name()
-			found = true
-			return true
-		}
-
-		return false
-	})
+	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return "", false
 	}
 
-	return tarball, found
+	for _, file := range files {
+		if strings.HasPrefix(file.Name(), debian.GetTarballBaseFileName()) {
+			return file.Name(), true
+		}
+	}
+
+	return "", false
 }
