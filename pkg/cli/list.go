@@ -12,7 +12,11 @@ import (
 var cmdList = &cobra.Command{
 	Use:   "list",
 	Short: "",
-	RunE:  runList,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		dock, err = docker.New()
+		return err
+	},
+	RunE: runList,
 }
 
 func init() {
@@ -22,11 +26,6 @@ func init() {
 }
 
 func runList(cmd *cobra.Command, args []string) error {
-	dock, err := docker.New()
-	if err != nil {
-		return err
-	}
-
 	images, err := dock.ImageList(app.Name)
 	if err != nil {
 		return err

@@ -13,15 +13,24 @@ import (
 )
 
 var (
-	keep  bool
+	dock *docker.Docker
+	deb  *debian.Debian
+	n    *naming.Naming
+	err  error
+)
+
+var (
+	keep bool
+	// TODO check should be a separate command
 	check bool
 )
 
 var cmdRoot = &cobra.Command{
-	Use:     app.Name,
-	Version: app.Version,
-	Short:   app.Description,
-	RunE:    runRoot,
+	Use:               app.Name,
+	Version:           app.Version,
+	Short:             app.Description,
+	PersistentPreRunE: runPersistentPre,
+	RunE:              runRoot,
 }
 
 func Run() {
@@ -55,36 +64,79 @@ func init() {
 	cmdRoot.SilenceUsage = true
 }
 
-func runRoot(cmd *cobra.Command, args []string) error {
-	dock, err := docker.New()
+func runPersistentPre(cmd *cobra.Command, args []string) error {
+	dock, err = docker.New()
 	if err != nil {
 		return err
 	}
 
-	deb, err := debian.New()
-	if err != nil {
-		return err
-	}
+	deb := new(debian.Debian)
 
-	n := naming.New(deb)
-	s := steps.Steps()
-
-	// Don't remove container at the end.
-	//
-	// Remove step should always be the last.
-	if keep {
-		s = s[:len(s)-1]
-	}
-
-	if check {
-		err = steps.CheckOptional(dock, deb, n)
+	if dist == "" {
+		deb, err = debian.New()
 		if err != nil {
 			return err
 		}
+	} else {
+		deb.Target = dist
 	}
 
-	for _, step := range s {
-		err = step(dock, deb, n)
+	n = naming.New(deb)
+
+	return nil
+}
+
+func runRoot(cmd *cobra.Command, args []string) error {
+
+	runBuild(cmd, args)
+	err = steps.Build(dock, deb, n)
+	if err != nil {
+		return err
+	}
+
+	start = true
+	runCreate(cmd, args)
+	err = steps.Create(dock, deb, n)
+	if err != nil {
+		return err
+	}
+
+	err = steps.Start(dock, deb, n)
+	if err != nil {
+		return err
+	}
+
+	err = steps.Tarball(dock, deb, n)
+	if err != nil {
+		return err
+	}
+
+	err = steps.Depends(dock, deb, n)
+	if err != nil {
+		return err
+	}
+
+	err = steps.Package(dock, deb, n)
+	if err != nil {
+		return err
+	}
+
+	err = steps.Test(dock, deb, n)
+	if err != nil {
+		return err
+	}
+
+	err = steps.Archive(dock, deb, n)
+	if err != nil {
+		return err
+	}
+	err = steps.Stop(dock, deb, n)
+	if err != nil {
+		return err
+	}
+
+	if !keep {
+		err = steps.Remove(dock, deb, n)
 		if err != nil {
 			return err
 		}

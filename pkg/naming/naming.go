@@ -34,14 +34,6 @@ func (n *Naming) ImageName() string {
 	)
 }
 
-func (n *Naming) ImageRepo() string {
-	return app.Name
-}
-
-func (n *Naming) ImageTag() string {
-	return n.standardizeImageTag()
-}
-
 func (n *Naming) ContainerName() string {
 	return fmt.Sprintf(
 		"%s_%s_%s_%s",

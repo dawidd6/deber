@@ -25,24 +25,7 @@ var (
 	NoUpdate      bool
 	WithNetwork   bool
 	ExtraPackages []string
-	Repo          string
-	Tag           string
 )
-
-func Steps() []func(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
-	return []func(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error{
-		Build,
-		Create,
-		Start,
-		Tarball,
-		Depends,
-		Package,
-		Test,
-		Archive,
-		Stop,
-		Remove,
-	}
-}
 
 // Build function determines parent image name by querying DockerHub API
 // for available "debian" and "ubuntu" tags and confronting them with
@@ -68,13 +51,14 @@ func Build(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 		}
 	}
 
+	tag := strings.Split(n.ImageName(), ":")[1]
 	repos := []string{"debian", "ubuntu"}
-	repo, err := dockerhub.MatchRepo(repos, n.ImageTag())
+	repo, err := dockerhub.MatchRepo(repos, tag)
 	if err != nil {
 		return log.Failed(err)
 	}
 
-	file, err := dockerfile.Parse(repo, n.ImageTag())
+	file, err := dockerfile.Parse(repo, tag)
 	if err != nil {
 		return log.Failed(err)
 	}
