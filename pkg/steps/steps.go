@@ -25,6 +25,8 @@ var (
 	NoUpdate      bool
 	WithNetwork   bool
 	ExtraPackages []string
+	Repo          string
+	Tag           string
 )
 
 func Steps() []func(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
@@ -72,8 +74,7 @@ func Build(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 		return log.Failed(err)
 	}
 
-	from := fmt.Sprintf("%s:%s", repo, n.ImageTag())
-	file, err := dockerfile.Parse(from)
+	file, err := dockerfile.Parse(repo, n.ImageTag())
 	if err != nil {
 		return log.Failed(err)
 	}

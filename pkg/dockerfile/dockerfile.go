@@ -2,8 +2,7 @@ package dockerfile
 
 import (
 	"bytes"
-	"fmt"
-	"strings"
+	"github.com/dawidd6/deber/pkg/docker"
 	"text/template"
 )
 
@@ -12,14 +11,14 @@ import (
 // Template struct defines parameters passed to
 // dockerfile template.
 type Template struct {
-	From      string
-	Packages  string
-	Backports string
+	Repo      string
+	Tag       string
+	SourceDir string
 }
 
 const dockerfileTemplate = `
 # From which Docker image do we start?
-FROM {{ .From }}
+FROM {{ .Repo }}:{{ .Tag }}
 
 # Remove not needed apt configs.
 RUN rm /etc/apt/apt.conf.d/*
@@ -31,33 +30,24 @@ RUN echo "APT::Get::Assume-Yes "true";" > /etc/apt/apt.conf.d/00noconfirm
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 
 # Backports pinning
-{{ .Backports }}
+RUN printf "Package: *\nPin: release a={{ .Tag }}\nPin-Priority: 800" > /etc/apt/preferences.d/pin
 
 # Install required packages
 RUN apt-get update && \
-	apt-get install --no-install-recommends -y {{ .Packages }}
+	apt-get install --no-install-recommends -y build-essential devscripts debhelper lintian fakeroot
 
 # Set working directory.
-WORKDIR /build/source
+WORKDIR {{ .SourceDir }}
 
 # Sleep all the time and just wait for commands.
 CMD ["sleep", "inf"]
 `
 
-func Parse(from string) (string, error) {
+func Parse(repo, tag string) (string, error) {
 	t := Template{
-		From:     from,
-		Packages: "build-essential devscripts debhelper lintian fakeroot",
-	}
-
-	dist := strings.Split(from, ":")[1]
-
-	if strings.Contains(dist, "-backports") {
-		t.Backports = fmt.Sprintf(
-			"RUN printf \"%s\" > %s",
-			"Package: *\\nPin: release a="+dist+"\\nPin-Priority: 800",
-			"/etc/apt/preferences.d/backports",
-		)
+		Repo:      repo,
+		Tag:       tag,
+		SourceDir: docker.ContainerSourceDir,
 	}
 
 	temp, err := template.New("dockerfile").Parse(dockerfileTemplate)
