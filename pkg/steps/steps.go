@@ -10,6 +10,7 @@ import (
 	"github.com/dawidd6/deber/pkg/dockerhub"
 	"github.com/dawidd6/deber/pkg/log"
 	"github.com/dawidd6/deber/pkg/naming"
+	"github.com/dawidd6/deber/pkg/walk"
 	"github.com/docker/docker/api/types/mount"
 	"io"
 	"io/ioutil"
@@ -144,6 +145,26 @@ func Create(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 		mounts = append(mounts, mnt)
 	}
 
+	if !deb.Version.Native {
+		tarball, found := deb.FindTarball(n.SourceParentDir())
+		if !found {
+			return log.Failed(errors.New("tarball not found"))
+		}
+
+		source := filepath.Join(n.SourceParentDir(), tarball)
+		dest := filepath.Join(n.BuildDir(), tarball)
+
+		source, err = filepath.EvalSymlinks(source)
+		if err != nil {
+			return log.Failed(err)
+		}
+
+		err = os.Rename(source, dest)
+		if err != nil {
+			return log.Failed(err)
+		}
+	}
+
 	args := docker.ContainerCreateArgs{
 		Mounts: mounts,
 		Image:  n.ImageName(),
@@ -171,42 +192,6 @@ func Start(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 	}
 
 	err = dock.ContainerStart(n.ContainerName())
-	if err != nil {
-		return log.Failed(err)
-	}
-
-	return log.Done()
-}
-
-// Tarball function moves orig upstream tarball from parent directory
-// to build directory if package is not native.
-func Tarball(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
-	log.Info("Moving tarball")
-
-	if deb.Version.Native {
-		return log.Skipped()
-	}
-
-	// Skip if tarball is already in build directory.
-	tarball, found := deb.FindTarball(n.BuildDir())
-	if found {
-		return log.Skipped()
-	}
-
-	tarball, found = deb.FindTarball(n.SourceParentDir())
-	if !found {
-		return log.Failed(errors.New("tarball not found"))
-	}
-
-	source := filepath.Join(n.SourceParentDir(), tarball)
-	dest := filepath.Join(n.BuildDir(), tarball)
-
-	source, err := filepath.EvalSymlinks(source)
-	if err != nil {
-		return log.Failed(err)
-	}
-
-	err = os.Rename(source, dest)
 	if err != nil {
 		return log.Failed(err)
 	}
@@ -428,6 +413,7 @@ func Remove(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 // ShellOptional function interactively executes bash shell in container.
 func ShellOptional(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 	log.Info("Launching shell")
+	log.Drop()
 
 	args := docker.ContainerExecArgs{
 		Interactive: true,
@@ -439,7 +425,7 @@ func ShellOptional(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) er
 		return log.Failed(err)
 	}
 
-	return log.Done()
+	return log.None()
 }
 
 // Check function evaluates if package has been already built and
@@ -447,33 +433,16 @@ func ShellOptional(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) er
 func CheckOptional(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
 	log.Info("Checking archive")
 
-	info, _ := os.Stat(n.ArchiveVersionDir())
-	if info != nil {
-		_ = log.Skipped()
-		os.Exit(0)
+	minFiles := 3
+	foundFiles := 0
+	err := walk.Walk(n.ArchiveVersionDir(), 1, func(node *walk.Node) bool {
+		foundFiles++
+		return false
+	})
+
+	if err != nil || foundFiles < minFiles {
+		return log.Custom("not built")
 	}
 
-	return log.Done()
-}
-
-func InfoOptional(dock *docker.Docker, deb *debian.Debian, n *naming.Naming) error {
-	fmt.Println("Debian:")
-	fmt.Printf("  DpkgFlags = %s\n", DpkgFlags)
-	fmt.Printf("  LintianFlags = %s\n", LintianFlags)
-	fmt.Printf("  DebianSource = %s\n", deb.Source)
-	fmt.Printf("  DebianPackageVersion = %s\n", deb.Version.Package)
-	fmt.Printf("  DebianPackageUpstream = %s\n", deb.Version.Upstream)
-	fmt.Printf("  DebianTarget = %s\n", deb.Target)
-
-	fmt.Println()
-
-	fmt.Println("Docker:")
-	fmt.Printf("  Image = %s\n", n.ImageName())
-	fmt.Printf("  Container = %s\n", n.ContainerName())
-	fmt.Printf("  ArchiveSourceDir = %s\n", n.ArchiveSourceDir())
-	fmt.Printf("  BuildDir = %s\n", n.BuildDir())
-	fmt.Printf("  CacheDir = %s\n", n.CacheDir())
-	fmt.Printf("  SourceDir = %s\n", n.SourceDir())
-
-	return nil
+	return log.Custom("already built")
 }

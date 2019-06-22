@@ -20,16 +20,18 @@ var (
 )
 
 var (
-	keep bool
-	// TODO check should be a separate command
-	check bool
+	flagPackageNoTest  bool
+	flagKeepContainer  bool
+	flagStopContainer  bool
+	flagStartContainer bool
+	flagDistribution   string
 )
 
 var cmdRoot = &cobra.Command{
 	Use:               app.Name,
 	Version:           app.Version,
 	Short:             app.Description,
-	PersistentPreRunE: runPersistentPre,
+	PersistentPreRunE: preRoot,
 	RunE:              runRoot,
 }
 
@@ -55,8 +57,7 @@ func init() {
 	cmdRoot.Flags().BoolVarP(&steps.NoRebuild, "no-rebuild", "r", steps.NoRebuild, "")
 	cmdRoot.Flags().BoolVarP(&steps.NoUpdate, "no-update", "u", steps.NoUpdate, "")
 	cmdRoot.Flags().BoolVarP(&steps.WithNetwork, "with-network", "n", steps.WithNetwork, "")
-	cmdRoot.Flags().BoolVarP(&keep, "keep-container", "k", false, "")
-	cmdRoot.Flags().BoolVarP(&check, "check-before", "c", check, "")
+	cmdRoot.Flags().BoolVarP(&flagKeepContainer, "keep-container", "k", flagKeepContainer, "")
 
 	cmdRoot.Flags().SortFlags = false
 	cmdRoot.SetHelpCommand(&cobra.Command{Hidden: true, Use: "no"})
@@ -64,21 +65,21 @@ func init() {
 	cmdRoot.SilenceUsage = true
 }
 
-func runPersistentPre(cmd *cobra.Command, args []string) error {
+func preRoot(cmd *cobra.Command, args []string) error {
 	dock, err = docker.New()
 	if err != nil {
 		return err
 	}
 
-	deb := new(debian.Debian)
-
-	if dist == "" {
+	if flagDistribution == "" {
 		deb, err = debian.New()
 		if err != nil {
 			return err
 		}
 	} else {
-		deb.Target = dist
+		deb = &debian.Debian{
+			Target: flagDistribution,
+		}
 	}
 
 	n = naming.New(deb)
@@ -87,56 +88,35 @@ func runPersistentPre(cmd *cobra.Command, args []string) error {
 }
 
 func runRoot(cmd *cobra.Command, args []string) error {
-
-	runBuild(cmd, args)
-	err = steps.Build(dock, deb, n)
+	err = runImageBuild(cmd, args)
 	if err != nil {
 		return err
 	}
 
-	start = true
-	runCreate(cmd, args)
-	err = steps.Create(dock, deb, n)
+	flagStartContainer = true
+	err = runContainerCreate(cmd, args)
 	if err != nil {
 		return err
 	}
 
-	err = steps.Start(dock, deb, n)
+	err = runPackageDepends(cmd, args)
 	if err != nil {
 		return err
 	}
 
-	err = steps.Tarball(dock, deb, n)
+	err = runPackageBuild(cmd, args)
 	if err != nil {
 		return err
 	}
 
-	err = steps.Depends(dock, deb, n)
+	err = runArchiveCopy(cmd, args)
 	if err != nil {
 		return err
 	}
 
-	err = steps.Package(dock, deb, n)
-	if err != nil {
-		return err
-	}
-
-	err = steps.Test(dock, deb, n)
-	if err != nil {
-		return err
-	}
-
-	err = steps.Archive(dock, deb, n)
-	if err != nil {
-		return err
-	}
-	err = steps.Stop(dock, deb, n)
-	if err != nil {
-		return err
-	}
-
-	if !keep {
-		err = steps.Remove(dock, deb, n)
+	if !flagKeepContainer {
+		flagStopContainer = true
+		err = runContainerRemove(cmd, args)
 		if err != nil {
 			return err
 		}

@@ -17,6 +17,8 @@ var (
 	newLine         = true
 )
 
+// TODO better function namings
+
 func Drop() {
 	newLine = true
 	fmt.Println()
@@ -45,6 +47,14 @@ func Done() error {
 func Skipped() error {
 	if !newLine {
 		fmt.Printf("skipped\n")
+	}
+
+	return nil
+}
+
+func Custom(s string) error {
+	if !newLine {
+		fmt.Printf("%s\n", s)
 	}
 
 	return nil
