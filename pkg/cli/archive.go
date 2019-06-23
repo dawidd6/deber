@@ -9,28 +9,16 @@ import (
 )
 
 var (
+	flagArchiveCheck bool
+	flagArchiveList  bool
+	flagArchiveCopy  bool
+)
+
+var (
 	cmdArchive = &cobra.Command{
 		Use:   "archive",
 		Short: "",
 		RunE:  runArchive,
-	}
-
-	cmdArchiveCheck = &cobra.Command{
-		Use:   "check",
-		Short: "",
-		RunE:  runArchiveCheck,
-	}
-
-	cmdArchiveList = &cobra.Command{
-		Use:   "list",
-		Short: "",
-		RunE:  runArchiveList,
-	}
-
-	cmdArchiveCopy = &cobra.Command{
-		Use:   "copy",
-		Short: "",
-		RunE:  runArchiveCopy,
 	}
 )
 
@@ -38,34 +26,54 @@ func init() {
 	cmdRoot.AddCommand(
 		cmdArchive,
 	)
-	cmdArchive.AddCommand(
-		cmdArchiveCheck,
-		cmdArchiveList,
-		cmdArchiveCopy,
-	)
+
+	cmdArchive.Flags().BoolVarP(&flagArchiveCheck, "check", "c", flagArchiveCheck, "")
+	cmdArchive.Flags().BoolVarP(&flagArchiveList, "list", "l", flagArchiveList, "")
+	cmdArchive.Flags().BoolVarP(&flagArchiveCopy, "copy", "k", flagArchiveCopy, "")
 }
 
 func runArchive(cmd *cobra.Command, args []string) error {
-	return cmd.Help()
-}
+	flag := false
 
-func runArchiveCheck(cmd *cobra.Command, args []string) error {
-	return steps.CheckOptional(dock, deb, n)
-}
+	if flagArchiveList {
+		flag = true
 
-func runArchiveList(cmd *cobra.Command, args []string) error {
-	return walk.Walk(naming.ArchiveBaseDir, 3, func(node *walk.Node) bool {
-		indent := ""
-		for i := 1; i < node.Depth(); i++ {
-			indent += "    "
+		err = walk.Walk(naming.ArchiveBaseDir, 3, func(node *walk.Node) bool {
+			indent := ""
+			for i := 1; i < node.Depth(); i++ {
+				indent += "    "
+			}
+
+			fmt.Printf("%s%s\n", indent, node.Name())
+
+			return false
+		})
+		if err != nil {
+			return err
 		}
+	}
 
-		fmt.Printf("%s%s\n", indent, node.Name())
+	if flagArchiveCheck {
+		flag = true
 
-		return false
-	})
-}
+		err = steps.CheckOptional(dock, deb, n)
+		if err != nil {
+			return err
+		}
+	}
 
-func runArchiveCopy(cmd *cobra.Command, args []string) error {
-	return steps.Archive(dock, deb, n)
+	if flagArchiveCopy {
+		flag = true
+
+		err = steps.Archive(dock, deb, n)
+		if err != nil {
+			return err
+		}
+	}
+
+	if flag {
+		return nil
+	}
+
+	return cmd.Help()
 }

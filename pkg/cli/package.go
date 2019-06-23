@@ -1,12 +1,16 @@
 package cli
 
 import (
-	"fmt"
 	"github.com/dawidd6/deber/pkg/steps"
 	"github.com/spf13/cobra"
 )
 
-// TODO options instead of subcommands (info, depends, ...)
+var (
+	flagPackageBuild   bool
+	flagPackageTest    bool
+	flagPackageInfo    bool
+	flagPackageDepends bool
+)
 
 var (
 	cmdPackage = &cobra.Command{
@@ -14,62 +18,57 @@ var (
 		Short: "",
 		RunE:  runPackage,
 	}
-
-	cmdPackageDepends = &cobra.Command{
-		Use:   "depends",
-		Short: "",
-		RunE:  runPackageDepends,
-	}
-
-	cmdPackageBuild = &cobra.Command{
-		Use:   "build",
-		Short: "",
-		RunE:  runPackageBuild,
-	}
-
-	cmdPackageInfo = &cobra.Command{
-		Use:   "info",
-		Short: "",
-		RunE:  runPackageInfo,
-	}
 )
 
 func init() {
 	cmdRoot.AddCommand(
 		cmdPackage,
 	)
-	cmdPackage.AddCommand(
-		cmdPackageDepends,
-		cmdPackageBuild,
-		cmdPackageInfo,
-	)
 
-	cmdPackageBuild.Flags().BoolVarP(&flagPackageNoTest, "no-test", "n", flagPackageNoTest, "")
+	cmdPackage.Flags().BoolVarP(&flagPackageBuild, "build", "b", flagPackageBuild, "")
+	cmdPackage.Flags().BoolVarP(&flagPackageTest, "test", "t", flagPackageTest, "")
+	cmdPackage.Flags().BoolVarP(&flagPackageDepends, "depends", "d", flagPackageDepends, "")
+	cmdPackage.Flags().BoolVarP(&flagPackageInfo, "info", "i", flagPackageInfo, "")
 }
 
 func runPackage(cmd *cobra.Command, args []string) error {
-	return cmd.Help()
-}
+	flag := false
 
-func runPackageDepends(cmd *cobra.Command, args []string) error {
-	return steps.Depends(dock, deb, n)
-}
+	if flagPackageInfo {
+		flag = true
 
-func runPackageBuild(cmd *cobra.Command, args []string) error {
-	err := steps.Package(dock, deb, n)
-	if err != nil {
-		return err
 	}
 
-	if flagPackageNoTest {
+	if flagPackageDepends {
+		flag = true
+
+		err = steps.Depends(dock, deb, n)
+		if err != nil {
+			return err
+		}
+	}
+
+	if flagPackageBuild {
+		flag = true
+
+		err = steps.Package(dock, deb, n)
+		if err != nil {
+			return err
+		}
+	}
+
+	if flagPackageTest {
+		flag = true
+
+		err = steps.Test(dock, deb, n)
+		if err != nil {
+			return err
+		}
+	}
+
+	if flag {
 		return nil
 	}
 
-	return steps.Test(dock, deb, n)
-}
-
-func runPackageInfo(cmd *cobra.Command, args []string) error {
-	fmt.Println(*deb)
-
-	return nil
+	return cmd.Help()
 }

@@ -8,22 +8,16 @@ import (
 )
 
 var (
+	flagImageBuild bool
+	flagImageList  bool
+	flagImageDist  string
+)
+
+var (
 	cmdImage = &cobra.Command{
 		Use:   "image",
 		Short: "",
 		RunE:  runImage,
-	}
-
-	cmdImageBuild = &cobra.Command{
-		Use:   "build",
-		Short: "",
-		RunE:  runImageBuild,
-	}
-
-	cmdImageList = &cobra.Command{
-		Use:   "list",
-		Short: "",
-		RunE:  runImageList,
 	}
 )
 
@@ -31,32 +25,40 @@ func init() {
 	cmdRoot.AddCommand(
 		cmdImage,
 	)
-	cmdImage.AddCommand(
-		cmdImageBuild,
-		cmdImageList,
-	)
 
-	cmdImageBuild.Flags().BoolVarP(&steps.NoRebuild, "no-rebuild", "n", steps.NoRebuild, "")
-	cmdImageBuild.Flags().StringVarP(&flagDistribution, "distribution", "d", flagDistribution, "")
+	cmdImage.Flags().StringVarP(&flagImageDist, "distribution", "d", flagImageDist, "")
+	cmdImage.Flags().BoolVarP(&flagImageBuild, "build", "b", flagImageBuild, "")
+	cmdImage.Flags().BoolVarP(&flagImageList, "list", "l", flagImageList, "")
 }
 
 func runImage(cmd *cobra.Command, args []string) error {
+	flag := false
+
+	if flagImageList {
+		flag = true
+
+		images, err := dock.ImageList(app.Name)
+		if err != nil {
+			return err
+		}
+
+		for i := range images {
+			fmt.Println(images[i])
+		}
+	}
+
+	if flagImageBuild {
+		flag = true
+
+		err = steps.Build(dock, deb, n)
+		if err != nil {
+			return err
+		}
+	}
+
+	if flag {
+		return nil
+	}
+
 	return cmd.Help()
-}
-
-func runImageBuild(cmd *cobra.Command, args []string) error {
-	return steps.Build(dock, deb, n)
-}
-
-func runImageList(cmd *cobra.Command, args []string) error {
-	images, err := dock.ImageList(app.Name)
-	if err != nil {
-		return err
-	}
-
-	for i := range images {
-		fmt.Println(images[i])
-	}
-
-	return nil
 }

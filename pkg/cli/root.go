@@ -19,14 +19,6 @@ var (
 	err  error
 )
 
-var (
-	flagPackageNoTest  bool
-	flagKeepContainer  bool
-	flagStopContainer  bool
-	flagStartContainer bool
-	flagDistribution   string
-)
-
 var cmdRoot = &cobra.Command{
 	Use:               app.Name,
 	Version:           app.Version,
@@ -88,39 +80,6 @@ func preRoot(cmd *cobra.Command, args []string) error {
 }
 
 func runRoot(cmd *cobra.Command, args []string) error {
-	err = runImageBuild(cmd, args)
-	if err != nil {
-		return err
-	}
-
-	flagStartContainer = true
-	err = runContainerCreate(cmd, args)
-	if err != nil {
-		return err
-	}
-
-	err = runPackageDepends(cmd, args)
-	if err != nil {
-		return err
-	}
-
-	err = runPackageBuild(cmd, args)
-	if err != nil {
-		return err
-	}
-
-	err = runArchiveCopy(cmd, args)
-	if err != nil {
-		return err
-	}
-
-	if !flagKeepContainer {
-		flagStopContainer = true
-		err = runContainerRemove(cmd, args)
-		if err != nil {
-			return err
-		}
-	}
 
 	return nil
 }

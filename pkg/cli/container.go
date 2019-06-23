@@ -8,34 +8,19 @@ import (
 )
 
 var (
+	flagContainerCreate bool
+	flagContainerStart  bool
+	flagContainerRemove bool
+	flagContainerStop   bool
+	flagContainerList   bool
+	flagContainerShell  bool
+)
+
+var (
 	cmdContainer = &cobra.Command{
 		Use:   "container",
 		Short: "",
 		RunE:  runContainer,
-	}
-
-	cmdContainerCreate = &cobra.Command{
-		Use:   "create",
-		Short: "",
-		RunE:  runContainerCreate,
-	}
-
-	cmdContainerRemove = &cobra.Command{
-		Use:   "remove",
-		Short: "",
-		RunE:  runContainerRemove,
-	}
-
-	cmdContainerShell = &cobra.Command{
-		Use:   "shell",
-		Short: "",
-		RunE:  runContainerShell,
-	}
-
-	cmdContainerList = &cobra.Command{
-		Use:   "list",
-		Short: "",
-		RunE:  runContainerList,
 	}
 )
 
@@ -43,17 +28,13 @@ func init() {
 	cmdRoot.AddCommand(
 		cmdContainer,
 	)
-	cmdContainer.AddCommand(
-		cmdContainerCreate,
-		cmdContainerRemove,
-		cmdContainerShell,
-		cmdContainerList,
-	)
 
-	cmdContainerCreate.Flags().BoolVarP(&flagStartContainer, "start", "s", flagStartContainer, "")
-	cmdContainerCreate.Flags().StringArrayVar(&steps.ExtraPackages, "extra-package", steps.ExtraPackages, "")
-
-	cmdContainerRemove.Flags().BoolVarP(&flagStopContainer, "stop", "s", flagStopContainer, "")
+	cmdContainer.Flags().BoolVarP(&flagContainerCreate, "create", "c", flagContainerCreate, "")
+	cmdContainer.Flags().BoolVarP(&flagContainerStart, "start", "t", flagContainerStart, "")
+	cmdContainer.Flags().BoolVarP(&flagContainerRemove, "remove", "r", flagContainerRemove, "")
+	cmdContainer.Flags().BoolVarP(&flagContainerStop, "stop", "p", flagContainerStop, "")
+	cmdContainer.Flags().BoolVarP(&flagContainerList, "list", "l", flagContainerList, "")
+	cmdContainer.Flags().BoolVarP(&flagContainerCreate, "shell", "s", flagContainerShell, "")
 }
 
 func runContainer(cmd *cobra.Command, args []string) error {
