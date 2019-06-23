@@ -13,6 +13,8 @@ import (
 )
 
 var (
+	check         bool
+	info          bool
 	keepContainer bool
 	distribution  string
 )
@@ -44,8 +46,8 @@ func init() {
 	cmdPackage.Flags().StringVar(&steps.DpkgFlags, "dpkg-flags", steps.DpkgFlags, "")
 	cmdPackage.Flags().StringVar(&steps.LintianFlags, "lintian-flags", steps.LintianFlags, "")
 
-	cmdRoot.Flags().StringArrayVar(&steps.ExtraPackages, "extra-package", steps.ExtraPackages, "")
-	cmdContainer.Flags().StringArrayVar(&steps.ExtraPackages, "extra-package", steps.ExtraPackages, "")
+	cmdRoot.Flags().StringArrayVarP(&steps.ExtraPackages, "extra-package", "e", steps.ExtraPackages, "")
+	cmdContainer.Flags().StringArrayVarP(&steps.ExtraPackages, "extra-package", "e", steps.ExtraPackages, "")
 
 	cmdRoot.Flags().StringVar(&naming.ArchiveBaseDir, "archive-base-dir", naming.ArchiveBaseDir, "")
 	cmdRoot.Flags().StringVar(&naming.CacheBaseDir, "cache-base-dir", naming.CacheBaseDir, "")
@@ -65,6 +67,8 @@ func init() {
 	cmdPackage.Flags().BoolVarP(&steps.WithNetwork, "with-network", "n", steps.WithNetwork, "")
 
 	cmdRoot.Flags().BoolVarP(&keepContainer, "keep-container", "k", keepContainer, "")
+	cmdRoot.Flags().BoolVarP(&check, "check", "c", check, "")
+	cmdRoot.Flags().BoolVarP(&info, "info", "i", info, "")
 
 	cmdRoot.Flags().StringVarP(&distribution, "distribution", "d", distribution, "")
 	cmdImage.Flags().StringVarP(&distribution, "distribution", "d", distribution, "")
@@ -125,6 +129,12 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	flagArchiveCheck = check
+	err = runArchive(cmd, args)
+	if err != nil {
+		return err
+	}
+
 	flagContainerCreate = true
 	flagContainerStart = true
 	err = runContainer(cmd, args)
@@ -132,6 +142,7 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	flagPackageInfo = info
 	flagPackageDepends = true
 	flagPackageBuild = true
 	flagPackageTest = true

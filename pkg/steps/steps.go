@@ -78,6 +78,8 @@ func Build() error {
 }
 
 // Create function commands Docker Engine to create container.
+//
+// Also makes directories on host and moves tarball if needed.
 func Create() error {
 	log.Info("Creating container")
 
@@ -97,6 +99,7 @@ func Create() error {
 		},
 	}
 
+	// Handle extra packages mounting
 	for _, pkg := range ExtraPackages {
 		source, err := filepath.Abs(pkg)
 		if err != nil {
@@ -133,6 +136,8 @@ func Create() error {
 			return log.Failed(err)
 		}
 
+		// Compare old mounts with new ones,
+		// if not equal, then recreate container
 		if util.CompareMounts(oldMounts, mounts) {
 			return log.Skipped()
 		}
@@ -147,8 +152,8 @@ func Create() error {
 			return log.Failed(err)
 		}
 	}
-	//TODO check if mounts are equal
 
+	// Make directories if non existent
 	for _, mnt := range mounts {
 		info, _ := os.Stat(mnt.Source)
 		if info != nil {
@@ -161,12 +166,30 @@ func Create() error {
 		}
 	}
 
+	// Find tarball if package is not native
 	if strings.Contains(naming.PackageVersion, "-") {
 		tarball := fmt.Sprintf("%s_%s.orig.tar", naming.PackageName, naming.PackageUpstream)
 		found := false
 
-		for _, dir := range []string{naming.BuildDir(), naming.SourceParentDir()} {
-			files, err := ioutil.ReadDir(dir)
+		// Look for tarball in build directory,
+		// if it's there, then do nothing
+		files, err := ioutil.ReadDir(naming.BuildDir())
+		if err != nil {
+			return log.Failed(err)
+		}
+
+		for _, file := range files {
+			if strings.HasPrefix(file.Name(), tarball) {
+				tarball = file.Name()
+				found = true
+				break
+			}
+		}
+
+		// If tarball is not present in build directory,
+		// then look in parent source directory
+		if !found {
+			files, err := ioutil.ReadDir(naming.SourceParentDir())
 			if err != nil {
 				return log.Failed(err)
 			}
@@ -179,26 +202,22 @@ func Create() error {
 				}
 			}
 
-			if found {
-				break
+			if !found {
+				return log.Failed(errors.New("upstream tarball not found"))
 			}
-		}
 
-		if !found {
-			return log.Failed(errors.New("upstream tarball not found"))
-		}
+			source := filepath.Join(naming.SourceParentDir(), tarball)
+			dst := filepath.Join(naming.BuildDir(), tarball)
 
-		source := filepath.Join(naming.SourceParentDir(), tarball)
-		dst := filepath.Join(naming.BuildDir(), tarball)
+			source, err = filepath.EvalSymlinks(source)
+			if err != nil {
+				return log.Failed(err)
+			}
 
-		source, err = filepath.EvalSymlinks(source)
-		if err != nil {
-			return log.Failed(err)
-		}
-
-		err = os.Rename(source, dst)
-		if err != nil {
-			return log.Failed(err)
+			err = os.Rename(source, dst)
+			if err != nil {
+				return log.Failed(err)
+			}
 		}
 	}
 

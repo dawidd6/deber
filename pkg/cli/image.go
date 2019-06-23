@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"github.com/dawidd6/deber/pkg/app"
 	"github.com/dawidd6/deber/pkg/docker"
+	"github.com/dawidd6/deber/pkg/naming"
 	"github.com/dawidd6/deber/pkg/steps"
 	"github.com/spf13/cobra"
 )
 
 var (
-	flagImageBuild bool
-	flagImageList  bool
+	flagImageBuild  bool
+	flagImageList   bool
+	flagImageRemove bool
+	flagImagePrune  bool
 )
 
 var (
@@ -24,14 +27,33 @@ var (
 func init() {
 	cmdImage.Flags().BoolVar(&flagImageBuild, "build", flagImageBuild, "")
 	cmdImage.Flags().BoolVar(&flagImageList, "list", flagImageList, "")
+	cmdImage.Flags().BoolVar(&flagImageRemove, "remove", flagImageRemove, "")
+	cmdImage.Flags().BoolVar(&flagImagePrune, "prune", flagImagePrune, "")
 }
 
 func runImage(cmd *cobra.Command, args []string) error {
-	flag := false
+	if flagImagePrune {
+		images, err := docker.ImageList(app.Name)
+		if err != nil {
+			return err
+		}
+
+		for i := range images {
+			err = docker.ImageRemove(images[i])
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if flagImageRemove {
+		err := docker.ImageRemove(naming.Image())
+		if err != nil {
+			return err
+		}
+	}
 
 	if flagImageList {
-		flag = true
-
 		images, err := docker.ImageList(app.Name)
 		if err != nil {
 			return err
@@ -43,15 +65,13 @@ func runImage(cmd *cobra.Command, args []string) error {
 	}
 
 	if flagImageBuild {
-		flag = true
-
 		err := steps.Build()
 		if err != nil {
 			return err
 		}
 	}
 
-	if flag {
+	if cmd.Flags().NFlag() > 0 {
 		return nil
 	}
 

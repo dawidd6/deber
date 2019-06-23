@@ -7,6 +7,7 @@ import (
 )
 
 // TODO this package needs a rewrite
+// TODO figure out how to handle backports
 
 // Template struct defines parameters passed to
 // dockerfile template.
@@ -29,12 +30,9 @@ RUN echo "APT::Get::Assume-Yes "true";" > /etc/apt/apt.conf.d/00noconfirm
 # Set debconf to be non interactive
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 
-# Backports pinning
-RUN printf "Package: *\nPin: release a={{ .Tag }}\nPin-Priority: 800" > /etc/apt/preferences.d/pin
-
 # Install required packages
 RUN apt-get update && \
-	apt-get install --no-install-recommends -y build-essential devscripts debhelper lintian fakeroot
+	apt-get install --no-install-recommends -y build-essential devscripts debhelper lintian fakeroot dpkg-dev
 
 # Set working directory.
 WORKDIR {{ .SourceDir }}

@@ -15,6 +15,7 @@ var (
 	flagContainerStop   bool
 	flagContainerList   bool
 	flagContainerShell  bool
+	flagContainerPrune  bool
 )
 
 var (
@@ -32,14 +33,30 @@ func init() {
 	cmdContainer.Flags().BoolVar(&flagContainerStop, "stop", flagContainerStop, "")
 	cmdContainer.Flags().BoolVar(&flagContainerList, "list", flagContainerList, "")
 	cmdContainer.Flags().BoolVar(&flagContainerShell, "shell", flagContainerShell, "")
+	cmdContainer.Flags().BoolVar(&flagContainerPrune, "prune", flagContainerPrune, "")
 }
 
 func runContainer(cmd *cobra.Command, args []string) error {
-	flag := false
+	if flagContainerPrune {
+		containers, err := docker.ContainerList(app.Name)
+		if err != nil {
+			return err
+		}
+
+		for i := range containers {
+			err = docker.ContainerStop(containers[i])
+			if err != nil {
+				return err
+			}
+
+			err = docker.ContainerRemove(containers[i])
+			if err != nil {
+				return err
+			}
+		}
+	}
 
 	if flagContainerList {
-		flag = true
-
 		containers, err := docker.ContainerList(app.Name)
 		if err != nil {
 			return err
@@ -51,8 +68,6 @@ func runContainer(cmd *cobra.Command, args []string) error {
 	}
 
 	if flagContainerCreate {
-		flag = true
-
 		err := steps.Create()
 		if err != nil {
 			return err
@@ -60,8 +75,6 @@ func runContainer(cmd *cobra.Command, args []string) error {
 	}
 
 	if flagContainerStart {
-		flag = true
-
 		err := steps.Start()
 		if err != nil {
 			return err
@@ -69,8 +82,6 @@ func runContainer(cmd *cobra.Command, args []string) error {
 	}
 
 	if flagContainerShell {
-		flag = true
-
 		err := steps.ShellOptional()
 		if err != nil {
 			return err
@@ -78,8 +89,6 @@ func runContainer(cmd *cobra.Command, args []string) error {
 	}
 
 	if flagContainerStop {
-		flag = true
-
 		err := steps.Stop()
 		if err != nil {
 			return err
@@ -87,15 +96,13 @@ func runContainer(cmd *cobra.Command, args []string) error {
 	}
 
 	if flagContainerRemove {
-		flag = true
-
 		err := steps.Remove()
 		if err != nil {
 			return err
 		}
 	}
 
-	if flag {
+	if cmd.Flags().NFlag() > 0 {
 		return nil
 	}
 

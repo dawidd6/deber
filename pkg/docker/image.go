@@ -148,3 +148,16 @@ func ImageList(prefix string) ([]string, error) {
 
 	return images, nil
 }
+
+func ImageRemove(name string) error {
+	options := types.ImageRemoveOptions{
+		PruneChildren: true,
+	}
+
+	_, err := cli.ImageRemove(ctx, name, options)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

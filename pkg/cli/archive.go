@@ -29,11 +29,7 @@ func init() {
 }
 
 func runArchive(cmd *cobra.Command, args []string) error {
-	flag := false
-
 	if flagArchiveList {
-		flag = true
-
 		err := walk.Walk(naming.ArchiveBaseDir, 3, func(node *walk.Node) bool {
 			indent := ""
 			for i := 1; i < node.Depth(); i++ {
@@ -50,8 +46,6 @@ func runArchive(cmd *cobra.Command, args []string) error {
 	}
 
 	if flagArchiveCheck {
-		flag = true
-
 		err := steps.CheckOptional()
 		if err != nil {
 			return err
@@ -59,15 +53,13 @@ func runArchive(cmd *cobra.Command, args []string) error {
 	}
 
 	if flagArchiveCopy {
-		flag = true
-
 		err := steps.Archive()
 		if err != nil {
 			return err
 		}
 	}
 
-	if flag {
+	if cmd.Flags().NFlag() > 0 {
 		return nil
 	}
 

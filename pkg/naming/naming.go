@@ -49,14 +49,13 @@ func standardizePackageVersion(version string) string {
 }
 
 func standardizeImageTag() string {
-	if strings.Contains(PackageVersion, "bpo") {
-		if strings.Contains(PackageTarget, "backports") {
-			return PackageTarget
-		}
+	// TODO figure out what to do with ubuntu backports, cause there are no docker ubuntu backports images
+	if strings.Contains(PackageTarget, "backports") {
+		return PackageTarget
+	}
 
-		if PackageTarget == "UNRELEASED" {
-			return "unstable"
-		}
+	if PackageTarget == "UNRELEASED" {
+		return "unstable"
 	}
 
 	if strings.Contains(PackageTarget, "-") {

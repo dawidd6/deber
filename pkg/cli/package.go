@@ -28,16 +28,11 @@ func init() {
 }
 
 func runPackage(cmd *cobra.Command, args []string) error {
-	flag := false
-
 	if flagPackageInfo {
-		flag = true
 
 	}
 
 	if flagPackageDepends {
-		flag = true
-
 		err := steps.Depends()
 		if err != nil {
 			return err
@@ -45,8 +40,6 @@ func runPackage(cmd *cobra.Command, args []string) error {
 	}
 
 	if flagPackageBuild {
-		flag = true
-
 		err := steps.Package()
 		if err != nil {
 			return err
@@ -54,15 +47,13 @@ func runPackage(cmd *cobra.Command, args []string) error {
 	}
 
 	if flagPackageTest {
-		flag = true
-
 		err := steps.Test()
 		if err != nil {
 			return err
 		}
 	}
 
-	if flag {
+	if cmd.Flags().NFlag() > 0 {
 		return nil
 	}
 
