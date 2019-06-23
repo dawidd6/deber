@@ -21,14 +21,10 @@ var (
 )
 
 func init() {
-	cmdRoot.AddCommand(
-		cmdPackage,
-	)
-
-	cmdPackage.Flags().BoolVarP(&flagPackageBuild, "build", "b", flagPackageBuild, "")
-	cmdPackage.Flags().BoolVarP(&flagPackageTest, "test", "t", flagPackageTest, "")
-	cmdPackage.Flags().BoolVarP(&flagPackageDepends, "depends", "d", flagPackageDepends, "")
-	cmdPackage.Flags().BoolVarP(&flagPackageInfo, "info", "i", flagPackageInfo, "")
+	cmdPackage.Flags().BoolVar(&flagPackageBuild, "build", flagPackageBuild, "")
+	cmdPackage.Flags().BoolVar(&flagPackageTest, "test", flagPackageTest, "")
+	cmdPackage.Flags().BoolVar(&flagPackageDepends, "depends", flagPackageDepends, "")
+	cmdPackage.Flags().BoolVar(&flagPackageInfo, "info", flagPackageInfo, "")
 }
 
 func runPackage(cmd *cobra.Command, args []string) error {
@@ -42,7 +38,7 @@ func runPackage(cmd *cobra.Command, args []string) error {
 	if flagPackageDepends {
 		flag = true
 
-		err = steps.Depends(dock, deb, n)
+		err := steps.Depends()
 		if err != nil {
 			return err
 		}
@@ -51,7 +47,7 @@ func runPackage(cmd *cobra.Command, args []string) error {
 	if flagPackageBuild {
 		flag = true
 
-		err = steps.Package(dock, deb, n)
+		err := steps.Package()
 		if err != nil {
 			return err
 		}
@@ -60,7 +56,7 @@ func runPackage(cmd *cobra.Command, args []string) error {
 	if flagPackageTest {
 		flag = true
 
-		err = steps.Test(dock, deb, n)
+		err := steps.Test()
 		if err != nil {
 			return err
 		}

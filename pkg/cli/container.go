@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"github.com/dawidd6/deber/pkg/app"
+	"github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/steps"
 	"github.com/spf13/cobra"
 )
@@ -25,67 +26,78 @@ var (
 )
 
 func init() {
-	cmdRoot.AddCommand(
-		cmdContainer,
-	)
-
-	cmdContainer.Flags().BoolVarP(&flagContainerCreate, "create", "c", flagContainerCreate, "")
-	cmdContainer.Flags().BoolVarP(&flagContainerStart, "start", "t", flagContainerStart, "")
-	cmdContainer.Flags().BoolVarP(&flagContainerRemove, "remove", "r", flagContainerRemove, "")
-	cmdContainer.Flags().BoolVarP(&flagContainerStop, "stop", "p", flagContainerStop, "")
-	cmdContainer.Flags().BoolVarP(&flagContainerList, "list", "l", flagContainerList, "")
-	cmdContainer.Flags().BoolVarP(&flagContainerCreate, "shell", "s", flagContainerShell, "")
+	cmdContainer.Flags().BoolVar(&flagContainerCreate, "create", flagContainerCreate, "")
+	cmdContainer.Flags().BoolVar(&flagContainerStart, "start", flagContainerStart, "")
+	cmdContainer.Flags().BoolVar(&flagContainerRemove, "remove", flagContainerRemove, "")
+	cmdContainer.Flags().BoolVar(&flagContainerStop, "stop", flagContainerStop, "")
+	cmdContainer.Flags().BoolVar(&flagContainerList, "list", flagContainerList, "")
+	cmdContainer.Flags().BoolVar(&flagContainerShell, "shell", flagContainerShell, "")
 }
 
 func runContainer(cmd *cobra.Command, args []string) error {
+	flag := false
+
+	if flagContainerList {
+		flag = true
+
+		containers, err := docker.ContainerList(app.Name)
+		if err != nil {
+			return err
+		}
+
+		for i := range containers {
+			fmt.Println(containers[i])
+		}
+	}
+
+	if flagContainerCreate {
+		flag = true
+
+		err := steps.Create()
+		if err != nil {
+			return err
+		}
+	}
+
+	if flagContainerStart {
+		flag = true
+
+		err := steps.Start()
+		if err != nil {
+			return err
+		}
+	}
+
+	if flagContainerShell {
+		flag = true
+
+		err := steps.ShellOptional()
+		if err != nil {
+			return err
+		}
+	}
+
+	if flagContainerStop {
+		flag = true
+
+		err := steps.Stop()
+		if err != nil {
+			return err
+		}
+	}
+
+	if flagContainerRemove {
+		flag = true
+
+		err := steps.Remove()
+		if err != nil {
+			return err
+		}
+	}
+
+	if flag {
+		return nil
+	}
+
 	return cmd.Help()
-}
-
-func runContainerCreate(cmd *cobra.Command, args []string) error {
-	err = steps.Create(dock, deb, n)
-	if err != nil {
-		return err
-	}
-
-	if flagStartContainer {
-		err = steps.Start(dock, deb, n)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func runContainerRemove(cmd *cobra.Command, args []string) error {
-	if flagStopContainer {
-		err := steps.Stop(dock, deb, n)
-		if err != nil {
-			return err
-		}
-	}
-
-	err := steps.Remove(dock, deb, n)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func runContainerShell(cmd *cobra.Command, args []string) error {
-	return steps.ShellOptional(dock, deb, n)
-}
-
-func runContainerList(cmd *cobra.Command, args []string) error {
-	containers, err := dock.ContainerList(app.Name)
-	if err != nil {
-		return err
-	}
-
-	for i := range containers {
-		fmt.Println(containers[i])
-	}
-
-	return nil
 }

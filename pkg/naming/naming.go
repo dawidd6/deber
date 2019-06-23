@@ -3,7 +3,6 @@ package naming
 import (
 	"fmt"
 	"github.com/dawidd6/deber/pkg/app"
-	"github.com/dawidd6/deber/pkg/debian"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,40 +13,34 @@ var (
 	BuildBaseDir   = "/tmp"
 	CacheBaseDir   = "/tmp"
 	SourceBaseDir  = os.Getenv("PWD")
+
+	PackageName     = ""
+	PackageVersion  = ""
+	PackageUpstream = ""
+	PackageTarget   = ""
 )
 
-type Naming struct {
-	deb *debian.Debian
-}
-
-func New(deb *debian.Debian) *Naming {
-	return &Naming{
-		deb: deb,
-	}
-}
-
-func (n *Naming) ImageName() string {
+func Image() string {
 	return fmt.Sprintf(
 		"%s:%s",
 		app.Name,
-		n.standardizeImageTag(),
+		standardizeImageTag(),
 	)
 }
 
-func (n *Naming) ContainerName() string {
+func Container() string {
 	return fmt.Sprintf(
 		"%s_%s_%s_%s",
 		app.Name,
-		n.deb.Target,
-		n.deb.Source,
-		n.standardizePackageVersion(),
+		PackageTarget,
+		PackageName,
+		standardizePackageVersion(PackageVersion),
 	)
 }
 
-func (n *Naming) standardizePackageVersion() string {
+func standardizePackageVersion(version string) string {
 	// Docker allows only [a-zA-Z0-9][a-zA-Z0-9_.-]
 	// and Debian package versioning allows these characters
-	version := n.deb.Version.Package
 	version = strings.Replace(version, "~", "-", -1)
 	version = strings.Replace(version, ":", "-", -1)
 	version = strings.Replace(version, "+", "-", -1)
@@ -55,65 +48,65 @@ func (n *Naming) standardizePackageVersion() string {
 	return version
 }
 
-func (n *Naming) standardizeImageTag() string {
-	if strings.Contains(n.deb.Version.Package, "bpo") {
-		if strings.Contains(n.deb.Target, "backports") {
-			return n.deb.Target
+func standardizeImageTag() string {
+	if strings.Contains(PackageVersion, "bpo") {
+		if strings.Contains(PackageTarget, "backports") {
+			return PackageTarget
 		}
 
-		if n.deb.Target == "UNRELEASED" {
+		if PackageTarget == "UNRELEASED" {
 			return "unstable"
 		}
 	}
 
-	if strings.Contains(n.deb.Target, "-") {
-		return strings.Split(n.deb.Target, "-")[0]
+	if strings.Contains(PackageTarget, "-") {
+		return strings.Split(PackageTarget, "-")[0]
 	}
 
-	return n.deb.Target
+	return PackageTarget
 }
 
-func (n *Naming) BuildDir() string {
+func BuildDir() string {
 	return filepath.Join(
 		BuildBaseDir,
-		n.ContainerName(),
+		Container(),
 	)
 }
 
-func (n *Naming) CacheDir() string {
+func CacheDir() string {
 	return filepath.Join(
 		CacheBaseDir,
-		n.ImageName(),
+		Image(),
 	)
 }
 
-func (n *Naming) ArchiveTargetDir() string {
+func ArchiveTargetDir() string {
 	return filepath.Join(
 		ArchiveBaseDir,
-		n.deb.Target,
+		PackageTarget,
 	)
 }
 
-func (n *Naming) ArchiveSourceDir() string {
+func ArchivePackageDir() string {
 	return filepath.Join(
-		n.ArchiveTargetDir(),
-		n.deb.Source,
+		ArchiveTargetDir(),
+		PackageName,
 	)
 }
 
-func (n *Naming) ArchiveVersionDir() string {
+func ArchiveVersionDir() string {
 	return filepath.Join(
-		n.ArchiveSourceDir(),
-		n.deb.Version.Package,
+		ArchivePackageDir(),
+		PackageVersion,
 	)
 }
 
-func (n *Naming) SourceDir() string {
+func SourceDir() string {
 	return SourceBaseDir
 }
 
-func (n *Naming) SourceParentDir() string {
+func SourceParentDir() string {
 	return filepath.Dir(
-		n.SourceDir(),
+		SourceDir(),
 	)
 }

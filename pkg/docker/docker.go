@@ -11,21 +11,19 @@ const (
 	APIVersion = "1.30"
 )
 
-// Docker struct holds Docker client and a context for it.
-type Docker struct {
-	client *client.Client
-	ctx    context.Context
-}
+var (
+	cli *client.Client
+	ctx = context.Background()
+)
 
 // New function creates fresh Docker struct and connects to Docker Engine.
-func New() (*Docker, error) {
-	cli, err := client.NewClientWithOpts(client.WithVersion(APIVersion))
+func New() error {
+	c, err := client.NewClientWithOpts(client.WithVersion(APIVersion))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &Docker{
-		client: cli,
-		ctx:    context.Background(),
-	}, nil
+	cli = c
+
+	return nil
 }

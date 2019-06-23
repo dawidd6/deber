@@ -23,13 +23,9 @@ var (
 )
 
 func init() {
-	cmdRoot.AddCommand(
-		cmdArchive,
-	)
-
-	cmdArchive.Flags().BoolVarP(&flagArchiveCheck, "check", "c", flagArchiveCheck, "")
-	cmdArchive.Flags().BoolVarP(&flagArchiveList, "list", "l", flagArchiveList, "")
-	cmdArchive.Flags().BoolVarP(&flagArchiveCopy, "copy", "k", flagArchiveCopy, "")
+	cmdArchive.Flags().BoolVar(&flagArchiveCheck, "check", flagArchiveCheck, "")
+	cmdArchive.Flags().BoolVar(&flagArchiveList, "list", flagArchiveList, "")
+	cmdArchive.Flags().BoolVar(&flagArchiveCopy, "copy", flagArchiveCopy, "")
 }
 
 func runArchive(cmd *cobra.Command, args []string) error {
@@ -38,7 +34,7 @@ func runArchive(cmd *cobra.Command, args []string) error {
 	if flagArchiveList {
 		flag = true
 
-		err = walk.Walk(naming.ArchiveBaseDir, 3, func(node *walk.Node) bool {
+		err := walk.Walk(naming.ArchiveBaseDir, 3, func(node *walk.Node) bool {
 			indent := ""
 			for i := 1; i < node.Depth(); i++ {
 				indent += "    "
@@ -56,7 +52,7 @@ func runArchive(cmd *cobra.Command, args []string) error {
 	if flagArchiveCheck {
 		flag = true
 
-		err = steps.CheckOptional(dock, deb, n)
+		err := steps.CheckOptional()
 		if err != nil {
 			return err
 		}
@@ -65,7 +61,7 @@ func runArchive(cmd *cobra.Command, args []string) error {
 	if flagArchiveCopy {
 		flag = true
 
-		err = steps.Archive(dock, deb, n)
+		err := steps.Archive()
 		if err != nil {
 			return err
 		}

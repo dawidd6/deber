@@ -69,8 +69,8 @@ type ContainerExecArgs struct {
 
 // IsContainerCreated function checks if container is created
 // or simply just exists.
-func (docker *Docker) IsContainerCreated(name string) (bool, error) {
-	list, err := docker.client.ContainerList(docker.ctx, types.ContainerListOptions{All: true})
+func IsContainerCreated(name string) (bool, error) {
+	list, err := cli.ContainerList(ctx, types.ContainerListOptions{All: true})
 	if err != nil {
 		return false, err
 	}
@@ -88,8 +88,8 @@ func (docker *Docker) IsContainerCreated(name string) (bool, error) {
 
 // IsContainerStarted function checks
 // if container's state == ContainerStateRunning.
-func (docker *Docker) IsContainerStarted(name string) (bool, error) {
-	list, err := docker.client.ContainerList(docker.ctx, types.ContainerListOptions{All: true})
+func IsContainerStarted(name string) (bool, error) {
+	list, err := cli.ContainerList(ctx, types.ContainerListOptions{All: true})
 	if err != nil {
 		return false, err
 	}
@@ -109,8 +109,8 @@ func (docker *Docker) IsContainerStarted(name string) (bool, error) {
 
 // IsContainerStopped function checks
 // if container's state != ContainerStateRunning.
-func (docker *Docker) IsContainerStopped(name string) (bool, error) {
-	list, err := docker.client.ContainerList(docker.ctx, types.ContainerListOptions{All: true})
+func IsContainerStopped(name string) (bool, error) {
+	list, err := cli.ContainerList(ctx, types.ContainerListOptions{All: true})
 	if err != nil {
 		return false, err
 	}
@@ -131,7 +131,7 @@ func (docker *Docker) IsContainerStopped(name string) (bool, error) {
 // ContainerCreate function creates container.
 //
 // It's up to the caller to make to-be-mounted directories on host.
-func (docker *Docker) ContainerCreate(args ContainerCreateArgs) error {
+func ContainerCreate(args ContainerCreateArgs) error {
 	hostConfig := &container.HostConfig{
 		Mounts: args.Mounts,
 	}
@@ -140,7 +140,7 @@ func (docker *Docker) ContainerCreate(args ContainerCreateArgs) error {
 		User:  args.User,
 	}
 
-	_, err := docker.client.ContainerCreate(docker.ctx, config, hostConfig, nil, args.Name)
+	_, err := cli.ContainerCreate(ctx, config, hostConfig, nil, args.Name)
 	if err != nil {
 		return err
 	}
@@ -149,30 +149,30 @@ func (docker *Docker) ContainerCreate(args ContainerCreateArgs) error {
 }
 
 // ContainerStart function starts container, just that.
-func (docker *Docker) ContainerStart(name string) error {
+func ContainerStart(name string) error {
 	options := types.ContainerStartOptions{}
 
-	return docker.client.ContainerStart(docker.ctx, name, options)
+	return cli.ContainerStart(ctx, name, options)
 }
 
 // ContainerStop function stops container, just that.
 //
 // It utilizes ContainerStopTimeout constant.
-func (docker *Docker) ContainerStop(name string) error {
+func ContainerStop(name string) error {
 	timeout := ContainerStopTimeout
 
-	return docker.client.ContainerStop(docker.ctx, name, &timeout)
+	return cli.ContainerStop(ctx, name, &timeout)
 }
 
 // ContainerRemove function removes container, just that.
-func (docker *Docker) ContainerRemove(name string) error {
+func ContainerRemove(name string) error {
 	options := types.ContainerRemoveOptions{}
 
-	return docker.client.ContainerRemove(docker.ctx, name, options)
+	return cli.ContainerRemove(ctx, name, options)
 }
 
-func (docker *Docker) ContainerMounts(name string) ([]mount.Mount, error) {
-	inspect, err := docker.client.ContainerInspect(docker.ctx, name)
+func ContainerMounts(name string) ([]mount.Mount, error) {
+	inspect, err := cli.ContainerInspect(ctx, name)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +201,7 @@ func (docker *Docker) ContainerMounts(name string) ([]mount.Mount, error) {
 // Command can be executed interactively.
 //
 // Command can be empty, in that case just bash is executed.
-func (docker *Docker) ContainerExec(args ContainerExecArgs) error {
+func ContainerExec(args ContainerExecArgs) error {
 	config := types.ExecConfig{
 		Cmd:          []string{"bash"},
 		WorkingDir:   args.WorkDir,
@@ -227,17 +227,17 @@ func (docker *Docker) ContainerExec(args ContainerExecArgs) error {
 		config.Cmd = append(config.Cmd, "-c", args.Cmd)
 	}
 
-	err := docker.ContainerNetwork(args.Name, args.Network)
+	err := ContainerNetwork(args.Name, args.Network)
 	if err != nil {
 		return err
 	}
 
-	response, err := docker.client.ContainerExecCreate(docker.ctx, args.Name, config)
+	response, err := cli.ContainerExecCreate(ctx, args.Name, config)
 	if err != nil {
 		return err
 	}
 
-	hijack, err := docker.client.ContainerExecAttach(docker.ctx, response.ID, check)
+	hijack, err := cli.ContainerExecAttach(ctx, response.ID, check)
 	if err != nil {
 		return err
 	}
@@ -252,12 +252,12 @@ func (docker *Docker) ContainerExec(args ContainerExecArgs) error {
 			}
 			defer term.RestoreTerminal(fd, oldState)
 
-			err = docker.ContainerExecResize(response.ID, fd)
+			err = ContainerExecResize(response.ID, fd)
 			if err != nil {
 				return err
 			}
 
-			go docker.resizeIfChanged(response.ID, fd)
+			go resizeIfChanged(response.ID, fd)
 			go io.Copy(hijack.Conn, os.Stdin)
 		}
 	}
@@ -266,7 +266,7 @@ func (docker *Docker) ContainerExec(args ContainerExecArgs) error {
 	hijack.Close()
 
 	if !args.Interactive {
-		inspect, err := docker.client.ContainerExecInspect(docker.ctx, response.ID)
+		inspect, err := cli.ContainerExecInspect(ctx, response.ID)
 		if err != nil {
 			return err
 		}
@@ -279,18 +279,18 @@ func (docker *Docker) ContainerExec(args ContainerExecArgs) error {
 	return nil
 }
 
-func (docker *Docker) resizeIfChanged(execID string, fd uintptr) {
+func resizeIfChanged(execID string, fd uintptr) {
 	channel := make(chan os.Signal)
 	signal.Notify(channel, syscall.SIGWINCH)
 
 	for {
 		<-channel
-		docker.ContainerExecResize(execID, fd)
+		ContainerExecResize(execID, fd)
 	}
 }
 
 // ContainerExecResize function resizes TTY for exec process.
-func (docker *Docker) ContainerExecResize(execID string, fd uintptr) error {
+func ContainerExecResize(execID string, fd uintptr) error {
 	winSize, err := term.GetWinsize(fd)
 	if err != nil {
 		return err
@@ -301,7 +301,7 @@ func (docker *Docker) ContainerExecResize(execID string, fd uintptr) error {
 		Width:  uint(winSize.Width),
 	}
 
-	err = docker.client.ContainerExecResize(docker.ctx, execID, options)
+	err = cli.ContainerExecResize(ctx, execID, options)
 	if err != nil {
 		return err
 	}
@@ -311,11 +311,11 @@ func (docker *Docker) ContainerExecResize(execID string, fd uintptr) error {
 
 // ContainerNetwork checks if container is connected to network
 // and then connects it or disconnects per caller request.
-func (docker *Docker) ContainerNetwork(name string, wantConnected bool) error {
+func ContainerNetwork(name string, wantConnected bool) error {
 	network := "bridge"
 	gotConnected := false
 
-	inspect, err := docker.client.ContainerInspect(docker.ctx, name)
+	inspect, err := cli.ContainerInspect(ctx, name)
 	if err != nil {
 		return err
 	}
@@ -327,24 +327,24 @@ func (docker *Docker) ContainerNetwork(name string, wantConnected bool) error {
 	}
 
 	if wantConnected && !gotConnected {
-		return docker.client.NetworkConnect(docker.ctx, network, name, nil)
+		return cli.NetworkConnect(ctx, network, name, nil)
 	}
 
 	if !wantConnected && gotConnected {
-		return docker.client.NetworkDisconnect(docker.ctx, network, name, false)
+		return cli.NetworkDisconnect(ctx, network, name, false)
 	}
 
 	return nil
 }
 
 // ContainerList returns a list of containers that match passed criteria.
-func (docker *Docker) ContainerList(prefix string) ([]string, error) {
+func ContainerList(prefix string) ([]string, error) {
 	containers := make([]string, 0)
 	options := types.ContainerListOptions{
 		All: true,
 	}
 
-	list, err := docker.client.ContainerList(docker.ctx, options)
+	list, err := cli.ContainerList(ctx, options)
 	if err != nil {
 		return nil, err
 	}

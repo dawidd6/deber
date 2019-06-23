@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"github.com/dawidd6/deber/pkg/app"
+	"github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/steps"
 	"github.com/spf13/cobra"
 )
@@ -10,7 +11,6 @@ import (
 var (
 	flagImageBuild bool
 	flagImageList  bool
-	flagImageDist  string
 )
 
 var (
@@ -22,13 +22,8 @@ var (
 )
 
 func init() {
-	cmdRoot.AddCommand(
-		cmdImage,
-	)
-
-	cmdImage.Flags().StringVarP(&flagImageDist, "distribution", "d", flagImageDist, "")
-	cmdImage.Flags().BoolVarP(&flagImageBuild, "build", "b", flagImageBuild, "")
-	cmdImage.Flags().BoolVarP(&flagImageList, "list", "l", flagImageList, "")
+	cmdImage.Flags().BoolVar(&flagImageBuild, "build", flagImageBuild, "")
+	cmdImage.Flags().BoolVar(&flagImageList, "list", flagImageList, "")
 }
 
 func runImage(cmd *cobra.Command, args []string) error {
@@ -37,7 +32,7 @@ func runImage(cmd *cobra.Command, args []string) error {
 	if flagImageList {
 		flag = true
 
-		images, err := dock.ImageList(app.Name)
+		images, err := docker.ImageList(app.Name)
 		if err != nil {
 			return err
 		}
@@ -50,7 +45,7 @@ func runImage(cmd *cobra.Command, args []string) error {
 	if flagImageBuild {
 		flag = true
 
-		err = steps.Build(dock, deb, n)
+		err := steps.Build()
 		if err != nil {
 			return err
 		}

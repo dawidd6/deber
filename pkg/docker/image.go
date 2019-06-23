@@ -31,8 +31,8 @@ type ImageBuildArgs struct {
 }
 
 // IsImageBuilt function check if image with given name is built.
-func (docker *Docker) IsImageBuilt(name string) (bool, error) {
-	list, err := docker.client.ImageList(docker.ctx, types.ImageListOptions{})
+func IsImageBuilt(name string) (bool, error) {
+	list, err := cli.ImageList(ctx, types.ImageListOptions{})
 	if err != nil {
 		return false, err
 	}
@@ -51,8 +51,8 @@ func (docker *Docker) IsImageBuilt(name string) (bool, error) {
 // IsImageOld function check if image should be rebuilt.
 //
 // ImageMaxAge constant is utilized here.
-func (docker *Docker) IsImageOld(name string) (bool, error) {
-	inspect, _, err := docker.client.ImageInspectWithRaw(docker.ctx, name)
+func IsImageOld(name string) (bool, error) {
+	inspect, _, err := cli.ImageInspectWithRaw(ctx, name)
 	if err != nil {
 		return false, err
 	}
@@ -72,7 +72,7 @@ func (docker *Docker) IsImageOld(name string) (bool, error) {
 
 // ImageBuild function build image from dockerfile
 // and prints output to Stdout.
-func (docker *Docker) ImageBuild(args ImageBuildArgs) error {
+func ImageBuild(args ImageBuildArgs) error {
 	buffer := new(bytes.Buffer)
 	writer := tar.NewWriter(buffer)
 	header := &tar.Header{
@@ -100,7 +100,7 @@ func (docker *Docker) ImageBuild(args ImageBuildArgs) error {
 		return err
 	}
 
-	response, err := docker.client.ImageBuild(docker.ctx, buffer, options)
+	response, err := cli.ImageBuild(ctx, buffer, options)
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func (docker *Docker) ImageBuild(args ImageBuildArgs) error {
 		return err
 	}
 
-	_, _, err = docker.client.ImageInspectWithRaw(docker.ctx, args.Name)
+	_, _, err = cli.ImageInspectWithRaw(ctx, args.Name)
 	if err != nil {
 		return errors.New("image didn't built successfully")
 	}
@@ -125,13 +125,13 @@ func (docker *Docker) ImageBuild(args ImageBuildArgs) error {
 }
 
 // ImageList returns a list of images that match passed criteria.
-func (docker *Docker) ImageList(prefix string) ([]string, error) {
+func ImageList(prefix string) ([]string, error) {
 	images := make([]string, 0)
 	options := types.ImageListOptions{
 		All: true,
 	}
 
-	list, err := docker.client.ImageList(docker.ctx, options)
+	list, err := cli.ImageList(ctx, options)
 	if err != nil {
 		return nil, err
 	}
