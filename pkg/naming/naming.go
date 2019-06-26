@@ -2,14 +2,15 @@ package naming
 
 import (
 	"fmt"
-	"github.com/dawidd6/deber/pkg/app"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
 var (
-	ArchiveBaseDir = filepath.Join(os.Getenv("HOME"), app.Name)
+	Prefix string
+
+	ArchiveBaseDir = filepath.Join(os.Getenv("HOME"), Prefix)
 	BuildBaseDir   = "/tmp"
 	CacheBaseDir   = "/tmp"
 	SourceBaseDir  = os.Getenv("PWD")
@@ -23,7 +24,7 @@ var (
 func Image() string {
 	return fmt.Sprintf(
 		"%s:%s",
-		app.Name,
+		Prefix,
 		standardizeImageTag(),
 	)
 }
@@ -31,7 +32,7 @@ func Image() string {
 func Container() string {
 	return fmt.Sprintf(
 		"%s_%s_%s_%s",
-		app.Name,
+		Prefix,
 		PackageTarget,
 		PackageName,
 		standardizePackageVersion(PackageVersion),

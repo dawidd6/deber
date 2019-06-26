@@ -2,7 +2,6 @@ package log
 
 import (
 	"fmt"
-	"github.com/dawidd6/deber/pkg/app"
 )
 
 const (
@@ -12,6 +11,8 @@ const (
 )
 
 var (
+	Prefix string
+
 	NoColor         = false
 	ExtraInfoIndent = "  "
 	newLine         = true
@@ -68,9 +69,9 @@ func ExtraInfo(v interface{}) {
 
 func Info(v interface{}) {
 	if !NoColor {
-		fmt.Printf("%s%s:info:%s %s ...", blue, app.Name, normal, v)
+		fmt.Printf("%s%s:info:%s %s ...", blue, Prefix, normal, v)
 	} else {
-		fmt.Printf("%s:info: %s ...", app.Name, v)
+		fmt.Printf("%s:info: %s ...", Prefix, v)
 	}
 
 	newLine = false
@@ -78,8 +79,8 @@ func Info(v interface{}) {
 
 func Error(v interface{}) {
 	if !NoColor {
-		fmt.Printf("%s%s:error:%s %s\n", red, app.Name, normal, v)
+		fmt.Printf("%s%s:error:%s %s\n", red, Prefix, normal, v)
 	} else {
-		fmt.Printf("%s:error: %s\n", app.Name, v)
+		fmt.Printf("%s:error: %s\n", Prefix, v)
 	}
 }

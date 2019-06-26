@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"github.com/dawidd6/deber/pkg/app"
 	"github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/naming"
 	"github.com/dawidd6/deber/pkg/steps"
@@ -33,7 +32,7 @@ func init() {
 
 func runImage(cmd *cobra.Command, args []string) error {
 	if flagImagePrune {
-		images, err := docker.ImageList(app.Name)
+		images, err := docker.ImageList(Prefix)
 		if err != nil {
 			return err
 		}
@@ -54,7 +53,7 @@ func runImage(cmd *cobra.Command, args []string) error {
 	}
 
 	if flagImageList {
-		images, err := docker.ImageList(app.Name)
+		images, err := docker.ImageList(Prefix)
 		if err != nil {
 			return err
 		}

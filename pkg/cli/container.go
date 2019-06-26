@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"github.com/dawidd6/deber/pkg/app"
 	"github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/steps"
 	"github.com/spf13/cobra"
@@ -38,7 +37,7 @@ func init() {
 
 func runContainer(cmd *cobra.Command, args []string) error {
 	if flagContainerPrune {
-		containers, err := docker.ContainerList(app.Name)
+		containers, err := docker.ContainerList(Prefix)
 		if err != nil {
 			return err
 		}
@@ -57,7 +56,7 @@ func runContainer(cmd *cobra.Command, args []string) error {
 	}
 
 	if flagContainerList {
-		containers, err := docker.ContainerList(app.Name)
+		containers, err := docker.ContainerList(Prefix)
 		if err != nil {
 			return err
 		}

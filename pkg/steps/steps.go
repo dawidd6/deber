@@ -171,9 +171,8 @@ func Create() error {
 		tarball := fmt.Sprintf("%s_%s.orig.tar", naming.PackageName, naming.PackageUpstream)
 		found := false
 
-		// Look for tarball in build directory,
-		// if it's there, then do nothing
-		files, err := ioutil.ReadDir(naming.BuildDir())
+		// First check source parent directory
+		files, err := ioutil.ReadDir(naming.SourceParentDir())
 		if err != nil {
 			return log.Failed(err)
 		}
@@ -186,10 +185,22 @@ func Create() error {
 			}
 		}
 
-		// If tarball is not present in build directory,
-		// then look in parent source directory
-		if !found {
-			files, err := ioutil.ReadDir(naming.SourceParentDir())
+		// If tarball is present there, then move it to build directory
+		if found {
+			source := filepath.Join(naming.SourceParentDir(), tarball)
+			dst := filepath.Join(naming.BuildDir(), tarball)
+
+			source, err = filepath.EvalSymlinks(source)
+			if err != nil {
+				return log.Failed(err)
+			}
+
+			err = os.Rename(source, dst)
+			if err != nil {
+				return log.Failed(err)
+			}
+		} else {
+			files, err := ioutil.ReadDir(naming.BuildDir())
 			if err != nil {
 				return log.Failed(err)
 			}
@@ -204,19 +215,6 @@ func Create() error {
 
 			if !found {
 				return log.Failed(errors.New("upstream tarball not found"))
-			}
-
-			source := filepath.Join(naming.SourceParentDir(), tarball)
-			dst := filepath.Join(naming.BuildDir(), tarball)
-
-			source, err = filepath.EvalSymlinks(source)
-			if err != nil {
-				return log.Failed(err)
-			}
-
-			err = os.Rename(source, dst)
-			if err != nil {
-				return log.Failed(err)
 			}
 		}
 	}
@@ -482,6 +480,7 @@ func ShellOptional() error {
 	args := docker.ContainerExecArgs{
 		Interactive: true,
 		AsRoot:      true,
+		Network:     true,
 		Name:        naming.Container(),
 	}
 	err := docker.ContainerExec(args)

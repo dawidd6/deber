@@ -2,15 +2,16 @@ package env
 
 import (
 	"fmt"
-	"github.com/dawidd6/deber/pkg/app"
 	"os"
 	"strings"
 )
 
-var Prefix = strings.ToUpper(app.Name)
+var Prefix string
 
 func Get(envName, defaultValue string) string {
-	envValue := os.Getenv(fmt.Sprintf("%s_%s", Prefix, envName))
+	prefix := strings.ToUpper(Prefix)
+	envName = fmt.Sprintf("%s_%s", prefix, envName)
+	envValue := os.Getenv(envName)
 	if envValue != "" {
 		return envValue
 	}

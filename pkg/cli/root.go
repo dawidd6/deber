@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"github.com/dawidd6/deber/pkg/app"
 	"github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/env"
 	"github.com/dawidd6/deber/pkg/log"
@@ -12,6 +11,8 @@ import (
 	"pault.ag/go/debian/changelog"
 )
 
+var Prefix string
+
 var (
 	check         bool
 	info          bool
@@ -20,14 +21,15 @@ var (
 )
 
 var cmdRoot = &cobra.Command{
-	Use:               app.Name,
-	Version:           app.Version,
-	Short:             app.Description,
 	PersistentPreRunE: preRoot,
 	RunE:              runRoot,
 }
 
-func Run() {
+func Run(program, version, desc string) {
+	cmdRoot.Use = program
+	cmdRoot.Version = version
+	cmdRoot.Short = desc
+
 	err := cmdRoot.Execute()
 	if err != nil {
 		log.Error(err)
@@ -112,58 +114,51 @@ func preRoot(cmd *cobra.Command, args []string) error {
 }
 
 func runRoot(cmd *cobra.Command, args []string) error {
-
-	/*steps.Build()
-	  steps.Create()
-	  steps.Start()
-	  steps.Depends()
-	  steps.Package()
-	  steps.Test()
-	  steps.Archive()
-	  steps.Stop()
-	  steps.Remove()*/
-
-	flagImageBuild = true
-	err := runImage(cmd, args)
+	err := steps.Build()
 	if err != nil {
 		return err
 	}
 
-	flagArchiveCheck = check
-	err = runArchive(cmd, args)
+	err = steps.Create()
 	if err != nil {
 		return err
 	}
 
-	flagContainerCreate = true
-	flagContainerStart = true
-	err = runContainer(cmd, args)
+	err = steps.Start()
 	if err != nil {
 		return err
 	}
 
-	flagPackageInfo = info
-	flagPackageDepends = true
-	flagPackageBuild = true
-	flagPackageTest = true
-	err = runPackage(cmd, args)
+	err = steps.Depends()
 	if err != nil {
 		return err
 	}
 
-	flagArchiveCopy = true
-	err = runArchive(cmd, args)
+	err = steps.Package()
 	if err != nil {
 		return err
 	}
 
-	flagContainerCreate = false
-	flagContainerStart = false
-	flagContainerStop = !keepContainer
-	flagContainerRemove = !keepContainer
-	err = runContainer(cmd, args)
+	err = steps.Test()
 	if err != nil {
 		return err
+	}
+
+	err = steps.Archive()
+	if err != nil {
+		return err
+	}
+
+	err = steps.Stop()
+	if err != nil {
+		return err
+	}
+
+	if !keepContainer {
+		err = steps.Remove()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
