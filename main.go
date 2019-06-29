@@ -25,6 +25,7 @@ var (
 
 	extraPackages = pflag.StringArrayP("extra-package", "p", nil, "")
 
+	noInfo         = pflag.BoolP("no-info", "i", false, "")
 	noTarball      = pflag.BoolP("no-tarball", "t", false, "")
 	noImageRebuild = pflag.BoolP("no-image-rebuild", "r", false, "")
 	noAptUpdate    = pflag.BoolP("no-apt-update", "u", false, "")
@@ -117,6 +118,11 @@ func main() {
 
 	if *checkBefore {
 		err = steps.CheckOptional()
+		check(log, err)
+	}
+
+	if !*noInfo {
+		err = steps.Info()
 		check(log, err)
 	}
 

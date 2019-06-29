@@ -26,6 +26,24 @@ type Stepping struct {
 	Debian *changelog.ChangelogEntry
 }
 
+func (s *Stepping) Info() error {
+	notices := [][]string{
+		{"Container", s.Naming.Container()},
+		{"Image", s.Naming.Image()},
+		{"PackageName", s.Debian.Source},
+		{"PackageVersion", s.Debian.Version.String()},
+		{"PackageTarget", s.Debian.Target},
+		{"BuildDir", s.Naming.BuildDir()},
+		{"CacheDir", s.Naming.CacheDir()},
+		{"ArchiveDir", s.Naming.ArchivePackageDir()},
+	}
+
+	for _, notice := range notices {
+		s.Log.Notice(notice[0], "=", notice[1])
+	}
+	return nil
+}
+
 // Build function determines parent image name by querying DockerHub API
 // for available "debian" and "ubuntu" tags and confronting them with
 // debian/changelog's target distribution.
@@ -126,7 +144,7 @@ func (s *Stepping) Create(extraPackages []string) error {
 
 		mounts = append(mounts, mnt)
 
-		s.Log.Notice("extra package: ", source)
+		s.Log.Notice("extra package:", source)
 	}
 
 	isContainerCreated, err := s.Docker.IsContainerCreated(s.Naming.Container())
@@ -187,7 +205,7 @@ func (s *Stepping) Create(extraPackages []string) error {
 
 // Start function commands Docker Engine to start container.
 func (s *Stepping) Start() error {
-	s.Log.Info("Starting container", s.Naming.Container())
+	s.Log.Info("Starting container")
 
 	isContainerStarted, err := s.Docker.IsContainerStarted(s.Naming.Container())
 	if err != nil {
@@ -210,7 +228,7 @@ func (s *Stepping) Tarball() error {
 		return nil
 	}
 
-	s.Log.Info("Verifying tarballs")
+	s.Log.Info("Finding tarballs")
 
 	tarball := fmt.Sprintf("%s_%s.orig.tar", s.Debian.Source, s.Debian.Version.Version)
 
@@ -229,14 +247,14 @@ func (s *Stepping) Tarball() error {
 	for _, file := range sourceFiles {
 		if strings.HasPrefix(file.Name(), tarball) {
 			sourceTarballs = append(sourceTarballs, file.Name())
-			s.Log.Notice("found", file.Name(), "in", s.Naming.SourceParentDir())
+			s.Log.Notice(filepath.Join(s.Naming.SourceParentDir(), file.Name()))
 		}
 	}
 
 	for _, file := range buildFiles {
 		if strings.HasPrefix(file.Name(), tarball) {
 			buildTarballs = append(buildTarballs, file.Name())
-			s.Log.Notice("found", file.Name(), "in", s.Naming.BuildDir())
+			s.Log.Notice(filepath.Join(s.Naming.BuildDir(), file.Name()))
 		}
 	}
 
@@ -409,6 +427,11 @@ func (s *Stepping) Archive() error {
 			return err
 		}
 
+		sourceStat, err := sourceFile.Stat()
+		if err != nil {
+			return err
+		}
+
 		// Check if target file already exists
 		targetStat, _ := os.Stat(targetPath)
 		if targetStat != nil {
@@ -434,7 +457,7 @@ func (s *Stepping) Archive() error {
 		}
 
 		// Target file doesn't exist or checksums mismatched
-		err = ioutil.WriteFile(targetPath, sourceBytes, os.ModePerm)
+		err = ioutil.WriteFile(targetPath, sourceBytes, sourceStat.Mode())
 		if err != nil {
 			return err
 		}
@@ -519,15 +542,13 @@ func (s *Stepping) CheckOptional() error {
 		foundFiles++
 		return false
 	})
-	if err != nil {
-		return err
-	}
 
-	if foundFiles < minFiles {
+	if err != nil || foundFiles < minFiles {
 		s.Log.Notice("not built")
-		return nil
 	} else {
 		s.Log.Notice("already built")
-		return nil
+		os.Exit(0)
 	}
+
+	return nil
 }

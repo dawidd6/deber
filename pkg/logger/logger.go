@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"strings"
 )
 
 const (
@@ -23,19 +24,19 @@ func New(prefix string, color bool) *Logger {
 	}
 }
 
-func (log *Logger) Info(v ...interface{}) {
-	log.print("info", blue, v)
+func (log *Logger) Info(info ...string) {
+	log.print("info", blue, strings.Join(info, " "))
 }
 
-func (log *Logger) Error(v ...interface{}) {
-	log.print("error", red, v)
+func (log *Logger) Error(err error) {
+	log.print("error", red, err)
 }
 
-func (log *Logger) Notice(v ...interface{}) {
-	log.print("notice", cyan, v)
+func (log *Logger) Notice(notice ...string) {
+	log.print("notice", cyan, strings.Join(notice, " "))
 }
 
-func (log *Logger) print(label, color string, v ...interface{}) {
+func (log *Logger) print(label, color string, v interface{}) {
 	if log.color {
 		fmt.Printf("%s%s:%s:%s %s\n", color, log.prefix, label, normal, v)
 	} else {
