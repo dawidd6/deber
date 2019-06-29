@@ -2,111 +2,103 @@ package naming
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
+	"pault.ag/go/debian/changelog"
 	"strings"
 )
 
-var (
-	Prefix string
+type Naming struct {
+	BaseSourceDir  string
+	BaseBuildDir   string
+	BaseCacheDir   string
+	BaseArchiveDir string
 
-	ArchiveBaseDir = filepath.Join(os.Getenv("HOME"), Prefix)
-	BuildBaseDir   = "/tmp"
-	CacheBaseDir   = "/tmp"
-	SourceBaseDir  = os.Getenv("PWD")
+	Prefix    string
+	Changelog *changelog.ChangelogEntry
+}
 
-	PackageName     = ""
-	PackageVersion  = ""
-	PackageUpstream = ""
-	PackageTarget   = ""
-)
-
-func Image() string {
+func (naming *Naming) Image() string {
 	return fmt.Sprintf(
 		"%s:%s",
-		Prefix,
-		standardizeImageTag(),
+		naming.Prefix,
+		naming.standardizePackageTarget(),
 	)
 }
 
-func Container() string {
+func (naming *Naming) Container() string {
 	return fmt.Sprintf(
 		"%s_%s_%s_%s",
-		Prefix,
-		PackageTarget,
-		PackageName,
-		standardizePackageVersion(PackageVersion),
+		naming.Prefix,
+		naming.Changelog.Target,
+		naming.Changelog.Source,
+		naming.standardizePackageVersion(),
 	)
 }
 
-func standardizePackageVersion(version string) string {
+func (naming *Naming) standardizePackageVersion() string {
 	// Docker allows only [a-zA-Z0-9][a-zA-Z0-9_.-]
 	// and Debian package versioning allows these characters
-	version = strings.Replace(version, "~", "-", -1)
+	version := strings.Replace(naming.Changelog.Version.String(), "~", "-", -1)
 	version = strings.Replace(version, ":", "-", -1)
 	version = strings.Replace(version, "+", "-", -1)
 
 	return version
 }
 
-func standardizeImageTag() string {
+func (naming *Naming) standardizePackageTarget() string {
 	// TODO figure out what to do with ubuntu backports, cause there are no docker ubuntu backports images
-	if strings.Contains(PackageTarget, "backports") {
-		return PackageTarget
+	if strings.Contains(naming.Changelog.Target, "backports") {
+		return naming.Changelog.Target
 	}
 
-	if PackageTarget == "UNRELEASED" {
+	if naming.Changelog.Target == "UNRELEASED" {
 		return "unstable"
 	}
 
-	if strings.Contains(PackageTarget, "-") {
-		return strings.Split(PackageTarget, "-")[0]
+	if strings.Contains(naming.Changelog.Target, "-") {
+		return strings.Split(naming.Changelog.Target, "-")[0]
 	}
 
-	return PackageTarget
+	return naming.Changelog.Target
 }
 
-func BuildDir() string {
+func (naming *Naming) BuildDir() string {
 	return filepath.Join(
-		BuildBaseDir,
-		Container(),
+		naming.BaseBuildDir,
+		naming.Container(),
 	)
 }
 
-func CacheDir() string {
+func (naming *Naming) CacheDir() string {
 	return filepath.Join(
-		CacheBaseDir,
-		Image(),
+		naming.BaseCacheDir,
+		naming.Image(),
 	)
 }
 
-func ArchiveTargetDir() string {
+func (naming *Naming) SourceDir() string {
+	return naming.BaseSourceDir
+}
+
+func (naming *Naming) SourceParentDir() string {
+	return filepath.Dir(naming.SourceDir())
+}
+
+func (naming *Naming) ArchiveTargetDir() string {
 	return filepath.Join(
-		ArchiveBaseDir,
-		PackageTarget,
+		naming.BaseArchiveDir,
+		naming.standardizePackageTarget(),
 	)
 }
-
-func ArchivePackageDir() string {
+func (naming *Naming) ArchivePackageDir() string {
 	return filepath.Join(
-		ArchiveTargetDir(),
-		PackageName,
+		naming.ArchiveTargetDir(),
+		naming.Changelog.Source,
 	)
 }
-
-func ArchiveVersionDir() string {
+func (naming *Naming) ArchiveVersionDir() string {
 	return filepath.Join(
-		ArchivePackageDir(),
-		PackageVersion,
-	)
-}
-
-func SourceDir() string {
-	return SourceBaseDir
-}
-
-func SourceParentDir() string {
-	return filepath.Dir(
-		SourceDir(),
+		naming.ArchivePackageDir(),
+		naming.Changelog.Version.String(),
 	)
 }

@@ -30,9 +30,9 @@ type ImageBuildArgs struct {
 	Dockerfile string
 }
 
-// IsImageBuilt function check if image with given name is built.
-func IsImageBuilt(name string) (bool, error) {
-	list, err := cli.ImageList(ctx, types.ImageListOptions{})
+// IsImageBuilt func (docker *Docker) tion check if image with given name is built.
+func (docker *Docker) IsImageBuilt(name string) (bool, error) {
+	list, err := docker.cli.ImageList(docker.ctx, types.ImageListOptions{})
 	if err != nil {
 		return false, err
 	}
@@ -48,11 +48,11 @@ func IsImageBuilt(name string) (bool, error) {
 	return false, nil
 }
 
-// IsImageOld function check if image should be rebuilt.
+// IsImageOld func (docker *Docker) tion check if image should be rebuilt.
 //
 // ImageMaxAge constant is utilized here.
-func IsImageOld(name string) (bool, error) {
-	inspect, _, err := cli.ImageInspectWithRaw(ctx, name)
+func (docker *Docker) IsImageOld(name string) (bool, error) {
+	inspect, _, err := docker.cli.ImageInspectWithRaw(docker.ctx, name)
 	if err != nil {
 		return false, err
 	}
@@ -70,9 +70,9 @@ func IsImageOld(name string) (bool, error) {
 	return false, nil
 }
 
-// ImageBuild function build image from dockerfile
+// ImageBuild func (docker *Docker) tion build image from dockerfile
 // and prints output to Stdout.
-func ImageBuild(args ImageBuildArgs) error {
+func (docker *Docker) ImageBuild(args ImageBuildArgs) error {
 	buffer := new(bytes.Buffer)
 	writer := tar.NewWriter(buffer)
 	header := &tar.Header{
@@ -100,7 +100,7 @@ func ImageBuild(args ImageBuildArgs) error {
 		return err
 	}
 
-	response, err := cli.ImageBuild(ctx, buffer, options)
+	response, err := docker.cli.ImageBuild(docker.ctx, buffer, options)
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func ImageBuild(args ImageBuildArgs) error {
 		return err
 	}
 
-	_, _, err = cli.ImageInspectWithRaw(ctx, args.Name)
+	_, _, err = docker.cli.ImageInspectWithRaw(docker.ctx, args.Name)
 	if err != nil {
 		return errors.New("image didn't built successfully")
 	}
@@ -125,13 +125,13 @@ func ImageBuild(args ImageBuildArgs) error {
 }
 
 // ImageList returns a list of images that match passed criteria.
-func ImageList(prefix string) ([]string, error) {
+func (docker *Docker) ImageList(prefix string) ([]string, error) {
 	images := make([]string, 0)
 	options := types.ImageListOptions{
 		All: true,
 	}
 
-	list, err := cli.ImageList(ctx, options)
+	list, err := docker.cli.ImageList(docker.ctx, options)
 	if err != nil {
 		return nil, err
 	}
@@ -149,12 +149,12 @@ func ImageList(prefix string) ([]string, error) {
 	return images, nil
 }
 
-func ImageRemove(name string) error {
+func (docker *Docker) ImageRemove(name string) error {
 	options := types.ImageRemoveOptions{
 		PruneChildren: true,
 	}
 
-	_, err := cli.ImageRemove(ctx, name, options)
+	_, err := docker.cli.ImageRemove(docker.ctx, name, options)
 	if err != nil {
 		return err
 	}
