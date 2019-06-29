@@ -1,8 +1,6 @@
-package util
+package docker
 
-import (
-	"github.com/docker/docker/api/types/mount"
-)
+import "github.com/docker/docker/api/types/mount"
 
 func CompareMounts(a, b []mount.Mount) bool {
 	if len(a) != len(b) {

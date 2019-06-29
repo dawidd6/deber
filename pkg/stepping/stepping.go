@@ -1,4 +1,4 @@
-package steps
+package stepping
 
 import (
 	"crypto/md5"
@@ -9,7 +9,6 @@ import (
 	"github.com/dawidd6/deber/pkg/dockerhub"
 	"github.com/dawidd6/deber/pkg/logger"
 	"github.com/dawidd6/deber/pkg/naming"
-	"github.com/dawidd6/deber/pkg/util"
 	"github.com/dawidd6/deber/pkg/walk"
 	"github.com/docker/docker/api/types/mount"
 	"io/ioutil"
@@ -17,6 +16,7 @@ import (
 	"path/filepath"
 	"pault.ag/go/debian/changelog"
 	"strings"
+	"time"
 )
 
 type Stepping struct {
@@ -31,7 +31,7 @@ type Stepping struct {
 // debian/changelog's target distribution.
 //
 // At last it commands Docker Engine to build image.
-func (s *Stepping) Build(noRebuild bool) error {
+func (s *Stepping) Build(noRebuild bool, maxAge time.Duration) error {
 	s.Log.Info("Building image")
 
 	isImageBuilt, err := s.Docker.IsImageBuilt(s.Naming.Image())
@@ -39,14 +39,18 @@ func (s *Stepping) Build(noRebuild bool) error {
 		return err
 	}
 	if isImageBuilt {
-		isImageOld, err := s.Docker.IsImageOld(s.Naming.Image())
+		age, err := s.Docker.ImageAge(s.Naming.Image())
 		if err != nil {
 			return err
 		}
-		if !isImageOld {
+		if age.Hours() < maxAge.Hours() {
+			s.Log.Notice("image is already built and not old enough for rebuild")
 			return nil
 		} else if noRebuild {
+			s.Log.Notice("image is old enough for rebuild but you don't want that")
 			return nil
+		} else {
+			s.Log.Notice("image is old and is going to be rebuilt")
 		}
 	}
 
@@ -121,6 +125,8 @@ func (s *Stepping) Create(extraPackages []string) error {
 		}
 
 		mounts = append(mounts, mnt)
+
+		s.Log.Notice("extra package: ", source)
 	}
 
 	isContainerCreated, err := s.Docker.IsContainerCreated(s.Naming.Container())
@@ -135,9 +141,11 @@ func (s *Stepping) Create(extraPackages []string) error {
 
 		// Compare old mounts with new ones,
 		// if not equal, then recreate container
-		if util.CompareMounts(oldMounts, mounts) {
+		if docker.CompareMounts(oldMounts, mounts) {
 			return nil
 		}
+
+		s.Log.Notice("recreating because of mount point changes")
 
 		err = s.Docker.ContainerStop(s.Naming.Container())
 		if err != nil {
@@ -163,59 +171,6 @@ func (s *Stepping) Create(extraPackages []string) error {
 		}
 	}
 
-	// Find tarball if package is not native
-	if !s.Debian.Version.IsNative() {
-		tarball := fmt.Sprintf("%s_%s.orig.tar", s.Debian.Source, s.Debian.Version.Version)
-		found := false
-
-		// First check source parent directory
-		files, err := ioutil.ReadDir(s.Naming.SourceParentDir())
-		if err != nil {
-			return err
-		}
-
-		for _, file := range files {
-			if strings.HasPrefix(file.Name(), tarball) {
-				tarball = file.Name()
-				found = true
-				break
-			}
-		}
-
-		// If tarball is present there, then move it to build directory
-		if found {
-			source := filepath.Join(s.Naming.SourceParentDir(), tarball)
-			dst := filepath.Join(s.Naming.BuildDir(), tarball)
-
-			source, err = filepath.EvalSymlinks(source)
-			if err != nil {
-				return err
-			}
-			// TODO remove all orig tarballs in build dir before moving a new one
-			err = os.Rename(source, dst)
-			if err != nil {
-				return err
-			}
-		} else {
-			files, err := ioutil.ReadDir(s.Naming.BuildDir())
-			if err != nil {
-				return err
-			}
-
-			for _, file := range files {
-				if strings.HasPrefix(file.Name(), tarball) {
-					tarball = file.Name()
-					found = true
-					break
-				}
-			}
-
-			if !found {
-				return errors.New("upstream tarball not found")
-			}
-		}
-	}
-
 	args := docker.ContainerCreateArgs{
 		Mounts: mounts,
 		Image:  s.Naming.Image(),
@@ -232,7 +187,7 @@ func (s *Stepping) Create(extraPackages []string) error {
 
 // Start function commands Docker Engine to start container.
 func (s *Stepping) Start() error {
-	s.Log.Info("Starting container")
+	s.Log.Info("Starting container", s.Naming.Container())
 
 	isContainerStarted, err := s.Docker.IsContainerStarted(s.Naming.Container())
 	if err != nil {
@@ -245,6 +200,79 @@ func (s *Stepping) Start() error {
 	err = s.Docker.ContainerStart(s.Naming.Container())
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (s *Stepping) Tarball() error {
+	if s.Debian.Version.IsNative() {
+		return nil
+	}
+
+	s.Log.Info("Verifying tarballs")
+
+	tarball := fmt.Sprintf("%s_%s.orig.tar", s.Debian.Source, s.Debian.Version.Version)
+
+	sourceTarballs := make([]string, 0)
+	sourceFiles, err := ioutil.ReadDir(s.Naming.SourceParentDir())
+	if err != nil {
+		return err
+	}
+
+	buildTarballs := make([]string, 0)
+	buildFiles, err := ioutil.ReadDir(s.Naming.BuildDir())
+	if err != nil {
+		return err
+	}
+
+	for _, file := range sourceFiles {
+		if strings.HasPrefix(file.Name(), tarball) {
+			sourceTarballs = append(sourceTarballs, file.Name())
+			s.Log.Notice("found", file.Name(), "in", s.Naming.SourceParentDir())
+		}
+	}
+
+	for _, file := range buildFiles {
+		if strings.HasPrefix(file.Name(), tarball) {
+			buildTarballs = append(buildTarballs, file.Name())
+			s.Log.Notice("found", file.Name(), "in", s.Naming.BuildDir())
+		}
+	}
+
+	if len(buildTarballs) > 1 {
+		return errors.New("multiple tarballs found in build directory")
+	}
+
+	if len(sourceTarballs) > 1 {
+		return errors.New("multiple tarballs found in parent source directory")
+	}
+
+	if len(sourceTarballs) < 1 && len(buildTarballs) < 1 {
+		return errors.New("upstream tarball not found")
+	}
+
+	if len(sourceTarballs) == 1 {
+		if len(buildTarballs) == 1 {
+			file := filepath.Join(s.Naming.BuildDir(), buildTarballs[0])
+			err = os.Remove(file)
+			if err != nil {
+				return err
+			}
+		}
+
+		src := filepath.Join(s.Naming.SourceParentDir(), sourceTarballs[0])
+		dst := filepath.Join(s.Naming.BuildDir(), sourceTarballs[0])
+
+		src, err = filepath.EvalSymlinks(src)
+		if err != nil {
+			return err
+		}
+
+		err = os.Rename(src, dst)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -416,7 +444,7 @@ func (s *Stepping) Archive() error {
 			return err
 		}
 
-		s.Log.InfoExtra(file.Name())
+		s.Log.Notice(file.Name())
 	}
 
 	return nil
@@ -496,10 +524,10 @@ func (s *Stepping) CheckOptional() error {
 	}
 
 	if foundFiles < minFiles {
-		s.Log.InfoExtra("not built")
+		s.Log.Notice("not built")
 		return nil
 	} else {
-		s.Log.InfoExtra("already built")
+		s.Log.Notice("already built")
 		return nil
 	}
 }

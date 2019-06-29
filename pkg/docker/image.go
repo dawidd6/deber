@@ -51,23 +51,18 @@ func (docker *Docker) IsImageBuilt(name string) (bool, error) {
 // IsImageOld func (docker *Docker) tion check if image should be rebuilt.
 //
 // ImageMaxAge constant is utilized here.
-func (docker *Docker) IsImageOld(name string) (bool, error) {
+func (docker *Docker) ImageAge(name string) (time.Duration, error) {
 	inspect, _, err := docker.cli.ImageInspectWithRaw(docker.ctx, name)
 	if err != nil {
-		return false, err
+		return time.Second, err
 	}
 
 	created, err := time.Parse(time.RFC3339Nano, inspect.Created)
 	if err != nil {
-		return false, err
+		return time.Second, err
 	}
 
-	diff := time.Since(created)
-	if diff > ImageMaxAge {
-		return true, nil
-	}
-
-	return false, nil
+	return time.Since(created), nil
 }
 
 // ImageBuild func (docker *Docker) tion build image from dockerfile
