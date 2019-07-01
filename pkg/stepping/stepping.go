@@ -7,9 +7,9 @@ import (
 	"github.com/dawidd6/deber/pkg/docker"
 	"github.com/dawidd6/deber/pkg/dockerfile"
 	"github.com/dawidd6/deber/pkg/dockerhub"
+	"github.com/dawidd6/deber/pkg/filewalk"
 	"github.com/dawidd6/deber/pkg/logger"
 	"github.com/dawidd6/deber/pkg/naming"
-	"github.com/dawidd6/deber/pkg/walk"
 	"github.com/docker/docker/api/types/mount"
 	"io/ioutil"
 	"os"
@@ -24,9 +24,16 @@ type Stepping struct {
 	Log    *logger.Logger
 	Naming *naming.Naming
 	Debian *changelog.ChangelogEntry
+
+	DpkgFlags          string
+	LintianFlags       string
+	PackageWithNetwork bool
+	RebuildImageIfOld  bool
+	MaxImageAge        time.Duration
+	ExtraPackages      []string
 }
 
-func (s *Stepping) Info() error {
+/*func (s *Stepping) runInfo() error {
 	notices := [][]string{
 		{"Container", s.Naming.Container()},
 		{"Image", s.Naming.Image()},
@@ -42,6 +49,62 @@ func (s *Stepping) Info() error {
 		s.Log.Notice(notice[0], "=", notice[1])
 	}
 	return nil
+}*/
+
+func (s *Stepping) Steps() Steps {
+	return Steps{
+		{
+			Name:        "check",
+			Description: "",
+			Func:        s.runCheckOptional,
+			Optional:    true,
+		}, {
+			Name:        "build",
+			Description: "",
+			Func:        s.runBuild,
+		}, {
+			Name:        "create",
+			Description: "",
+			Func:        s.runCreate,
+		}, {
+			Name:        "start",
+			Description: "",
+			Func:        s.runStart,
+		}, {
+			Name:        "shell",
+			Description: "",
+			Func:        s.runShellOptional,
+			Optional:    true,
+		}, {
+			Name:        "tarball",
+			Description: "",
+			Func:        s.runTarball,
+		}, {
+			Name:        "depends",
+			Description: "",
+			Func:        s.runDepends,
+		}, {
+			Name:        "package",
+			Description: "",
+			Func:        s.runPackage,
+		}, {
+			Name:        "test",
+			Description: "",
+			Func:        s.runTest,
+		}, {
+			Name:        "archive",
+			Description: "",
+			Func:        s.runArchive,
+		}, {
+			Name:        "stop",
+			Description: "",
+			Func:        s.runStop,
+		}, {
+			Name:        "remove",
+			Description: "",
+			Func:        s.runRemove,
+		},
+	}
 }
 
 // Build function determines parent image name by querying DockerHub API
@@ -49,7 +112,7 @@ func (s *Stepping) Info() error {
 // debian/changelog's target distribution.
 //
 // At last it commands Docker Engine to build image.
-func (s *Stepping) Build(noRebuild bool, maxAge time.Duration) error {
+func (s *Stepping) runBuild() error {
 	s.Log.Info("Building image")
 
 	isImageBuilt, err := s.Docker.IsImageBuilt(s.Naming.Image())
@@ -61,10 +124,10 @@ func (s *Stepping) Build(noRebuild bool, maxAge time.Duration) error {
 		if err != nil {
 			return err
 		}
-		if age.Hours() < maxAge.Hours() {
+		if age.Hours() < s.MaxImageAge.Hours() {
 			s.Log.Notice("image is already built and not old enough for rebuild")
 			return nil
-		} else if noRebuild {
+		} else if !s.RebuildImageIfOld {
 			s.Log.Notice("image is old enough for rebuild but you don't want that")
 			return nil
 		} else {
@@ -99,7 +162,7 @@ func (s *Stepping) Build(noRebuild bool, maxAge time.Duration) error {
 // Create function commands Docker Engine to create container.
 //
 // Also makes directories on host and moves tarball if needed.
-func (s *Stepping) Create(extraPackages []string) error {
+func (s *Stepping) runCreate() error {
 	s.Log.Info("Creating container")
 
 	mounts := []mount.Mount{
@@ -119,7 +182,7 @@ func (s *Stepping) Create(extraPackages []string) error {
 	}
 
 	// Handle extra packages mounting
-	for _, pkg := range extraPackages {
+	for _, pkg := range s.ExtraPackages {
 		source, err := filepath.Abs(pkg)
 		if err != nil {
 			return err
@@ -204,7 +267,7 @@ func (s *Stepping) Create(extraPackages []string) error {
 }
 
 // Start function commands Docker Engine to start container.
-func (s *Stepping) Start() error {
+func (s *Stepping) runStart() error {
 	s.Log.Info("Starting container")
 
 	isContainerStarted, err := s.Docker.IsContainerStarted(s.Naming.Container())
@@ -223,7 +286,7 @@ func (s *Stepping) Start() error {
 	return nil
 }
 
-func (s *Stepping) Tarball() error {
+func (s *Stepping) runTarball() error {
 	if s.Debian.Version.IsNative() {
 		return nil
 	}
@@ -296,7 +359,7 @@ func (s *Stepping) Tarball() error {
 	return nil
 }
 
-func (s *Stepping) Depends(extraPackages []string, noUpdate bool) error {
+func (s *Stepping) runDepends() error {
 	s.Log.Info("Installing dependencies")
 
 	args := []docker.ContainerExecArgs{
@@ -320,7 +383,6 @@ func (s *Stepping) Depends(extraPackages []string, noUpdate bool) error {
 			Cmd:     "apt-get update",
 			AsRoot:  true,
 			Network: true,
-			Skip:    noUpdate,
 		}, {
 			Name:    s.Naming.Container(),
 			Cmd:     "apt-get build-dep ./",
@@ -329,7 +391,7 @@ func (s *Stepping) Depends(extraPackages []string, noUpdate bool) error {
 		},
 	}
 
-	if extraPackages == nil {
+	if s.ExtraPackages == nil {
 		args[1].Skip = true
 		args[2].Skip = true
 	}
@@ -347,13 +409,13 @@ func (s *Stepping) Depends(extraPackages []string, noUpdate bool) error {
 // Package function first disables network in container,
 // then executes "dpkg-buildpackage" and at the end,
 // enables network back.
-func (s *Stepping) Package(dpkgFlags string, withNetwork bool) error {
+func (s *Stepping) runPackage() error {
 	s.Log.Info("Packaging software")
 
 	args := docker.ContainerExecArgs{
 		Name:    s.Naming.Container(),
-		Cmd:     "dpkg-buildpackage" + " " + dpkgFlags,
-		Network: withNetwork,
+		Cmd:     "dpkg-buildpackage" + " " + s.DpkgFlags,
+		Network: s.PackageWithNetwork,
 	}
 	err := s.Docker.ContainerExec(args)
 	if err != nil {
@@ -364,7 +426,7 @@ func (s *Stepping) Package(dpkgFlags string, withNetwork bool) error {
 }
 
 // Test function executes "debi", "debc" and "lintian" in container.
-func (s *Stepping) Test(lintianFlags string) error {
+func (s *Stepping) runTest() error {
 	s.Log.Info("Testing package")
 
 	args := []docker.ContainerExecArgs{
@@ -378,7 +440,7 @@ func (s *Stepping) Test(lintianFlags string) error {
 			Cmd:  "debc",
 		}, {
 			Name: s.Naming.Container(),
-			Cmd:  "lintian" + " " + lintianFlags,
+			Cmd:  "lintian" + " " + s.LintianFlags,
 		},
 	}
 
@@ -393,7 +455,7 @@ func (s *Stepping) Test(lintianFlags string) error {
 }
 
 // Archive function moves successful build to archive by overwriting.
-func (s *Stepping) Archive() error {
+func (s *Stepping) runArchive() error {
 	s.Log.Info("Archiving build")
 
 	// Make needed directories
@@ -474,7 +536,7 @@ func (s *Stepping) Archive() error {
 }
 
 // Stop function commands Docker Engine to stop container.
-func (s *Stepping) Stop() error {
+func (s *Stepping) runStop() error {
 	s.Log.Info("Stopping container")
 
 	isContainerStopped, err := s.Docker.IsContainerStopped(s.Naming.Container())
@@ -494,7 +556,7 @@ func (s *Stepping) Stop() error {
 }
 
 // Remove function commands Docker Engine to remove container.
-func (s *Stepping) Remove() error {
+func (s *Stepping) runRemove() error {
 	s.Log.Info("Removing container")
 
 	isContainerCreated, err := s.Docker.IsContainerCreated(s.Naming.Container())
@@ -514,7 +576,7 @@ func (s *Stepping) Remove() error {
 }
 
 // ShellOptional function interactively executes bash shell in container.
-func (s *Stepping) ShellOptional() error {
+func (s *Stepping) runShellOptional() error {
 	s.Log.Info("Launching shell")
 
 	args := docker.ContainerExecArgs{
@@ -533,12 +595,12 @@ func (s *Stepping) ShellOptional() error {
 
 // Check function evaluates if package has been already built and
 // is in archive, if it is, then it exits with 0 code.
-func (s *Stepping) CheckOptional() error {
+func (s *Stepping) runCheckOptional() error {
 	s.Log.Info("Checking archive")
 
 	minFiles := 3
 	foundFiles := 0
-	err := walk.Walk(s.Naming.ArchiveVersionDir(), 1, func(node *walk.Node) bool {
+	err := filewalk.Walk(s.Naming.ArchiveVersionDir(), 1, func(file *filewalk.File) bool {
 		foundFiles++
 		return false
 	})

@@ -1,4 +1,4 @@
-package walk
+package filewalk
 
 import (
 	"io/ioutil"
@@ -6,44 +6,44 @@ import (
 	"path/filepath"
 )
 
-type Func = func(node *Node) bool
+type Func = func(file *File) bool
 
-type Node struct {
+type File struct {
 	os.FileInfo
 	dir   string
 	depth int
-	nodes []*Node
+	files []*File
 }
 
-func (node *Node) Dir() string {
-	return node.dir
+func (file *File) Dir() string {
+	return file.dir
 }
 
-func (node *Node) Depth() int {
-	return node.depth
+func (file *File) Depth() int {
+	return file.depth
 }
 
 func Walk(root string, maxDepth int, fn Func) error {
-	nodes, err := walk(root, maxDepth, 0)
+	files, err := walk(root, maxDepth, 0)
 
-	loop(nodes, fn)
+	loop(files, fn)
 
 	return err
 }
 
-func loop(nodes []*Node, fn Func) {
-	for _, node := range nodes {
-		exit := fn(node)
+func loop(files []*File, fn Func) {
+	for _, file := range files {
+		exit := fn(file)
 		if exit {
 			return
 		}
-		loop(node.nodes, fn)
+		loop(file.files, fn)
 	}
 }
 
-func walk(root string, maxDepth int, currentDepth int) ([]*Node, error) {
-	rootNodes := make([]*Node, 0)
-	newNodes := make([]*Node, 0)
+func walk(root string, maxDepth int, currentDepth int) ([]*File, error) {
+	rootFiles := make([]*File, 0)
+	newFiles := make([]*File, 0)
 
 	// Maximum depth reached, end recursion
 	if currentDepth == maxDepth {
@@ -74,7 +74,7 @@ func walk(root string, maxDepth int, currentDepth int) ([]*Node, error) {
 		path := filepath.Join(root, entity.Name())
 
 		// Go deeper
-		newNodes, err = walk(path, maxDepth, currentDepth)
+		newFiles, err = walk(path, maxDepth, currentDepth)
 		if err != nil {
 			return nil, err
 		}
@@ -85,18 +85,18 @@ func walk(root string, maxDepth int, currentDepth int) ([]*Node, error) {
 			return nil, err
 		}
 
-		// Construct new node
-		newNode := &Node{
+		// Construct new file
+		newFile := &File{
 			FileInfo: info,
 			depth:    currentDepth,
 			dir:      root,
-			nodes:    newNodes,
+			files:    newFiles,
 		}
 
-		// Append a node to the rest
-		rootNodes = append(rootNodes, newNode)
+		// Append a file to the rest
+		rootFiles = append(rootFiles, newFile)
 	}
 
-	// Finally return all nodes
-	return rootNodes, nil
+	// Finally return all files
+	return rootFiles, nil
 }
