@@ -28,7 +28,6 @@ var (
 	launchShell   = pflag.BoolP("launch-shell", "s", false, "")
 	keepContainer = pflag.BoolP("keep-container", "k", false, "")
 	checkBefore   = pflag.BoolP("check-before", "c", false, "")
-	cleanBefore   = pflag.BoolP("clean-before", "t", false, "")
 
 	dpkgFlags    = pflag.String("dpkg-flags", "-tc", "")
 	lintianFlags = pflag.String("lintian-flags", "-i -I", "")
@@ -65,8 +64,13 @@ func main() {
 	}
 }
 
-func list(dock *docker.Docker, n *naming.Naming) error {
+func list(dock *docker.Docker, n *naming.Naming) (bool, error) {
+	listed := false
+
 	if *listPackages {
+		listed = true
+
+		fmt.Println("Packages:")
 		err := utils.Walk(n.BaseArchiveDir, 3, func(file *utils.File) bool {
 			indent := ""
 			for i := 1; i < file.Depth(); i++ {
@@ -78,33 +82,39 @@ func list(dock *docker.Docker, n *naming.Naming) error {
 			return false
 		})
 		if err != nil {
-			return err
+			return listed, err
 		}
 	}
 
 	if *listContainers {
+		listed = true
+
 		list, err := dock.ContainerList(Name)
 		if err != nil {
-			return err
+			return listed, err
 		}
 
+		fmt.Println("Containers:")
 		for _, container := range list {
 			fmt.Println(container)
 		}
 	}
 
 	if *listImages {
+		listed = true
+
 		list, err := dock.ImageList(Name)
 		if err != nil {
-			return err
+			return listed, err
 		}
 
+		fmt.Println("Images:")
 		for _, image := range list {
 			fmt.Println(image)
 		}
 	}
 
-	return nil
+	return listed, nil
 }
 
 func run(log *logger.Logger) error {
@@ -148,13 +158,12 @@ func run(log *logger.Logger) error {
 		ch.Target = *dist
 	}
 
-	err = list(dock, n)
+	listed, err := list(dock, n)
 	if err != nil {
 		return err
 	}
-
-	if *cleanBefore {
-
+	if listed {
+		return nil
 	}
 
 	if *checkBefore {

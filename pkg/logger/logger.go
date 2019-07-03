@@ -2,7 +2,6 @@ package logger
 
 import (
 	"fmt"
-	"strings"
 )
 
 const (
@@ -13,8 +12,9 @@ const (
 )
 
 type Logger struct {
-	prefix string
-	color  bool
+	prefix  string
+	color   bool
+	dropped bool
 }
 
 func New(prefix string, color bool) *Logger {
@@ -24,22 +24,61 @@ func New(prefix string, color bool) *Logger {
 	}
 }
 
-func (log *Logger) Info(info ...string) {
-	log.print("info", blue, strings.Join(info, " "))
+func (log *Logger) Drop() {
+	if log.dropped {
+		return
+	}
+
+	log.dropped = true
+	fmt.Println()
+}
+
+func (log *Logger) Info(info string) {
+	log.dropped = false
+
+	if log.color {
+		fmt.Printf("%s%s:info:%s %s ...", blue, log.prefix, normal, info)
+	} else {
+		fmt.Printf("%s:info: %s ...", log.prefix, info)
+	}
 }
 
 func (log *Logger) Error(err error) {
-	log.print("error", red, err)
-}
-
-func (log *Logger) Notice(notice ...string) {
-	log.print("notice", cyan, strings.Join(notice, " "))
-}
-
-func (log *Logger) print(label, color string, v interface{}) {
 	if log.color {
-		fmt.Printf("%s%s:%s:%s %s\n", color, log.prefix, label, normal, v)
+		fmt.Printf("%s%s:error:%s %s\n", red, log.prefix, normal, err)
 	} else {
-		fmt.Printf("%s:%s: %s\n", log.prefix, label, v)
+		fmt.Printf("%s:error: %s\n", log.prefix, err)
 	}
+}
+
+func (log *Logger) ExtraInfo(info string) {
+	log.dropped = false
+	fmt.Printf("  %s ...", info)
+}
+
+func (log *Logger) Skipped() error {
+	if !log.dropped {
+		fmt.Printf("%s", "skipped")
+		log.Drop()
+	}
+
+	return nil
+}
+
+func (log *Logger) Done() error {
+	if !log.dropped {
+		fmt.Printf("%s", "done")
+		log.Drop()
+	}
+
+	return nil
+}
+
+func (log *Logger) Failed(err error) error {
+	if !log.dropped {
+		fmt.Printf("%s", "failed")
+		log.Drop()
+	}
+
+	return err
 }

@@ -33,24 +33,6 @@ type Stepping struct {
 	ExtraPackages      []string
 }
 
-/*func (s *Stepping) Info() error {
-	notices := [][]string{
-		{"Container", s.Naming.Container()},
-		{"Image", s.Naming.Image()},
-		{"PackageName", s.Debian.Source},
-		{"PackageVersion", s.Debian.Version.String()},
-		{"PackageTarget", s.Debian.Target},
-		{"BuildDir", s.Naming.BuildDir()},
-		{"CacheDir", s.Naming.CacheDir()},
-		{"ArchiveDir", s.Naming.ArchivePackageDir()},
-	}
-
-	for _, notice := range notices {
-		s.Log.Notice(notice[0], "=", notice[1])
-	}
-	return nil
-}*/
-
 // Build function determines parent image name by querying DockerHub API
 // for available "debian" and "ubuntu" tags and confronting them with
 // debian/changelog's target distribution.
@@ -61,21 +43,18 @@ func (s *Stepping) Build() error {
 
 	isImageBuilt, err := s.Docker.IsImageBuilt(s.Naming.Image())
 	if err != nil {
-		return err
+		return s.Log.Failed(err)
 	}
 	if isImageBuilt {
 		age, err := s.Docker.ImageAge(s.Naming.Image())
 		if err != nil {
-			return err
+			return s.Log.Failed(err)
 		}
+
 		if age.Hours() < s.MaxImageAge.Hours() {
-			s.Log.Notice("image is already built and not old enough for rebuild")
-			return nil
+			return s.Log.Skipped()
 		} else if !s.RebuildImageIfOld {
-			s.Log.Notice("image is old enough for rebuild but you don't want that")
-			return nil
-		} else {
-			s.Log.Notice("image is old and is going to be rebuilt")
+			return s.Log.Skipped()
 		}
 	}
 
@@ -83,13 +62,15 @@ func (s *Stepping) Build() error {
 	repos := []string{"debian", "ubuntu"}
 	repo, err := hub.MatchRepo(repos, tag)
 	if err != nil {
-		return err
+		return s.Log.Failed(err)
 	}
 
 	dockerfile, err := file.Parse(repo, tag)
 	if err != nil {
-		return err
+		return s.Log.Failed(err)
 	}
+
+	s.Log.Drop()
 
 	args := docker.ImageBuildArgs{
 		Name:       s.Naming.Image(),
@@ -97,10 +78,10 @@ func (s *Stepping) Build() error {
 	}
 	err = s.Docker.ImageBuild(args)
 	if err != nil {
-		return err
+		return s.Log.Failed(err)
 	}
 
-	return nil
+	return s.Log.Done()
 }
 
 // Create function commands Docker Engine to create container.
@@ -129,15 +110,15 @@ func (s *Stepping) Create() error {
 	for _, pkg := range s.ExtraPackages {
 		source, err := filepath.Abs(pkg)
 		if err != nil {
-			return err
+			return s.Log.Failed(err)
 		}
 
 		info, err := os.Stat(source)
 		if info == nil {
-			return err
+			return s.Log.Failed(err)
 		}
 		if !info.IsDir() && !strings.HasSuffix(source, ".deb") {
-			return errors.New("please specify a directory or .deb file")
+			return s.Log.Failed(errors.New("please specify a directory or .deb file"))
 		}
 
 		target := filepath.Join(docker.ContainerArchiveDir, filepath.Base(source))
@@ -150,36 +131,32 @@ func (s *Stepping) Create() error {
 		}
 
 		mounts = append(mounts, mnt)
-
-		s.Log.Notice("extra package:", source)
 	}
 
 	isContainerCreated, err := s.Docker.IsContainerCreated(s.Naming.Container())
 	if err != nil {
-		return err
+		return s.Log.Failed(err)
 	}
 	if isContainerCreated {
 		oldMounts, err := s.Docker.ContainerMounts(s.Naming.Container())
 		if err != nil {
-			return err
+			return s.Log.Failed(err)
 		}
 
 		// Compare old mounts with new ones,
 		// if not equal, then recreate container
 		if utils.CompareMounts(oldMounts, mounts) {
-			return nil
+			return s.Log.Skipped()
 		}
-
-		s.Log.Notice("recreating because of mount point changes")
 
 		err = s.Docker.ContainerStop(s.Naming.Container())
 		if err != nil {
-			return err
+			return s.Log.Failed(err)
 		}
 
 		err = s.Docker.ContainerRemove(s.Naming.Container())
 		if err != nil {
-			return err
+			return s.Log.Failed(err)
 		}
 	}
 
@@ -192,22 +169,23 @@ func (s *Stepping) Create() error {
 
 		err := os.MkdirAll(mnt.Source, os.ModePerm)
 		if err != nil {
-			return err
+			return s.Log.Failed(err)
 		}
 	}
 
+	user := fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid())
 	args := docker.ContainerCreateArgs{
 		Mounts: mounts,
 		Image:  s.Naming.Image(),
 		Name:   s.Naming.Container(),
-		User:   fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid()),
+		User:   user,
 	}
 	err = s.Docker.ContainerCreate(args)
 	if err != nil {
-		return err
+		return s.Log.Failed(err)
 	}
 
-	return nil
+	return s.Log.Done()
 }
 
 // Start function commands Docker Engine to start container.
@@ -216,73 +194,71 @@ func (s *Stepping) Start() error {
 
 	isContainerStarted, err := s.Docker.IsContainerStarted(s.Naming.Container())
 	if err != nil {
-		return err
+		return s.Log.Failed(err)
 	}
 	if isContainerStarted {
-		return nil
+		return s.Log.Skipped()
 	}
 
 	err = s.Docker.ContainerStart(s.Naming.Container())
 	if err != nil {
-		return err
+		return s.Log.Failed(err)
 	}
 
-	return nil
+	return s.Log.Done()
 }
 
 func (s *Stepping) Tarball() error {
-	if s.Debian.Version.IsNative() {
-		return nil
-	}
-
 	s.Log.Info("Finding tarballs")
+
+	if s.Debian.Version.IsNative() {
+		return s.Log.Skipped()
+	}
 
 	tarball := fmt.Sprintf("%s_%s.orig.tar", s.Debian.Source, s.Debian.Version.Version)
 
 	sourceTarballs := make([]string, 0)
 	sourceFiles, err := ioutil.ReadDir(s.Naming.SourceParentDir())
 	if err != nil {
-		return err
+		return s.Log.Failed(err)
 	}
 
 	buildTarballs := make([]string, 0)
 	buildFiles, err := ioutil.ReadDir(s.Naming.BuildDir())
 	if err != nil {
-		return err
+		return s.Log.Failed(err)
 	}
 
-	for _, file := range sourceFiles {
-		if strings.HasPrefix(file.Name(), tarball) {
-			sourceTarballs = append(sourceTarballs, file.Name())
-			s.Log.Notice(filepath.Join(s.Naming.SourceParentDir(), file.Name()))
+	for _, f := range sourceFiles {
+		if strings.HasPrefix(f.Name(), tarball) {
+			sourceTarballs = append(sourceTarballs, f.Name())
 		}
 	}
 
-	for _, file := range buildFiles {
-		if strings.HasPrefix(file.Name(), tarball) {
-			buildTarballs = append(buildTarballs, file.Name())
-			s.Log.Notice(filepath.Join(s.Naming.BuildDir(), file.Name()))
+	for _, f := range buildFiles {
+		if strings.HasPrefix(f.Name(), tarball) {
+			buildTarballs = append(buildTarballs, f.Name())
 		}
 	}
 
 	if len(buildTarballs) > 1 {
-		return errors.New("multiple tarballs found in build directory")
+		return s.Log.Failed(errors.New("multiple tarballs found in build directory"))
 	}
 
 	if len(sourceTarballs) > 1 {
-		return errors.New("multiple tarballs found in parent source directory")
+		return s.Log.Failed(errors.New("multiple tarballs found in parent source directory"))
 	}
 
 	if len(sourceTarballs) < 1 && len(buildTarballs) < 1 {
-		return errors.New("upstream tarball not found")
+		return s.Log.Failed(errors.New("upstream tarball not found"))
 	}
 
 	if len(sourceTarballs) == 1 {
 		if len(buildTarballs) == 1 {
-			file := filepath.Join(s.Naming.BuildDir(), buildTarballs[0])
-			err = os.Remove(file)
+			f := filepath.Join(s.Naming.BuildDir(), buildTarballs[0])
+			err = os.Remove(f)
 			if err != nil {
-				return err
+				return s.Log.Failed(err)
 			}
 		}
 
@@ -291,20 +267,23 @@ func (s *Stepping) Tarball() error {
 
 		src, err = filepath.EvalSymlinks(src)
 		if err != nil {
-			return err
+			return s.Log.Failed(err)
 		}
 
 		err = os.Rename(src, dst)
 		if err != nil {
-			return err
+			return s.Log.Failed(err)
 		}
+	} else {
+		return s.Log.Skipped()
 	}
 
-	return nil
+	return s.Log.Done()
 }
 
 func (s *Stepping) Depends() error {
 	s.Log.Info("Installing dependencies")
+	s.Log.Drop()
 
 	args := []docker.ContainerExecArgs{
 		{
@@ -343,11 +322,11 @@ func (s *Stepping) Depends() error {
 	for _, arg := range args {
 		err := s.Docker.ContainerExec(arg)
 		if err != nil {
-			return err
+			return s.Log.Failed(err)
 		}
 	}
 
-	return nil
+	return s.Log.Done()
 }
 
 // Package function first disables network in container,
@@ -355,6 +334,7 @@ func (s *Stepping) Depends() error {
 // enables network back.
 func (s *Stepping) Package() error {
 	s.Log.Info("Packaging software")
+	s.Log.Drop()
 
 	args := docker.ContainerExecArgs{
 		Name:    s.Naming.Container(),
@@ -363,15 +343,16 @@ func (s *Stepping) Package() error {
 	}
 	err := s.Docker.ContainerExec(args)
 	if err != nil {
-		return err
+		return s.Log.Failed(err)
 	}
 
-	return nil
+	return s.Log.Done()
 }
 
 // Test function executes "debi", "debc" and "lintian" in container.
 func (s *Stepping) Test() error {
 	s.Log.Info("Testing package")
+	s.Log.Drop()
 
 	args := []docker.ContainerExecArgs{
 		{
@@ -391,11 +372,11 @@ func (s *Stepping) Test() error {
 	for _, arg := range args {
 		err := s.Docker.ContainerExec(arg)
 		if err != nil {
-			return err
+			return s.Log.Failed(err)
 		}
 	}
 
-	return nil
+	return s.Log.Done()
 }
 
 // Archive function moves successful build to archive by overwriting.
@@ -405,37 +386,41 @@ func (s *Stepping) Archive() error {
 	// Make needed directories
 	err := os.MkdirAll(s.Naming.ArchiveVersionDir(), os.ModePerm)
 	if err != nil {
-		return err
+		return s.Log.Failed(err)
 	}
 
 	// Read files in build directory
 	files, err := ioutil.ReadDir(s.Naming.BuildDir())
 	if err != nil {
-		return err
+		return s.Log.Failed(err)
 	}
 
-	for _, file := range files {
+	s.Log.Drop()
+
+	for _, f := range files {
 		// We don't need directories, only files
-		if file.IsDir() {
+		if f.IsDir() {
 			continue
 		}
 
-		sourcePath := filepath.Join(s.Naming.BuildDir(), file.Name())
-		targetPath := filepath.Join(s.Naming.ArchiveVersionDir(), file.Name())
+		s.Log.ExtraInfo(f.Name())
+
+		sourcePath := filepath.Join(s.Naming.BuildDir(), f.Name())
+		targetPath := filepath.Join(s.Naming.ArchiveVersionDir(), f.Name())
 
 		sourceFile, err := os.Open(sourcePath)
 		if err != nil {
-			return err
+			return s.Log.Failed(err)
 		}
 
 		sourceBytes, err := ioutil.ReadAll(sourceFile)
 		if err != nil {
-			return err
+			return s.Log.Failed(err)
 		}
 
 		sourceStat, err := sourceFile.Stat()
 		if err != nil {
-			return err
+			return s.Log.Failed(err)
 		}
 
 		// Check if target file already exists
@@ -443,12 +428,12 @@ func (s *Stepping) Archive() error {
 		if targetStat != nil {
 			targetFile, err := os.Open(targetPath)
 			if err != nil {
-				return err
+				return s.Log.Failed(err)
 			}
 
 			targetBytes, err := ioutil.ReadAll(targetFile)
 			if err != nil {
-				return err
+				return s.Log.Failed(err)
 			}
 
 			sourceChecksum := md5.Sum(sourceBytes)
@@ -458,6 +443,7 @@ func (s *Stepping) Archive() error {
 			//
 			// if equal then simply skip copying this file
 			if targetChecksum == sourceChecksum {
+				_ = s.Log.Skipped()
 				continue
 			}
 		}
@@ -465,18 +451,19 @@ func (s *Stepping) Archive() error {
 		// Target file doesn't exist or checksums mismatched
 		err = ioutil.WriteFile(targetPath, sourceBytes, sourceStat.Mode())
 		if err != nil {
-			return err
+			return s.Log.Failed(err)
 		}
 
 		err = sourceFile.Close()
 		if err != nil {
-			return err
+			return s.Log.Failed(err)
 		}
 
-		s.Log.Notice(file.Name())
+		_ = s.Log.Done()
 	}
 
-	return nil
+	s.Log.Drop()
+	return s.Log.Done()
 }
 
 // Stop function commands Docker Engine to stop container.
@@ -485,18 +472,18 @@ func (s *Stepping) Stop() error {
 
 	isContainerStopped, err := s.Docker.IsContainerStopped(s.Naming.Container())
 	if err != nil {
-		return err
+		return s.Log.Failed(err)
 	}
 	if isContainerStopped {
-		return nil
+		return s.Log.Skipped()
 	}
 
 	err = s.Docker.ContainerStop(s.Naming.Container())
 	if err != nil {
-		return err
+		return s.Log.Failed(err)
 	}
 
-	return nil
+	return s.Log.Done()
 }
 
 // Remove function commands Docker Engine to remove container.
@@ -505,23 +492,24 @@ func (s *Stepping) Remove() error {
 
 	isContainerCreated, err := s.Docker.IsContainerCreated(s.Naming.Container())
 	if err != nil {
-		return err
+		return s.Log.Failed(err)
 	}
 	if !isContainerCreated {
-		return nil
+		return s.Log.Skipped()
 	}
 
 	err = s.Docker.ContainerRemove(s.Naming.Container())
 	if err != nil {
-		return err
+		return s.Log.Failed(err)
 	}
 
-	return nil
+	return s.Log.Done()
 }
 
 // ShellOptional function interactively executes bash shell in container.
 func (s *Stepping) ShellOptional() error {
 	s.Log.Info("Launching shell")
+	s.Log.Drop()
 
 	args := docker.ContainerExecArgs{
 		Interactive: true,
@@ -531,16 +519,17 @@ func (s *Stepping) ShellOptional() error {
 	}
 	err := s.Docker.ContainerExec(args)
 	if err != nil {
-		return err
+		return s.Log.Failed(err)
 	}
 
-	return nil
+	return s.Log.Done()
 }
 
 // Check function evaluates if package has been already built and
 // is in archive, if it is, then it exits with 0 code.
 func (s *Stepping) CheckOptional() error {
 	s.Log.Info("Checking archive")
+	s.Log.Drop()
 
 	minFiles := 3
 	foundFiles := 0
@@ -550,8 +539,8 @@ func (s *Stepping) CheckOptional() error {
 	})
 
 	if err == nil && foundFiles > minFiles {
-		return errors.New("package already built and in archive")
+		return s.Log.Failed(err)
 	}
 
-	return nil
+	return s.Log.Done()
 }
