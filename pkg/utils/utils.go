@@ -1,4 +1,4 @@
-package docker
+package utils
 
 import "github.com/docker/docker/api/types/mount"
 

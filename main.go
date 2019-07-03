@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 	"github.com/dawidd6/deber/pkg/docker"
-	"github.com/dawidd6/deber/pkg/filewalk"
 	"github.com/dawidd6/deber/pkg/logger"
 	"github.com/dawidd6/deber/pkg/naming"
 	"github.com/dawidd6/deber/pkg/stepping"
+	"github.com/dawidd6/deber/pkg/utils"
 	"github.com/spf13/pflag"
 	"os"
 	"path/filepath"
@@ -25,9 +25,10 @@ var (
 	extraPackages = pflag.StringArrayP("extra-package", "p", nil, "")
 	withNetwork   = pflag.BoolP("with-network", "n", false, "")
 	maxImageAge   = pflag.DurationP("max-image-age", "a", time.Hour*24*14, "")
-
-	includeSteps = pflag.StringArrayP("include-step", "i", nil, "")
-	excludeSteps = pflag.StringArrayP("exclude-step", "e", nil, "")
+	launchShell   = pflag.BoolP("launch-shell", "s", false, "")
+	keepContainer = pflag.BoolP("keep-container", "k", false, "")
+	checkBefore   = pflag.BoolP("check-before", "c", false, "")
+	cleanBefore   = pflag.BoolP("clean-before", "t", false, "")
 
 	dpkgFlags    = pflag.String("dpkg-flags", "-tc", "")
 	lintianFlags = pflag.String("lintian-flags", "-i -I", "")
@@ -40,7 +41,6 @@ var (
 	listPackages   = pflag.Bool("list-packages", false, "")
 	listContainers = pflag.Bool("list-containers", false, "")
 	listImages     = pflag.Bool("list-images", false, "")
-	listSteps      = pflag.Bool("list-steps", false, "")
 	noLogColor     = pflag.Bool("no-log-color", false, "")
 
 	version = pflag.Bool("version", false, "")
@@ -58,12 +58,66 @@ func init() {
 func main() {
 	log := logger.New(Name, !*noLogColor)
 
+	err := run(log)
+	if err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
+}
+
+func list(dock *docker.Docker, n *naming.Naming) error {
+	if *listPackages {
+		err := utils.Walk(n.BaseArchiveDir, 3, func(file *utils.File) bool {
+			indent := ""
+			for i := 1; i < file.Depth(); i++ {
+				indent += "    "
+			}
+
+			fmt.Printf("%s%s\n", indent, file.Name())
+
+			return false
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	if *listContainers {
+		list, err := dock.ContainerList(Name)
+		if err != nil {
+			return err
+		}
+
+		for _, container := range list {
+			fmt.Println(container)
+		}
+	}
+
+	if *listImages {
+		list, err := dock.ImageList(Name)
+		if err != nil {
+			return err
+		}
+
+		for _, image := range list {
+			fmt.Println(image)
+		}
+	}
+
+	return nil
+}
+
+func run(log *logger.Logger) error {
 	dock, err := docker.New()
-	check(log, err)
+	if err != nil {
+		return err
+	}
 
 	dch := filepath.Join(*sourceBaseDir, "debian/changelog")
 	ch, err := changelog.ParseFileOne(dch)
-	check(log, err)
+	if err != nil {
+		return err
+	}
 
 	n := &naming.Naming{
 		BaseArchiveDir: *archiveBaseDir,
@@ -94,56 +148,82 @@ func main() {
 		ch.Target = *dist
 	}
 
-	if *listPackages {
-		err := filewalk.Walk(n.BaseArchiveDir, 3, func(file *filewalk.File) bool {
-			indent := ""
-			for i := 1; i < file.Depth(); i++ {
-				indent += "    "
-			}
-
-			fmt.Printf("%s%s\n", indent, file.Name())
-
-			return false
-		})
-		check(log, err)
-	}
-
-	if *listContainers {
-		list, err := dock.ContainerList(Name)
-		check(log, err)
-
-		for _, container := range list {
-			fmt.Println(container)
-		}
-	}
-
-	if *listImages {
-		list, err := dock.ImageList(Name)
-		check(log, err)
-
-		for _, image := range list {
-			fmt.Println(image)
-		}
-	}
-
-	if *listSteps {
-		s.Steps().Walk(func(step *stepping.Step) {
-			if step.Optional {
-				fmt.Println(step.Name, "(optional)")
-			} else {
-				fmt.Println(step.Name)
-			}
-			fmt.Println("  ", step.Description)
-		})
-	}
-
-	err = s.Steps().Include(*includeSteps...).Exclude(*excludeSteps...).Run()
-	check(log, err)
-}
-
-func check(l *logger.Logger, err error) {
+	err = list(dock, n)
 	if err != nil {
-		l.Error(err)
-		os.Exit(1)
+		return err
 	}
+
+	if *cleanBefore {
+
+	}
+
+	if *checkBefore {
+		err = s.CheckOptional()
+		if err != nil {
+			return err
+		}
+	}
+
+	err = s.Build()
+	if err != nil {
+		return err
+	}
+
+	err = s.Create()
+	if err != nil {
+		return err
+	}
+
+	err = s.Start()
+	if err != nil {
+		return err
+	}
+
+	if *launchShell {
+		err = s.ShellOptional()
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	err = s.Tarball()
+	if err != nil {
+		return err
+	}
+
+	err = s.Depends()
+	if err != nil {
+		return err
+	}
+
+	err = s.Package()
+	if err != nil {
+		return err
+	}
+
+	err = s.Test()
+	if err != nil {
+		return err
+	}
+
+	err = s.Archive()
+	if err != nil {
+		return err
+	}
+
+	err = s.Stop()
+	if err != nil {
+		return err
+	}
+
+	if !*keepContainer {
+		err = s.Remove()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

@@ -1,4 +1,4 @@
-package filewalk
+package utils
 
 import (
 	"io/ioutil"
