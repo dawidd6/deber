@@ -44,6 +44,15 @@ Name | Min Version | Notes
 
 ## Installation
 
+**Homebrew (latest tag)**
+
+```bash
+brew tap dawidd6/tap
+brew install deber
+```
+
+**From source (latest master)**
+
 ```bash
 go get -u github.com/dawidd6/deber
 ```
