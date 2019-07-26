@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 	"github.com/dawidd6/deber/pkg/docker"
-	"github.com/dawidd6/deber/pkg/logger"
+	"github.com/dawidd6/deber/pkg/log"
 	"github.com/dawidd6/deber/pkg/naming"
-	"github.com/dawidd6/deber/pkg/stepping"
+	"github.com/dawidd6/deber/pkg/steps"
 	"github.com/dawidd6/deber/pkg/utils"
+	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"os"
 	"path/filepath"
@@ -32,46 +33,164 @@ var (
 	dpkgFlags    = pflag.String("dpkg-flags", "-tc", "")
 	lintianFlags = pflag.String("lintian-flags", "-i -I", "")
 
-	archiveBaseDir = pflag.String("archive-base-dir", filepath.Join(os.Getenv("HOME"), Name), "")
-	cacheBaseDir   = pflag.String("cache-base-dir", "/tmp", "")
-	buildBaseDir   = pflag.String("build-base-dir", "/tmp", "")
-	sourceBaseDir  = pflag.String("source-base-dir", os.Getenv("PWD"), "")
+	archiveBaseDir = pflag.String("archive-dir", filepath.Join(os.Getenv("HOME"), Name), "")
+	cacheBaseDir   = pflag.String("cache-dir", "/tmp", "")
+	buildBaseDir   = pflag.String("build-dir", "/tmp", "")
 
 	listPackages   = pflag.Bool("list-packages", false, "")
 	listContainers = pflag.Bool("list-containers", false, "")
 	listImages     = pflag.Bool("list-images", false, "")
 	noLogColor     = pflag.Bool("no-log-color", false, "")
 
-	version = pflag.Bool("version", false, "")
+	sourceBaseDir string
 )
 
-func init() {
-	pflag.Parse()
-
-	if *version {
-		fmt.Println(Name, Version)
-		os.Exit(0)
-	}
-}
-
 func main() {
-	log := logger.New(Name, !*noLogColor)
+	cmd := &cobra.Command{
+		Use:     fmt.Sprintf("%s [DIR]", Name),
+		Short:   Description,
+		Version: Version,
+		PreRunE: pre,
+		RunE:    run,
+	}
+	cmd.SetHelpCommand(&cobra.Command{Hidden: true})
 
-	err := run(log)
+	err := cmd.Execute()
 	if err != nil {
 		log.Error(err)
 		os.Exit(1)
 	}
 }
 
-func list(dock *docker.Docker, n *naming.Naming) (bool, error) {
+func pre(cmd *cobra.Command, args []string) error {
+	log.Prefix = Name
+	log.Color = !*noLogColor
+
+	return nil
+}
+
+func run(cmd *cobra.Command, args []string) error {
+	dock, err := docker.New()
+	if err != nil {
+		return err
+	}
+
+	listed, err := list(dock)
+	if err != nil {
+		return err
+	}
+	if listed {
+		return nil
+	}
+
+	if len(args) > 0 {
+		sourceBaseDir = args[0]
+	} else {
+		sourceBaseDir, err = os.Getwd()
+		if err != nil {
+			return err
+		}
+	}
+
+	dch := filepath.Join(sourceBaseDir, "debian/changelog")
+	ch, err := changelog.ParseFileOne(dch)
+	if err != nil {
+		return err
+	}
+
+	n := &naming.Naming{
+		BaseArchiveDir: *archiveBaseDir,
+		BaseSourceDir:  sourceBaseDir,
+		BaseCacheDir:   *cacheBaseDir,
+		BaseBuildDir:   *buildBaseDir,
+
+		Prefix:    Name,
+		Changelog: ch,
+	}
+
+	if *dist != "" {
+		ch.Target = *dist
+	}
+
+	if *checkBefore {
+		err = steps.CheckOptional(n)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = steps.Build(dock, n, *maxImageAge)
+	if err != nil {
+		return err
+	}
+
+	err = steps.Create(dock, n, *extraPackages)
+	if err != nil {
+		return err
+	}
+
+	err = steps.Start(dock, n)
+	if err != nil {
+		return err
+	}
+
+	if *launchShell {
+		err = steps.ShellOptional(dock, n)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	err = steps.Tarball(n, ch)
+	if err != nil {
+		return err
+	}
+
+	err = steps.Depends(dock, n, *extraPackages)
+	if err != nil {
+		return err
+	}
+
+	err = steps.Package(dock, n, *dpkgFlags, *withNetwork)
+	if err != nil {
+		return err
+	}
+
+	err = steps.Test(dock, n, *lintianFlags)
+	if err != nil {
+		return err
+	}
+
+	err = steps.Archive(n)
+	if err != nil {
+		return err
+	}
+
+	err = steps.Stop(dock, n)
+	if err != nil {
+		return err
+	}
+
+	if !*keepContainer {
+		err = steps.Remove(dock, n)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func list(dock *docker.Docker) (bool, error) {
 	listed := false
 
 	if *listPackages {
 		listed = true
 
 		fmt.Println("Packages:")
-		err := utils.Walk(n.BaseArchiveDir, 3, func(file *utils.File) bool {
+		err := utils.Walk(*archiveBaseDir, 3, func(file *utils.File) bool {
 			indent := ""
 			for i := 1; i < file.Depth(); i++ {
 				indent += "    "
@@ -115,124 +234,4 @@ func list(dock *docker.Docker, n *naming.Naming) (bool, error) {
 	}
 
 	return listed, nil
-}
-
-func run(log *logger.Logger) error {
-	dock, err := docker.New()
-	if err != nil {
-		return err
-	}
-
-	dch := filepath.Join(*sourceBaseDir, "debian/changelog")
-	ch, err := changelog.ParseFileOne(dch)
-	if err != nil {
-		return err
-	}
-
-	n := &naming.Naming{
-		BaseArchiveDir: *archiveBaseDir,
-		BaseSourceDir:  *sourceBaseDir,
-		BaseCacheDir:   *cacheBaseDir,
-		BaseBuildDir:   *buildBaseDir,
-
-		Prefix:    Name,
-		Changelog: ch,
-	}
-
-	s := &stepping.Stepping{
-		Docker: dock,
-		Log:    log,
-		Naming: n,
-		Debian: ch,
-
-		DpkgFlags:    *dpkgFlags,
-		LintianFlags: *lintianFlags,
-
-		PackageWithNetwork: *withNetwork,
-		RebuildImageIfOld:  true,
-		MaxImageAge:        *maxImageAge,
-		ExtraPackages:      *extraPackages,
-	}
-
-	if *dist != "" {
-		ch.Target = *dist
-	}
-
-	listed, err := list(dock, n)
-	if err != nil {
-		return err
-	}
-	if listed {
-		return nil
-	}
-
-	if *checkBefore {
-		err = s.CheckOptional()
-		if err != nil {
-			return err
-		}
-	}
-
-	err = s.Build()
-	if err != nil {
-		return err
-	}
-
-	err = s.Create()
-	if err != nil {
-		return err
-	}
-
-	err = s.Start()
-	if err != nil {
-		return err
-	}
-
-	if *launchShell {
-		err = s.ShellOptional()
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	err = s.Tarball()
-	if err != nil {
-		return err
-	}
-
-	err = s.Depends()
-	if err != nil {
-		return err
-	}
-
-	err = s.Package()
-	if err != nil {
-		return err
-	}
-
-	err = s.Test()
-	if err != nil {
-		return err
-	}
-
-	err = s.Archive()
-	if err != nil {
-		return err
-	}
-
-	err = s.Stop()
-	if err != nil {
-		return err
-	}
-
-	if !*keepContainer {
-		err = s.Remove()
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }

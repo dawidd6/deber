@@ -1,4 +1,4 @@
-package hub
+package dockerhub
 
 import (
 	"encoding/json"
