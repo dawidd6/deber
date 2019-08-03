@@ -57,12 +57,7 @@ func (docker *Docker) ImageAge(name string) (time.Duration, error) {
 		return time.Second, err
 	}
 
-	created, err := time.Parse(time.RFC3339Nano, inspect.Created)
-	if err != nil {
-		return time.Second, err
-	}
-
-	return time.Since(created), nil
+	return time.Since(inspect.Metadata.LastTagTime), nil
 }
 
 // ImageBuild func (docker *Docker) tion build image from dockerfile

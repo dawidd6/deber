@@ -31,19 +31,6 @@ const (
 	ContainerStatePaused = "paused"
 	// ContainerStateDead constants defines that container is dead
 	ContainerStateDead = "dead"
-
-	// ContainerArchiveDir constant represents where on container will
-	// archive directory be mounted
-	ContainerArchiveDir = "/archive"
-	// ContainerBuildDir constant represents where on container will
-	// build directory be mounted
-	ContainerBuildDir = "/build"
-	// ContainerSourceDir constant represents where on container will
-	// source directory be mounted
-	ContainerSourceDir = "/build/source"
-	// ContainerCacheDir constant represents where on container will
-	// cache directory be mounted
-	ContainerCacheDir = "/var/cache/apt"
 )
 
 // ContainerCreateArgs struct represents arguments

@@ -2,6 +2,8 @@ package log
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 )
 
 const (
@@ -12,10 +14,14 @@ const (
 )
 
 var (
-	Color   bool
+	NoColor bool
 	Prefix  string
 	dropped bool
 )
+
+func init() {
+	Prefix = filepath.Base(os.Args[0])
+}
 
 func Drop() {
 	if dropped {
@@ -29,18 +35,18 @@ func Drop() {
 func Info(info string) {
 	dropped = false
 
-	if Color {
-		fmt.Printf("%s%s:info:%s %s ...", blue, Prefix, normal, info)
-	} else {
+	if NoColor {
 		fmt.Printf("%s:info: %s ...", Prefix, info)
+	} else {
+		fmt.Printf("%s%s:info:%s %s ...", blue, Prefix, normal, info)
 	}
 }
 
 func Error(err error) {
-	if Color {
-		fmt.Printf("%s%s:error:%s %s\n", red, Prefix, normal, err)
-	} else {
+	if NoColor {
 		fmt.Printf("%s:error: %s\n", Prefix, err)
+	} else {
+		fmt.Printf("%s%s:error:%s %s\n", red, Prefix, normal, err)
 	}
 }
 

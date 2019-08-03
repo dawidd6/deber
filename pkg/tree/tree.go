@@ -1,47 +1,54 @@
-package utils
+package tree
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 )
 
-type Func = func(file *File) bool
+type Tree []*File
 
 type File struct {
-	os.FileInfo
-	dir   string
-	depth int
-	files []*File
+	Path  string
+	Depth int
+	Files []*File
 }
 
-func (file *File) Dir() string {
-	return file.dir
+func New(root string, maxDepth int) (Tree, error) {
+	return gather(root, maxDepth, 0)
 }
 
-func (file *File) Depth() int {
-	return file.depth
-}
-
-func Walk(root string, maxDepth int, fn Func) error {
-	files, err := walk(root, maxDepth, 0)
-
-	loop(files, fn)
-
-	return err
-}
-
-func loop(files []*File, fn Func) {
-	for _, file := range files {
-		exit := fn(file)
-		if exit {
-			return
-		}
-		loop(file.files, fn)
+func (tree Tree) JSON() (string, error) {
+	jason, err := json.MarshalIndent(tree, "", "  ")
+	if err != nil {
+		return "", err
 	}
+
+	return string(jason), nil
 }
 
-func walk(root string, maxDepth int, currentDepth int) ([]*File, error) {
+func (tree Tree) Walk(walker func(file *File) error) error {
+	return walk(tree, walker)
+}
+
+func walk(tree Tree, walker func(file *File) error) error {
+	for i := range tree {
+		err := walker(tree[i])
+		if err != nil {
+			return err
+		}
+
+		err = walk(tree[i].Files, walker)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func gather(root string, maxDepth int, currentDepth int) ([]*File, error) {
 	rootFiles := make([]*File, 0)
 	newFiles := make([]*File, 0)
 
@@ -74,23 +81,16 @@ func walk(root string, maxDepth int, currentDepth int) ([]*File, error) {
 		path := filepath.Join(root, entity.Name())
 
 		// Go deeper
-		newFiles, err = walk(path, maxDepth, currentDepth)
+		newFiles, err = gather(path, maxDepth, currentDepth)
 		if err != nil {
-			return nil, err
-		}
-
-		// Get info about current file
-		info, err = os.Stat(path)
-		if info == nil {
 			return nil, err
 		}
 
 		// Construct new file
 		newFile := &File{
-			FileInfo: info,
-			depth:    currentDepth,
-			dir:      root,
-			files:    newFiles,
+			Path:  path,
+			Depth: currentDepth,
+			Files: newFiles,
 		}
 
 		// Append a file to the rest
