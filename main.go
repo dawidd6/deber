@@ -38,6 +38,7 @@ var (
 	listPackages   = false
 	listContainers = false
 	listImages     = false
+	listAll     = false
 
 	sourceBaseDir string
 )
@@ -64,6 +65,7 @@ func main() {
 	cmd.Flags().BoolVar(&listPackages, "list-packages", listPackages, "print all packages available in archive")
 	cmd.Flags().BoolVar(&listContainers, "list-containers", listContainers, "print all currently created containers")
 	cmd.Flags().BoolVar(&listImages, "list-images", listImages, "print all built images")
+	cmd.Flags().BoolVar(&listAll, "list-all", listAll, "print packages, images and containers")
 
 	cmd.SetHelpCommand(&cobra.Command{Hidden: true})
 	cmd.DisableFlagsInUseLine = true
@@ -82,6 +84,12 @@ func run(cmd *cobra.Command, args []string) error {
 	dock, err := docker.New()
 	if err != nil {
 		return err
+	}
+
+	if listAll {
+		listContainers = true
+		listImages = true
+		listPackages = true
 	}
 
 	if listContainers || listImages || listPackages {
@@ -180,27 +188,34 @@ func run(cmd *cobra.Command, args []string) error {
 }
 
 func list(dock *docker.Docker) error {
-	if listPackages {
-		walker := func(file *tree.File) error {
-			indent := ""
+	indent:= "    "
 
-			for i := 1; i < file.Depth; i++ {
-				indent += "    "
+	if listPackages {
+		_, err := os.Stat(archiveBaseDir)
+		if err == nil {
+		    fmt.Println("Packages:")
+
+			walker := func(file *tree.File) error {
+				addIndent := ""
+
+				for i := 0; i < file.Depth; i++ {
+					addIndent += indent
+				}
+
+				fmt.Printf("%s%s\n", addIndent, filepath.Base(file.Path))
+
+				return nil
 			}
 
-			fmt.Printf("%s%s\n", indent, filepath.Base(file.Path))
+			t, err := tree.New(archiveBaseDir, 3)
+			if err != nil {
+				return err
+			}
 
-			return nil
-		}
-
-		t, err := tree.New(archiveBaseDir, 3)
-		if err != nil {
-			return err
-		}
-
-		err = t.Walk(walker)
-		if err != nil {
-			return err
+			err = t.Walk(walker)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -210,8 +225,12 @@ func list(dock *docker.Docker) error {
 			return err
 		}
 
+		if len(list) > 0 {
+			fmt.Println("Containers:")
+		}
+
 		for _, container := range list {
-			fmt.Println(container)
+			fmt.Printf("%s%s\n", indent, container)
 		}
 	}
 
@@ -221,8 +240,12 @@ func list(dock *docker.Docker) error {
 			return err
 		}
 
+		if len(list) > 0 {
+			fmt.Println("Images:")
+		}
+
 		for _, image := range list {
-			fmt.Println(image)
+			fmt.Printf("%s%s\n", indent, image)
 		}
 	}
 
