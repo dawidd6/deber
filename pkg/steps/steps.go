@@ -91,29 +91,36 @@ func Create(dock *docker.Docker, n *naming.Naming, extraPackages []string) error
 
 	// Handle extra packages mounting
 	for _, pkg := range extraPackages {
-		source, err := filepath.Abs(pkg)
+		files, err := filepath.Glob(pkg)
 		if err != nil {
 			return log.Failed(err)
 		}
 
-		info, err := os.Stat(source)
-		if info == nil {
-			return log.Failed(err)
-		}
-		if !info.IsDir() && !strings.HasSuffix(source, ".deb") {
-			return log.Failed(errors.New("please specify a directory or .deb file"))
-		}
+		for _, file := range files {
+			source, err := filepath.Abs(file)
+			if err != nil {
+				return log.Failed(err)
+			}
 
-		target := filepath.Join(naming.ContainerArchiveDir, filepath.Base(source))
+			info, err := os.Stat(source)
+			if info == nil {
+				return log.Failed(err)
+			}
+			if !info.IsDir() && !strings.HasSuffix(source, ".deb") {
+				return log.Failed(errors.New("please specify a directory or .deb file"))
+			}
 
-		mnt := mount.Mount{
-			Type:     mount.TypeBind,
-			Source:   source,
-			Target:   target,
-			ReadOnly: true,
+			target := filepath.Join(naming.ContainerArchiveDir, filepath.Base(source))
+
+			mnt := mount.Mount{
+				Type:     mount.TypeBind,
+				Source:   source,
+				Target:   target,
+				ReadOnly: true,
+			}
+
+			mounts = append(mounts, mnt)
 		}
-
-		mounts = append(mounts, mnt)
 	}
 
 	isContainerCreated, err := dock.IsContainerCreated(n.Container)
