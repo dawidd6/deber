@@ -1,4 +1,4 @@
-// Package log
+// Package log includes logging utilities
 package log
 
 import (

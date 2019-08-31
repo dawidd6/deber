@@ -1,4 +1,4 @@
-// Package docker wraps Docker Go SDK for internal usage in deber.
+// Package docker wraps Docker Go SDK for internal usage in deber
 package docker
 
 import (

@@ -1,4 +1,4 @@
-// Package tree
+// Package tree includes tree-like files hierarchy manipulation
 package tree
 
 import (
@@ -59,7 +59,6 @@ func walk(tree Tree, walker func(file *File) error) error {
 
 func gather(root string, maxDepth int, currentDepth int) ([]*File, error) {
 	rootFiles := make([]*File, 0)
-	newFiles := make([]*File, 0)
 
 	// Maximum depth reached, end recursion
 	if currentDepth == maxDepth {
@@ -90,7 +89,7 @@ func gather(root string, maxDepth int, currentDepth int) ([]*File, error) {
 		path := filepath.Join(root, entity.Name())
 
 		// Go deeper
-		newFiles, err = gather(path, maxDepth, currentDepth)
+		newFiles, err := gather(path, maxDepth, currentDepth)
 		if err != nil {
 			return nil, err
 		}

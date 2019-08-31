@@ -1,4 +1,4 @@
-// Package util
+// Package util includes useful helper functions
 package util
 
 import "github.com/docker/docker/api/types/mount"

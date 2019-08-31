@@ -1,4 +1,5 @@
-// Package steps
+// Package steps includes a number of step functions that
+// have a different role
 package steps
 
 import (

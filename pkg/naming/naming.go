@@ -1,4 +1,4 @@
-// Package naming
+// Package naming includes various naming nuances
 package naming
 
 import (

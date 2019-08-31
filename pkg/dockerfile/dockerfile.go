@@ -1,4 +1,4 @@
-// Package dockerfile
+// Package dockerfile includes template Dockerfile
 package dockerfile
 
 import (

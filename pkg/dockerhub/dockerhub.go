@@ -1,4 +1,4 @@
-// Package dockerhub
+// Package dockerhub includes DockerHub API wrappers
 package dockerhub
 
 import (
