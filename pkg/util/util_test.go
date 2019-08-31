@@ -1,7 +1,7 @@
 package util_test
 
 import (
-	"github.com/dawidd6/deber/pkg/utils"
+	"github.com/dawidd6/deber/pkg/util"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -44,7 +44,7 @@ func TestCompareMountsEqual(t *testing.T) {
 		},
 	}
 
-	equal := utils.CompareMounts(a, b)
+	equal := util.CompareMounts(a, b)
 	assert.True(t, equal)
 }
 
@@ -87,7 +87,7 @@ func TestCompareMountsNotEqual(t *testing.T) {
 		},
 	}
 
-	equal := utils.CompareMounts(a, b)
+	equal := util.CompareMounts(a, b)
 	assert.True(t, !equal)
 }
 
@@ -126,6 +126,6 @@ func TestCompareMountsDifferentSizes(t *testing.T) {
 		},
 	}
 
-	equal := utils.CompareMounts(a, b)
+	equal := util.CompareMounts(a, b)
 	assert.True(t, !equal)
 }
