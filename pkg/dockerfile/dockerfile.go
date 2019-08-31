@@ -42,6 +42,7 @@ WORKDIR {{ .SourceDir }}
 CMD ["sleep", "inf"]
 `
 
+// Parse function returns ready to use template
 func Parse(repo, tag string) ([]byte, error) {
 	t := Template{
 		Repo:      repo,
