@@ -19,7 +19,7 @@ const (
 	// Name is the name of program
 	Name = "deber"
 	// Version of program
-	Version = "0.6.1"
+	Version = "0.6.2"
 	// Description of program
 	Description = "Debian packaging with Docker."
 )
