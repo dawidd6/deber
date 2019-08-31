@@ -1,4 +1,4 @@
-package utils_test
+package util_test
 
 import (
 	"github.com/dawidd6/deber/pkg/utils"

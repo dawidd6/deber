@@ -9,7 +9,7 @@ import (
 	"github.com/dawidd6/deber/pkg/dockerhub"
 	"github.com/dawidd6/deber/pkg/log"
 	"github.com/dawidd6/deber/pkg/naming"
-	"github.com/dawidd6/deber/pkg/utils"
+	"github.com/dawidd6/deber/pkg/util"
 	"github.com/docker/docker/api/types/mount"
 	"io/ioutil"
 	"os"
@@ -135,7 +135,7 @@ func Create(dock *docker.Docker, n *naming.Naming, extraPackages []string) error
 
 		// Compare old mounts with new ones,
 		// if not equal, then recreate container
-		if utils.CompareMounts(oldMounts, mounts) {
+		if util.CompareMounts(oldMounts, mounts) {
 			return log.Skipped()
 		}
 
