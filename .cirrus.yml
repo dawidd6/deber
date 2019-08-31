@@ -1,15 +1,14 @@
 docker_builder:
   env:
     CONTAINER: "deber-xyz-abc"
-    GO_FLAGS: "-mod=vendor"
   create_script:
     - docker create --name $CONTAINER -t -v "$PWD":"/build" -w "/build" golang:1.11.4 sleep inf
   start_script:
     - docker start $CONTAINER
   build_script:
-    - docker exec -t $CONTAINER go build
+    - docker exec -t $CONTAINER go build -mod=vendor
   test_script:
-    - docker exec -t $CONTAINER go test -v -count 3 ./...
+    - docker exec -t $CONTAINER go test -mod=vendor -v -count 3 ./...
   fmt_script:
     - test -z $(docker exec -t $CONTAINER gofmt -l .)
   install_script:
