@@ -1,88 +1,83 @@
-// Package log provides convenient way of logging stuff.
 package log
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 )
 
-var (
+const (
+	cyan   = "\033[0;36m"
 	blue   = "\033[0;34m"
 	red    = "\033[0;31m"
 	normal = "\033[0m"
-
-	drop bool
 )
 
-// SetNoColor function empties color string constants.
-func SetNoColor() {
-	blue = ""
-	red = ""
-	normal = ""
+var (
+	NoColor bool
+	Prefix  string
+	dropped bool
+)
+
+func init() {
+	Prefix = filepath.Base(os.Args[0])
 }
 
-// Info function prints informational log messages.
-func Info(v interface{}) {
-	drop = false
-
-	fmt.Printf("%sdeber:info:%s %s ...", blue, normal, v)
-}
-
-// Error function prints error log messages.
-//
-// It is effectively used only once
-// so there is for it to be struct method.
-func Error(v interface{}) {
-	fmt.Printf("%sdeber:error:%s %s\n", red, normal, v)
-}
-
-// Drop function prints just a new line
-// and informs to not print anything after dots.
-//
-// Call this before operation that you know will output to Stdout.
 func Drop() {
-	drop = true
+	if dropped {
+		return
+	}
 
+	dropped = true
 	fmt.Println()
 }
 
-// Skip function prints "skipped" after dots.
-func Skip() {
-	if !drop {
-		fmt.Printf("skipped\n")
+func Info(info string) {
+	dropped = false
+
+	if NoColor {
+		fmt.Printf("%s:info: %s ...", Prefix, info)
+	} else {
+		fmt.Printf("%s%s:info:%s %s ...", blue, Prefix, normal, info)
 	}
 }
 
-// Done function prints "done" after dots.
-func Done() {
-	if !drop {
-		fmt.Printf("done\n")
+func Error(err error) {
+	if NoColor {
+		fmt.Printf("%s:error: %s\n", Prefix, err)
+	} else {
+		fmt.Printf("%s%s:error:%s %s\n", red, Prefix, normal, err)
 	}
 }
 
-// Fail function prints "failed" after dots.
-func Fail() {
-	if !drop {
-		fmt.Printf("failed\n")
-	}
+func ExtraInfo(info string) {
+	dropped = false
+	fmt.Printf("  %s ...", info)
 }
 
-// SkipE function wraps Skip() and returns nil error.
-func SkipE() error {
-	Skip()
+func Skipped() error {
+	if !dropped {
+		fmt.Printf("%s", "skipped")
+		Drop()
+	}
 
 	return nil
 }
 
-// DoneE function wraps Done() and returns nil error.
-func DoneE() error {
-	Done()
+func Done() error {
+	if !dropped {
+		fmt.Printf("%s", "done")
+		Drop()
+	}
 
 	return nil
 }
 
-// FailE function wraps Fail() and returns passed error.
-func FailE(err error) error {
-	Fail()
+func Failed(err error) error {
+	if !dropped {
+		fmt.Printf("%s", "failed")
+		Drop()
+	}
 
 	return err
 }

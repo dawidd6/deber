@@ -1,133 +1,99 @@
-// Package naming standardizes some names used internally by deber.
 package naming
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 )
 
-// Naming struct represents a collection of directory names
-// used on host system.
+const (
+	// ContainerArchiveDir constant represents where on container will
+	// archive directory be mounted
+	ContainerArchiveDir = "/archive"
+	// ContainerBuildDir constant represents where on container will
+	// build directory be mounted
+	ContainerBuildDir = "/build"
+	// ContainerSourceDir constant represents where on container will
+	// source directory be mounted
+	ContainerSourceDir = "/build/source"
+	// ContainerCacheDir constant represents where on container will
+	// cache directory be mounted
+	ContainerCacheDir = "/var/cache/apt"
+)
+
 type Naming struct {
-	// Docker container name.
-	//
-	// Example: deber_unstable_wget_1.0.0-1
+	Args
+
 	Container string
-	// Docker image name.
-	//
-	// Example: deber:unstable
-	Image string
+	Image     string
 
-	// Current working directory, where debianized source lives.
-	SourceDir string
-	// Parent of current working directory.
-	//
-	// Used for locating orig upstream tarball mostly (if only).
-	SourceParentDir string
-
-	// Directory where built packages for a specific distribution live.
-	//
-	// Example: /home/user/deber/unstable
-	ArchiveDir string
-	// Specific directory of package for a distribution in archive.
-	//
-	// Example: /home/user/deber/unstable/wget_1.0.0-1
-	ArchivePackageDir string
-
-	// Directory where image's apt cache is stored
-	//
-	// Example: /tmp/deber:unstable
-	CacheDir string
-
-	// Directory where package building output is gathered.
-	//
-	// Example: /tmp/deber_unstable_wget_1.0.0-1
-	BuildDir string
+	SourceDir         string
+	SourceParentDir   string
+	BuildDir          string
+	CacheDir          string
+	ArchiveDir        string
+	ArchiveTargetDir  string
+	ArchiveSourceDir  string
+	ArchiveVersionDir string
 }
 
-// New function returns a fresh Naming struct with defined fields.
-func New(program, dist, pkg, version, archiveDir string) *Naming {
+type Args struct {
+	Prefix string
+
+	Source   string
+	Version  string
+	Upstream string
+	Target   string
+
+	SourceBaseDir  string
+	BuildBaseDir   string
+	CacheBaseDir   string
+	ArchiveBaseDir string
+}
+
+func New(args Args) *Naming {
+	stdVersion := standardizeVersion(args.Version)
+	stdTarget := standardizeTarget(args.Version, args.Target)
+
+	image := fmt.Sprintf("%s:%s", args.Prefix, stdTarget)
+	container := fmt.Sprintf("%s_%s_%s_%s", args.Prefix, stdTarget, args.Source, stdVersion)
+
 	return &Naming{
-		Container: Container(program, dist, pkg, version),
-		Image:     Image(program, dist),
+		Args: args,
 
-		SourceDir:       SourceDir(),
-		SourceParentDir: SourceParentDir(),
+		Container: container,
+		Image:     image,
 
-		ArchiveDir:        ArchiveDir(program, dist, archiveDir),
-		ArchivePackageDir: ArchivePackageDir(program, dist, pkg, version, archiveDir),
-
-		CacheDir: CacheDir(program, dist),
-
-		BuildDir: BuildDir(program, dist, pkg, version),
+		SourceDir:         args.SourceBaseDir,
+		SourceParentDir:   filepath.Dir(args.SourceBaseDir),
+		BuildDir:          filepath.Join(args.BuildBaseDir, container),
+		CacheDir:          filepath.Join(args.CacheBaseDir, image),
+		ArchiveDir:        args.ArchiveBaseDir,
+		ArchiveTargetDir:  filepath.Join(args.ArchiveBaseDir, stdTarget),
+		ArchiveSourceDir:  filepath.Join(args.ArchiveBaseDir, stdTarget, args.Source),
+		ArchiveVersionDir: filepath.Join(args.ArchiveBaseDir, stdTarget, args.Source, args.Version),
 	}
 }
 
-// Container function returns a standardized container name.
-func Container(program, dist, pkg, version string) string {
+func standardizeVersion(version string) string {
 	// Docker allows only [a-zA-Z0-9][a-zA-Z0-9_.-]
-	// and Debian versioning allows these characters
+	// and Debian package versioning allows these characters
 	version = strings.Replace(version, "~", "-", -1)
 	version = strings.Replace(version, ":", "-", -1)
 	version = strings.Replace(version, "+", "-", -1)
 
-	return fmt.Sprintf(
-		"%s_%s_%s_%s",
-		program,
-		dist,
-		pkg,
-		version,
-	)
+	return version
 }
 
-// Image function returns a standardized image name.
-func Image(program, dist string) string {
-	return fmt.Sprintf(
-		"%s:%s",
-		program,
-		dist,
-	)
-}
+func standardizeTarget(version, target string) string {
+	// UNRELEASED == unstable
+	target = strings.Replace(target, "UNRELEASED", "unstable", -1)
+	target = strings.Split(target, "-")[0]
 
-// SourceDir function returns simply current directory.
-func SourceDir() string {
-	return os.Getenv("PWD")
-}
+	// Debian backport
+	if strings.Contains(version, "bpo") {
+		target = target + "-backports"
+	}
 
-// SourceParentDir function returns parent of current directory.
-func SourceParentDir() string {
-	return filepath.Dir(SourceDir())
-}
-
-// ArchiveDir function returns archive directory, but already with distribution,
-// so it's not $HOME/deber, but for example $HOME/deber/unstable.
-func ArchiveDir(program, dist, dir string) string {
-	return fmt.Sprintf(
-		"%s/%s/%s",
-		dir,
-		program,
-		dist,
-	)
-}
-
-// ArchivePackageDir function returns package directory in archive.
-func ArchivePackageDir(program, dist, pkg, version, dir string) string {
-	return fmt.Sprintf(
-		"%s/%s_%s",
-		ArchiveDir(program, dist, dir),
-		pkg,
-		version,
-	)
-}
-
-// CacheDir function returns image's cache directory on host system.
-func CacheDir(program, dist string) string {
-	return filepath.Join("/tmp", Image(program, dist))
-}
-
-// BuildDir function returns container's build directory on host system.
-func BuildDir(program, dist, pkg, version string) string {
-	return filepath.Join("/tmp", Container(program, dist, pkg, version))
+	return target
 }
