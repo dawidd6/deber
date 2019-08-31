@@ -7,9 +7,6 @@ import (
 	"text/template"
 )
 
-// TODO this package needs a rewrite
-// TODO figure out how to handle backports
-
 // Template struct defines parameters passed to
 // dockerfile template.
 type Template struct {

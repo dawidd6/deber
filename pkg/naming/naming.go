@@ -81,11 +81,11 @@ type Args struct {
 
 // New creates new instance of Naming struct
 func New(args Args) *Naming {
-	stdVersion := standardizeVersion(args.Version)
-	stdTarget := standardizeTarget(args.Version, args.Target)
+	args.Target = standardizeTarget(args.Version, args.Target)
 
-	image := fmt.Sprintf("%s:%s", args.Prefix, stdTarget)
-	container := fmt.Sprintf("%s_%s_%s_%s", args.Prefix, stdTarget, args.Source, stdVersion)
+	version := standardizeVersion(args.Version)
+	image := fmt.Sprintf("%s:%s", args.Prefix, args.Target)
+	container := fmt.Sprintf("%s_%s_%s_%s", args.Prefix, args.Target, args.Source, version)
 
 	return &Naming{
 		Args: args,
@@ -98,9 +98,9 @@ func New(args Args) *Naming {
 		BuildDir:          filepath.Join(args.BuildBaseDir, container),
 		CacheDir:          filepath.Join(args.CacheBaseDir, image),
 		ArchiveDir:        args.ArchiveBaseDir,
-		ArchiveTargetDir:  filepath.Join(args.ArchiveBaseDir, stdTarget),
-		ArchiveSourceDir:  filepath.Join(args.ArchiveBaseDir, stdTarget, args.Source),
-		ArchiveVersionDir: filepath.Join(args.ArchiveBaseDir, stdTarget, args.Source, args.Version),
+		ArchiveTargetDir:  filepath.Join(args.ArchiveBaseDir, args.Target),
+		ArchiveSourceDir:  filepath.Join(args.ArchiveBaseDir, args.Target, args.Source),
+		ArchiveVersionDir: filepath.Join(args.ArchiveBaseDir, args.Target, args.Source, args.Version),
 	}
 }
 

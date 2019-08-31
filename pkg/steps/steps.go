@@ -44,14 +44,13 @@ func Build(dock *docker.Docker, n *naming.Naming, maxAge time.Duration) error {
 		}
 	}
 
-	tag := strings.Split(n.Image, ":")[1]
 	repos := []string{"debian", "ubuntu"}
-	repo, err := dockerhub.MatchRepo(repos, tag)
+	repo, err := dockerhub.MatchRepo(repos, n.Target)
 	if err != nil {
 		return log.Failed(err)
 	}
 
-	dockerFile, err := dockerfile.Parse(repo, tag)
+	dockerFile, err := dockerfile.Parse(repo, n.Target)
 	if err != nil {
 		return log.Failed(err)
 	}
@@ -309,7 +308,7 @@ func Depends(dock *docker.Docker, n *naming.Naming, extraPackages []string) erro
 			Network: true,
 		}, {
 			Name:    n.Container,
-			Cmd:     "apt-get build-dep ./",
+			Cmd:     "apt-get build-dep ./ -t " + n.Target,
 			Network: true,
 			AsRoot:  true,
 		},
