@@ -7,8 +7,6 @@ Build-Depends:
  debhelper-compat (= 12),
  dh-golang,
  golang-any,
- golang-github-docker-docker-dev,
- golang-github-spf13-cobra-dev,
 Standards-Version: 4.4.0
 Homepage: https://github.com/dawidd6/deber
 XS-Go-Import-Path: github.com/dawidd6/deber
