@@ -22,18 +22,20 @@ Docker containers.
 - Automatically determine if target distribution is Ubuntu or Debian
   by querying DockerHub API
 - Skip already ran steps (not every one)
-- Include or exclude steps per your likings
+- Install extra local packages in container
 - Plays nice with `gbp-buildpackage`
 - Easy local package dependency resolve
 - Don't clutter your parent directories with `.deb`, `.dsc` and company
 - Every successfully built package goes to local repo automatically
   so you can easily build another package that depends on previous one
-- Ability to provide custom `dpkg-buildpackage` and `lintian`
-  options by exporting a couple of environment variables
+- Ability to provide custom `dpkg-buildpackage` and `lintian` options
 - Packages downloaded by apt are stored in temporary directory,
   to avoid repetitive unnecessary network load
 - Option to drop into interactive bash shell session in container,
   for debugging or other purposes
+- Listing of containers, images and packages
+- Use network in build process or not
+- Automatically rebuilds image if old enough
 
 ## Dependencies
 
@@ -47,8 +49,7 @@ Name | Min Version | Notes
 **Homebrew (latest tag)**
 
 ```bash
-brew tap dawidd6/tap
-brew install deber
+brew install dawidd6/tap/deber
 ```
 
 **From source (latest master)**
@@ -109,15 +110,11 @@ update it.
 Make a new entry with desired target distribution in `debian/changelog`
 and run `deber`.
 
+Or specify the desired distribution with `--distribution` option.
+
 **How to cross-build package for different architecture?**
 
-This is not implemented yet. But I'm planning to make use of `qemu`.
-
-**Where is the list of all steps?**
-
-```
-deber -l
-```
+This is not implemented yet. But I'm planning to make use of `qemu` or something else.
 
 ## CONTRIBUTING
 
