@@ -15,8 +15,11 @@ import (
 )
 
 const (
-	Name        = "deber"
-	Version     = "0.5"
+	// Name is the name of program
+	Name = "deber"
+	// Version of program
+	Version = "0.5"
+	// Description of program
 	Description = "Debian packaging with Docker."
 )
 
@@ -38,7 +41,7 @@ var (
 	listPackages   = false
 	listContainers = false
 	listImages     = false
-	listAll     = false
+	listAll        = false
 
 	sourceBaseDir string
 )
@@ -188,12 +191,12 @@ func run(cmd *cobra.Command, args []string) error {
 }
 
 func list(dock *docker.Docker) error {
-	indent:= "    "
+	indent := "    "
 
 	if listPackages {
 		_, err := os.Stat(archiveBaseDir)
 		if err == nil {
-		    fmt.Println("Packages:")
+			fmt.Println("Packages:")
 
 			walker := func(file *tree.File) error {
 				addIndent := ""

@@ -1,3 +1,4 @@
+// Package steps
 package steps
 
 import (
@@ -21,6 +22,8 @@ import (
 // Build function determines parent image name by querying DockerHub API
 // for available "debian" and "ubuntu" tags and confronting them with
 // debian/changelog's target distribution.
+//
+// If image exists and is old enough, it will be rebuilt.
 //
 // At last it commands Docker Engine to build image.
 func Build(dock *docker.Docker, n *naming.Naming, maxAge time.Duration) error {
@@ -48,18 +51,14 @@ func Build(dock *docker.Docker, n *naming.Naming, maxAge time.Duration) error {
 		return log.Failed(err)
 	}
 
-	file, err := dockerfile.Parse(repo, tag)
+	dockerFile, err := dockerfile.Parse(repo, tag)
 	if err != nil {
 		return log.Failed(err)
 	}
 
 	log.Drop()
 
-	args := docker.ImageBuildArgs{
-		Name:       n.Image,
-		Dockerfile: file,
-	}
-	err = dock.ImageBuild(args)
+	err = dock.ImageBuild(n.Image, dockerFile)
 	if err != nil {
 		return log.Failed(err)
 	}
@@ -68,6 +67,12 @@ func Build(dock *docker.Docker, n *naming.Naming, maxAge time.Duration) error {
 }
 
 // Create function commands Docker Engine to create container.
+//
+// If extra packages are provided, it checks if they are correct
+// and mounts them.
+//
+// If container already exists and mounts are different, then it
+// removes the old one and creates new with proper mounts.
 //
 // Also makes directories on host and moves tarball if needed.
 func Create(dock *docker.Docker, n *naming.Naming, extraPackages []string) error {
@@ -91,6 +96,7 @@ func Create(dock *docker.Docker, n *naming.Naming, extraPackages []string) error
 
 	// Handle extra packages mounting
 	for _, pkg := range extraPackages {
+		// /path/to/directory/with/packages/*
 		files, err := filepath.Glob(pkg)
 		if err != nil {
 			return log.Failed(err)
@@ -198,6 +204,8 @@ func Start(dock *docker.Docker, n *naming.Naming) error {
 	return log.Done()
 }
 
+// Tarball function finds orig upstream tarballs in parent or build directory
+// and determines which one to use.
 func Tarball(n *naming.Naming) error {
 	log.Info("Finding tarballs")
 
@@ -272,6 +280,8 @@ func Tarball(n *naming.Naming) error {
 	return log.Done()
 }
 
+// Depends function installs build dependencies of package
+// in container.
 func Depends(dock *docker.Docker, n *naming.Naming, extraPackages []string) error {
 	log.Info("Installing dependencies")
 	log.Drop()
@@ -320,8 +330,7 @@ func Depends(dock *docker.Docker, n *naming.Naming, extraPackages []string) erro
 	return log.Done()
 }
 
-// Package function first disables network in container,
-// then executes "dpkg-buildpackage" and at the end,
+// Package function executes "dpkg-buildpackage" in container.
 // enables network back.
 func Package(dock *docker.Docker, n *naming.Naming, dpkgFlags string, withNetwork bool) error {
 	log.Info("Packaging software")
@@ -370,7 +379,7 @@ func Test(dock *docker.Docker, n *naming.Naming, lintianFlags string) error {
 	return log.Done()
 }
 
-// Archive function moves successful build to archive by overwriting.
+// Archive function moves successful build to archive if files changed.
 func Archive(n *naming.Naming) error {
 	log.Info("Archiving build")
 

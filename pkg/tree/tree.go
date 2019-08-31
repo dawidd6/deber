@@ -1,3 +1,4 @@
+// Package tree
 package tree
 
 import (
@@ -7,18 +8,25 @@ import (
 	"path/filepath"
 )
 
+// Tree type represents a tree of files and directories
 type Tree []*File
 
+// File type represents single file and it's children if it's a directory
 type File struct {
-	Path  string
+	// Path is the full path of file
+	Path string
+	// Depth is the depth of file relative to root directory
 	Depth int
+	// Files are the children files if it's a directory
 	Files []*File
 }
 
+// New function creates new Tree struct for given root directory and maximum depth
 func New(root string, maxDepth int) (Tree, error) {
 	return gather(root, maxDepth, 0)
 }
 
+// JSON function returns indented JSON object of tree
 func (tree Tree) JSON() (string, error) {
 	jason, err := json.MarshalIndent(tree, "", "  ")
 	if err != nil {
@@ -28,6 +36,7 @@ func (tree Tree) JSON() (string, error) {
 	return string(jason), nil
 }
 
+// Walk function executes given walker function for every file in tree
 func (tree Tree) Walk(walker func(file *File) error) error {
 	return walk(tree, walker)
 }

@@ -1,3 +1,4 @@
+// Package dockerhub
 package dockerhub
 
 import (
@@ -8,8 +9,7 @@ import (
 	"net/http"
 )
 
-// Tag struct represents single JSON object received from.
-//
+// Tag struct represents single JSON object received from
 // DockerHub API after querying it for list of tags for particular repository.
 type Tag struct {
 	Layer string
@@ -45,6 +45,7 @@ func GetTags(repo string) ([]Tag, error) {
 	return *tags, nil
 }
 
+// MatchRepo returns repo which has the given tag
 func MatchRepo(repos []string, tag string) (string, error) {
 	for _, repo := range repos {
 		tags, err := GetTags(repo)

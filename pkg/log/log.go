@@ -1,3 +1,4 @@
+// Package log
 package log
 
 import (
@@ -14,7 +15,9 @@ const (
 )
 
 var (
+	// NoColor controls if log will be colored or not
 	NoColor bool
+	// Prefix is the program name, will be outputted before info messages
 	Prefix  string
 	dropped bool
 )
@@ -23,6 +26,7 @@ func init() {
 	Prefix = filepath.Base(os.Args[0])
 }
 
+// Drop function prints new line
 func Drop() {
 	if dropped {
 		return
@@ -32,6 +36,7 @@ func Drop() {
 	fmt.Println()
 }
 
+// Info function prints given string
 func Info(info string) {
 	dropped = false
 
@@ -42,6 +47,7 @@ func Info(info string) {
 	}
 }
 
+// Error function prints given error
 func Error(err error) {
 	if NoColor {
 		fmt.Printf("%s:error: %s\n", Prefix, err)
@@ -50,11 +56,13 @@ func Error(err error) {
 	}
 }
 
+// ExtraInfo prints given info with indent and without colors or prefix
 func ExtraInfo(info string) {
 	dropped = false
 	fmt.Printf("  %s ...", info)
 }
 
+// Skipped function prints 'skipped' and new line
 func Skipped() error {
 	if !dropped {
 		fmt.Printf("%s", "skipped")
@@ -64,6 +72,7 @@ func Skipped() error {
 	return nil
 }
 
+// Done function prints 'done' and new line
 func Done() error {
 	if !dropped {
 		fmt.Printf("%s", "done")
@@ -73,6 +82,7 @@ func Done() error {
 	return nil
 }
 
+// Failed function prints 'failed' and new line
 func Failed(err error) error {
 	if !dropped {
 		fmt.Printf("%s", "failed")

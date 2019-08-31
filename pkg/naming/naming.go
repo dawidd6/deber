@@ -1,3 +1,4 @@
+// Package naming
 package naming
 
 import (
@@ -21,36 +22,64 @@ const (
 	ContainerCacheDir = "/var/cache/apt"
 )
 
+// Naming struct holds various information naming information
+// about package, container, image, directories
 type Naming struct {
+	// Args embedded here for quick reference
 	Args
 
+	// Container name
 	Container string
-	Image     string
+	// Image name
+	Image string
 
-	SourceDir         string
-	SourceParentDir   string
-	BuildDir          string
-	CacheDir          string
-	ArchiveDir        string
-	ArchiveTargetDir  string
-	ArchiveSourceDir  string
+	// SourceDir is an absolute path where source lives
+	SourceDir string
+	// SourceParentDir is an absolute path where orig upstream tarball lives
+	SourceParentDir string
+	// BuildDir is an absolute path where build artifacts are stored
+	BuildDir string
+	// CacheDir is an absolute path where apt cache is stored
+	CacheDir string
+	// ArchiveDir is an absolute path where
+	// all built packages are stored
+	ArchiveDir string
+	// ArchiveTargetDir is an absolute path where
+	// all built packages for given target are stored
+	ArchiveTargetDir string
+	// ArchiveSourceDir is an absolute path where
+	// all built packages for given source are stored
+	ArchiveSourceDir string
+	// ArchiveVersionDir is an absolute path where
+	// all built packages for given source version are stored
 	ArchiveVersionDir string
 }
 
+// Args struct holds information about package base directories and prefix
 type Args struct {
+	// Prefix is the program name
 	Prefix string
 
-	Source   string
-	Version  string
+	// Source is the name of source package
+	Source string
+	// Version is the version of source package
+	Version string
+	// Upstream is the upstream version of source package
 	Upstream string
-	Target   string
+	// Target is the target distribution the package is building for
+	Target string
 
-	SourceBaseDir  string
-	BuildBaseDir   string
-	CacheBaseDir   string
+	// SourceBaseDir is a directory where source lives
+	SourceBaseDir string
+	// BuildBaseDir is a directory where all build dirs are stored
+	BuildBaseDir string
+	// CacheBaseDir is a directory where all cache dirs are stored
+	CacheBaseDir string
+	// ArchiveBaseDir is a directory where all build packages are stored
 	ArchiveBaseDir string
 }
 
+// New creates new instance of Naming struct
 func New(args Args) *Naming {
 	stdVersion := standardizeVersion(args.Version)
 	stdTarget := standardizeTarget(args.Version, args.Target)

@@ -54,7 +54,7 @@ type ContainerExecArgs struct {
 	Network     bool
 }
 
-// IsContainerCreated func (docker *Docker) tion checks if container is created
+// IsContainerCreated function checks if container is created
 // or simply just exists.
 func (docker *Docker) IsContainerCreated(name string) (bool, error) {
 	list, err := docker.cli.ContainerList(docker.ctx, types.ContainerListOptions{All: true})
@@ -73,7 +73,7 @@ func (docker *Docker) IsContainerCreated(name string) (bool, error) {
 	return false, nil
 }
 
-// IsContainerStarted func (docker *Docker) tion checks
+// IsContainerStarted function checks
 // if container's state == ContainerStateRunning.
 func (docker *Docker) IsContainerStarted(name string) (bool, error) {
 	list, err := docker.cli.ContainerList(docker.ctx, types.ContainerListOptions{All: true})
@@ -94,7 +94,7 @@ func (docker *Docker) IsContainerStarted(name string) (bool, error) {
 	return false, nil
 }
 
-// IsContainerStopped func (docker *Docker) tion checks
+// IsContainerStopped function checks
 // if container's state != ContainerStateRunning.
 func (docker *Docker) IsContainerStopped(name string) (bool, error) {
 	list, err := docker.cli.ContainerList(docker.ctx, types.ContainerListOptions{All: true})
@@ -115,7 +115,7 @@ func (docker *Docker) IsContainerStopped(name string) (bool, error) {
 	return true, nil
 }
 
-// ContainerCreate func (docker *Docker) tion creates container.
+// ContainerCreate function creates container.
 //
 // It's up to the caller to make to-be-mounted directories on host.
 func (docker *Docker) ContainerCreate(args ContainerCreateArgs) error {
@@ -135,14 +135,14 @@ func (docker *Docker) ContainerCreate(args ContainerCreateArgs) error {
 	return nil
 }
 
-// ContainerStart func (docker *Docker) tion starts container, just that.
+// ContainerStart function starts container, just that.
 func (docker *Docker) ContainerStart(name string) error {
 	options := types.ContainerStartOptions{}
 
 	return docker.cli.ContainerStart(docker.ctx, name, options)
 }
 
-// ContainerStop func (docker *Docker) tion stops container, just that.
+// ContainerStop function stops container, just that.
 //
 // It utilizes ContainerStopTimeout constant.
 func (docker *Docker) ContainerStop(name string) error {
@@ -151,13 +151,14 @@ func (docker *Docker) ContainerStop(name string) error {
 	return docker.cli.ContainerStop(docker.ctx, name, &timeout)
 }
 
-// ContainerRemove func (docker *Docker) tion removes container, just that.
+// ContainerRemove function removes container, just that.
 func (docker *Docker) ContainerRemove(name string) error {
 	options := types.ContainerRemoveOptions{}
 
 	return docker.cli.ContainerRemove(docker.ctx, name, options)
 }
 
+// ContainerMounts returns mounts of created container.
 func (docker *Docker) ContainerMounts(name string) ([]mount.Mount, error) {
 	inspect, err := docker.cli.ContainerInspect(docker.ctx, name)
 	if err != nil {
@@ -179,7 +180,7 @@ func (docker *Docker) ContainerMounts(name string) ([]mount.Mount, error) {
 	return mounts, nil
 }
 
-// ContainerExec func (docker *Docker) tion executes a command in running container.
+// ContainerExec function executes a command in running container.
 //
 // Command is executed in bash shell by default.
 //
@@ -276,7 +277,7 @@ func (docker *Docker) resizeIfChanged(execID string, fd uintptr) {
 	}
 }
 
-// ContainerExecResize func (docker *Docker) tion resizes TTY for exec process.
+// ContainerExecResize function resizes TTY for exec process.
 func (docker *Docker) ContainerExecResize(execID string, fd uintptr) error {
 	winSize, err := term.GetWinsize(fd)
 	if err != nil {

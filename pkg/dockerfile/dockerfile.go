@@ -1,3 +1,4 @@
+// Package dockerfile
 package dockerfile
 
 import (
@@ -12,8 +13,11 @@ import (
 // Template struct defines parameters passed to
 // dockerfile template.
 type Template struct {
-	Repo      string
-	Tag       string
+	// Repo is the image repository
+	Repo string
+	// Tag is the image tag
+	Tag string
+	// SourceDir = /build/source
 	SourceDir string
 }
 
@@ -41,7 +45,7 @@ WORKDIR {{ .SourceDir }}
 CMD ["sleep", "inf"]
 `
 
-func Parse(repo, tag string) (string, error) {
+func Parse(repo, tag string) ([]byte, error) {
 	t := Template{
 		Repo:      repo,
 		Tag:       tag,
@@ -50,14 +54,14 @@ func Parse(repo, tag string) (string, error) {
 
 	temp, err := template.New("dockerfile").Parse(dockerfileTemplate)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	buffer := new(bytes.Buffer)
 	err = temp.Execute(buffer, t)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return buffer.String(), nil
+	return buffer.Bytes(), nil
 }

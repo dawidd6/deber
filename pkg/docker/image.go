@@ -12,25 +12,7 @@ import (
 	"time"
 )
 
-const (
-	// ImageMaxAge constant defines how old image can be
-	//
-	// If image was created ImageMaxAge time ago, then
-	// it should be rebuilt
-	ImageMaxAge = time.Hour * 24 * 14
-)
-
-// ImageBuildArgs struct represents arguments
-// passed to ImageBuild().
-type ImageBuildArgs struct {
-	// Full to-be-built image name
-	//
-	// Example: deber:unstable
-	Name       string
-	Dockerfile string
-}
-
-// IsImageBuilt func (docker *Docker) tion check if image with given name is built.
+// IsImageBuilt function check if image with given name is built.
 func (docker *Docker) IsImageBuilt(name string) (bool, error) {
 	list, err := docker.cli.ImageList(docker.ctx, types.ImageListOptions{})
 	if err != nil {
@@ -48,9 +30,7 @@ func (docker *Docker) IsImageBuilt(name string) (bool, error) {
 	return false, nil
 }
 
-// IsImageOld func (docker *Docker) tion check if image should be rebuilt.
-//
-// ImageMaxAge constant is utilized here.
+// ImageAge function returns the time since image creation.
 func (docker *Docker) ImageAge(name string) (time.Duration, error) {
 	inspect, _, err := docker.cli.ImageInspectWithRaw(docker.ctx, name)
 	if err != nil {
@@ -60,17 +40,17 @@ func (docker *Docker) ImageAge(name string) (time.Duration, error) {
 	return time.Since(inspect.Metadata.LastTagTime), nil
 }
 
-// ImageBuild func (docker *Docker) tion build image from dockerfile
+// ImageBuild function build image from dockerfile
 // and prints output to Stdout.
-func (docker *Docker) ImageBuild(args ImageBuildArgs) error {
+func (docker *Docker) ImageBuild(name string, dockerFile []byte) error {
 	buffer := new(bytes.Buffer)
 	writer := tar.NewWriter(buffer)
 	header := &tar.Header{
 		Name: "Dockerfile",
-		Size: int64(len(args.Dockerfile)),
+		Size: int64(len(dockerFile)),
 	}
 	options := types.ImageBuildOptions{
-		Tags:       []string{args.Name},
+		Tags:       []string{name},
 		Remove:     true,
 		PullParent: true,
 	}
@@ -80,7 +60,7 @@ func (docker *Docker) ImageBuild(args ImageBuildArgs) error {
 		return err
 	}
 
-	_, err = writer.Write([]byte(args.Dockerfile))
+	_, err = writer.Write(dockerFile)
 	if err != nil {
 		return err
 	}
@@ -106,7 +86,7 @@ func (docker *Docker) ImageBuild(args ImageBuildArgs) error {
 		return err
 	}
 
-	_, _, err = docker.cli.ImageInspectWithRaw(docker.ctx, args.Name)
+	_, _, err = docker.cli.ImageInspectWithRaw(docker.ctx, name)
 	if err != nil {
 		return errors.New("image didn't built successfully")
 	}
@@ -139,6 +119,7 @@ func (docker *Docker) ImageList(prefix string) ([]string, error) {
 	return images, nil
 }
 
+// ImageRemove function removes image with given name.
 func (docker *Docker) ImageRemove(name string) error {
 	options := types.ImageRemoveOptions{
 		PruneChildren: true,

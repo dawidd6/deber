@@ -1,7 +1,9 @@
+// Package util
 package util
 
 import "github.com/docker/docker/api/types/mount"
 
+// CompareMounts function simply compares if given mounts are equal
 func CompareMounts(a, b []mount.Mount) bool {
 	if len(a) != len(b) {
 		return false

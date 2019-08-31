@@ -11,6 +11,7 @@ const (
 	APIVersion = "1.30"
 )
 
+// Docker struct represents Docker client.
 type Docker struct {
 	cli *client.Client
 	ctx context.Context
