@@ -15,6 +15,4 @@ docker_builder:
     - mv deber /usr/bin/
   deber_script:
     - deber --version
-    - deber -l
-    - deber -c -e remove --no-color
-    - deber -i remove --no-color
+    - deber
