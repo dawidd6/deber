@@ -296,11 +296,13 @@ func Depends(dock *docker.Docker, n *naming.Naming, extraPackages []string) erro
 			Cmd:     "echo deb [trusted=yes] file://" + naming.ContainerArchiveDir + " ./ > a.list",
 			AsRoot:  true,
 			WorkDir: "/etc/apt/sources.list.d",
+			Skip:    extraPackages == nil,
 		}, {
 			Name:    n.Container,
 			Cmd:     "dpkg-scanpackages -m . > Packages",
 			AsRoot:  true,
 			WorkDir: naming.ContainerArchiveDir,
+			Skip:    extraPackages == nil,
 		}, {
 			Name:    n.Container,
 			Cmd:     "apt-get update",
@@ -312,11 +314,6 @@ func Depends(dock *docker.Docker, n *naming.Naming, extraPackages []string) erro
 			Network: true,
 			AsRoot:  true,
 		},
-	}
-
-	if extraPackages == nil {
-		args[1].Skip = true
-		args[2].Skip = true
 	}
 
 	for _, arg := range args {
@@ -349,7 +346,7 @@ func Package(dock *docker.Docker, n *naming.Naming, dpkgFlags string, withNetwor
 }
 
 // Test function executes "debi", "debc" and "lintian" in container.
-func Test(dock *docker.Docker, n *naming.Naming, lintianFlags string) error {
+func Test(dock *docker.Docker, n *naming.Naming, lintianFlags string, noLintian bool) error {
 	log.Info("Testing package")
 	log.Drop()
 
@@ -365,6 +362,7 @@ func Test(dock *docker.Docker, n *naming.Naming, lintianFlags string) error {
 		}, {
 			Name: n.Container,
 			Cmd:  "lintian" + " " + lintianFlags,
+			Skip: noLintian,
 		},
 	}
 

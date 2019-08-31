@@ -36,6 +36,7 @@ var (
 	archiveBaseDir = pflag.String("archive-dir", filepath.Join(os.Getenv("HOME"), Name), "where to store build artifacts")
 	cacheBaseDir   = pflag.String("cache-dir", "/tmp", "where to store images' apt cache")
 	buildBaseDir   = pflag.String("build-dir", "/tmp", "where to place temporary build directory")
+	noLintian      = pflag.Bool("no-lintian", false, "don't run lintian in container")
 	noLogColor     = pflag.Bool("no-log-color", false, "do not colorize log output")
 	listPackages   = pflag.Bool("list-packages", false, "print all packages available in archive")
 	listContainers = pflag.Bool("list-containers", false, "print all currently created containers")
@@ -149,7 +150,7 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	err = steps.Test(dock, n, *lintianFlags)
+	err = steps.Test(dock, n, *lintianFlags, *noLintian)
 	if err != nil {
 		return err
 	}
