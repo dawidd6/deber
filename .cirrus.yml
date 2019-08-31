@@ -10,7 +10,7 @@ docker_builder:
   test_script:
     - docker exec -t $CONTAINER go test -mod=vendor -v -count 3 ./...
   fmt_script:
-    - test -z $(docker exec -t $CONTAINER gofmt -l .)
+    - test -z $(docker exec -t $CONTAINER gofmt -l pkg main.go)
   install_script:
     - mv deber /usr/bin/
   deber_script:
