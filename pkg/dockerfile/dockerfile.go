@@ -28,12 +28,16 @@ RUN rm /etc/apt/apt.conf.d/*
 # Run apt without confirmations.
 RUN echo "APT::Get::Assume-Yes "true";" > /etc/apt/apt.conf.d/00noconfirm
 
-# Set debconf to be non interactive
+# Set debconf to be non interactive.
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 
-# Install required packages
+# Pin local repo (apt-get -t option pins with priority 990 too).
+RUN printf "Package: *\nPin: origin \"\"\nPin-Priority: 990\n" > /etc/apt/preferences.d/00a
+
+# Install required packages.
 RUN apt-get update && \
-	apt-get install --no-install-recommends -y build-essential devscripts debhelper lintian fakeroot dpkg-dev
+	apt-get install --no-install-recommends -y \
+	build-essential devscripts debhelper lintian fakeroot dpkg-dev
 
 # Set working directory.
 WORKDIR {{ .SourceDir }}
