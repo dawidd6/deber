@@ -13,7 +13,7 @@ Docker containers.
 
 ## Screencast
 
-[![asciicast](https://asciinema.org/a/248452.svg)](https://asciinema.org/a/248452)
+[![asciicast](https://asciinema.org/a/H2bjgbvzYnFNZLvEZruztIdnZ.svg)](https://asciinema.org/a/H2bjgbvzYnFNZLvEZruztIdnZ)
 
 ## Features
 
