@@ -22,9 +22,10 @@ require (
 	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80 // indirect
 	golang.org/x/sys v0.0.0-20190726091711-fc99dfbffb4e // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
-	google.golang.org/appengine v1.4.0 // indirect
 	google.golang.org/genproto v0.0.0-20190716160619-c506a9f90610 // indirect
 	google.golang.org/grpc v1.22.1 // indirect
 	gotest.tools v2.2.0+incompatible // indirect
 	pault.ag/go/debian v0.0.0-20190530135403-b831f604d664
 )
+
+go 1.13
