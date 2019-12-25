@@ -1,0 +1,46 @@
+name: Tests
+
+on: push
+
+jobs:
+  build_test:
+    strategy:
+      matrix:
+        go:
+          - 1.11
+          - 1.12
+          - 1.13
+        os:
+          - linux
+        arch:
+          - amd64
+          - arm
+          - arm64
+          - mips
+    runs-on: ubuntu-latest
+    container:
+      image: golang:${{matrix.go}}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Build
+        env:
+          GOOS: ${{matrix.os}}
+          GOARCH: ${{matrix.arch}}
+        run: go build -v -mod=vendor
+      - name: Test
+        env:
+          GOOS: ${{matrix.os}}
+          GOARCH: ${{matrix.arch}}
+        run: go test -v -mod=vendor -count=3 ./...
+  build_run:
+    runs-on: ubuntu-latest
+    container:
+      image: golang:1.13
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Build
+        run: go build -v -mod=vendor
+      - name: Run
+        run: ./deber
