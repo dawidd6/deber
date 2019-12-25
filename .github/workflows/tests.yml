@@ -29,9 +29,6 @@ jobs:
           GOARCH: ${{matrix.arch}}
         run: go build -v -mod=vendor
       - name: Test
-        env:
-          GOOS: ${{matrix.os}}
-          GOARCH: ${{matrix.arch}}
         run: go test -v -mod=vendor -count=3 ./...
   build_run:
     runs-on: ubuntu-latest
