@@ -18,11 +18,13 @@ jobs:
           - arm64
           - mips
     runs-on: ubuntu-latest
-    container:
-      image: golang:${{matrix.go}}
     steps:
       - name: Checkout
         uses: actions/checkout@v1
+      - name: Setup
+        uses: actions/setup-go@v1
+        with:
+          go-version: ${{matrix.go}}
       - name: Build
         env:
           GOOS: ${{matrix.os}}
@@ -32,11 +34,13 @@ jobs:
         run: go test -v -mod=vendor -count=3 ./...
   build_run:
     runs-on: ubuntu-latest
-    container:
-      image: golang:1.13
     steps:
       - name: Checkout
         uses: actions/checkout@v1
+      - name: Setup
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.13
       - name: Build
         run: go build -v -mod=vendor -o /usr/bin/deber
       - name: Run
