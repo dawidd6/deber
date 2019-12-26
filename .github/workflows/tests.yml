@@ -3,38 +3,7 @@ name: Tests
 on: push
 
 jobs:
-  build_test:
-    strategy:
-      matrix:
-        go:
-          - 1.11
-          - 1.12
-          - 1.13
-        os:
-          - linux
-        arch:
-          - amd64
-          - arm
-          - arm64
-          - mips
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-      - name: Setup
-        uses: actions/setup-go@v1
-        with:
-          go-version: ${{matrix.go}}
-      - name: Build
-        env:
-          GOOS: ${{matrix.os}}
-          GOARCH: ${{matrix.arch}}
-        run: go build -v -mod=vendor
-      - name: Test
-        run: go test -v -mod=vendor -count=3 ./...
-  build_run:
-    runs-on: ubuntu-latest
-    steps:
+  tests:
       - name: Checkout
         uses: actions/checkout@v1
       - name: Setup
@@ -43,5 +12,7 @@ jobs:
           go-version: 1.13
       - name: Build
         run: go build -v -mod=vendor -o /tmp/deber
+      - name: Test
+        run: go test -v -mod=vendor -count=3 ./...
       - name: Run
         run: /tmp/deber
