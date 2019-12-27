@@ -6,7 +6,6 @@ import (
 	"github.com/dawidd6/deber/pkg/log"
 	"github.com/dawidd6/deber/pkg/naming"
 	"github.com/dawidd6/deber/pkg/steps"
-	"github.com/dawidd6/deber/pkg/tree"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"os"
@@ -16,8 +15,8 @@ import (
 )
 
 const (
-	// Name is the name of program
-	Name = "deber"
+	// Program is the name of program
+	Program = "deber"
 	// Version of program
 	Version = "0.6.2"
 	// Description of program
@@ -25,30 +24,21 @@ const (
 )
 
 var (
-	dist           = pflag.StringP("distribution", "d", "", "override target distribution")
-	extraPackages  = pflag.StringArrayP("extra-package", "p", nil, "additional packages to be installed in container (either single .deb or a directory)")
-	maxImageAge    = pflag.DurationP("max-image-age", "a", time.Hour*24*14, "time after which image will be refreshed")
-	withNetwork    = pflag.BoolP("with-network", "n", false, "allow network access during package build")
-	launchShell    = pflag.BoolP("launch-shell", "s", false, "launch interactive shell in container")
-	keepContainer  = pflag.BoolP("keep-container", "k", false, "do not remove container at the end of the process")
-	dpkgFlags      = pflag.String("dpkg-flags", "-tc", "additional flags to be passed to dpkg-buildpackage in container")
-	lintianFlags   = pflag.String("lintian-flags", "-i -I", "additional flags to be passed to lintian in container")
-	archiveBaseDir = pflag.String("archive-dir", filepath.Join(os.Getenv("HOME"), Name), "where to store build artifacts")
-	cacheBaseDir   = pflag.String("cache-dir", "/tmp", "where to store images' apt cache")
-	buildBaseDir   = pflag.String("build-dir", "/tmp", "where to place temporary build directory")
-	noLintian      = pflag.Bool("no-lintian", false, "don't run lintian in container")
-	noLogColor     = pflag.Bool("no-log-color", false, "do not colorize log output")
-	listPackages   = pflag.Bool("list-packages", false, "print all packages available in archive")
-	listContainers = pflag.Bool("list-containers", false, "print all currently created containers")
-	listImages     = pflag.Bool("list-images", false, "print all built images")
-	listAll        = pflag.Bool("list-all", false, "print packages, images and containers")
-
-	sourceBaseDir string
+	distribution = pflag.StringP("distribution", "d", "", "override target distribution")
+	packages     = pflag.StringArrayP("package", "p", nil, "additional packages to be installed in container (either single .deb or a directory)")
+	age          = pflag.DurationP("age", "a", time.Hour*24*14, "time after which image will be refreshed")
+	network      = pflag.BoolP("network", "n", false, "allow network access during package build")
+	shell        = pflag.BoolP("shell", "s", false, "launch interactive shell in container")
+	dpkgFlags    = pflag.StringP("dpkg-flags", "D", "-tc", "additional flags to be passed to dpkg-buildpackage in container")
+	lintianFlags = pflag.StringP("lintian-flags", "L", "-i -I", "additional flags to be passed to lintian in container")
+	noLintian    = pflag.BoolP("no-lintian", "l", false, "don't run lintian in container")
+	noLogColor   = pflag.BoolP("no-log-color", "c", false, "do not colorize log output")
+	noRemove     = pflag.BoolP("no-remove", "r", false, "do not remove container at the end of the process")
 )
 
 func main() {
 	cmd := &cobra.Command{
-		Use:     fmt.Sprintf("%s [FLAGS ...] [DIR]", Name),
+		Use:     fmt.Sprintf("%s [FLAGS ...]", Program),
 		Short:   Description,
 		Version: Version,
 		RunE:    run,
@@ -74,54 +64,45 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if *listAll {
-		*listContainers = true
-		*listImages = true
-		*listPackages = true
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
 	}
 
-	if *listContainers || *listImages || *listPackages {
-		return list(dock)
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
 	}
 
-	if len(args) > 0 {
-		sourceBaseDir = args[0]
-	} else {
-		sourceBaseDir, err = os.Getwd()
-		if err != nil {
-			return err
-		}
-	}
-
-	path := filepath.Join(sourceBaseDir, "debian/changelog")
+	path := filepath.Join(cwd, "debian/changelog")
 	ch, err := changelog.ParseFileOne(path)
 	if err != nil {
 		return err
 	}
 
-	if *dist == "" {
-		*dist = ch.Target
+	if *distribution == "" {
+		*distribution = ch.Target
 	}
 
 	namingArgs := naming.Args{
-		Prefix:         Name,
+		Prefix:         Program,
 		Source:         ch.Source,
 		Version:        ch.Version.String(),
 		Upstream:       ch.Version.Version,
-		Target:         *dist,
-		SourceBaseDir:  sourceBaseDir,
-		BuildBaseDir:   *buildBaseDir,
-		CacheBaseDir:   *cacheBaseDir,
-		ArchiveBaseDir: *archiveBaseDir,
+		Target:         *distribution,
+		SourceBaseDir:  cwd,
+		BuildBaseDir:   "/tmp",
+		CacheBaseDir:   "/tmp",
+		ArchiveBaseDir: filepath.Join(home, Program),
 	}
 	n := naming.New(namingArgs)
 
-	err = steps.Build(dock, n, *maxImageAge)
+	err = steps.Build(dock, n, *age)
 	if err != nil {
 		return err
 	}
 
-	err = steps.Create(dock, n, *extraPackages)
+	err = steps.Create(dock, n, *packages)
 	if err != nil {
 		return err
 	}
@@ -131,7 +112,7 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if *launchShell {
+	if *shell {
 		return steps.ShellOptional(dock, n)
 	}
 
@@ -140,12 +121,12 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	err = steps.Depends(dock, n, *extraPackages)
+	err = steps.Depends(dock, n, *packages)
 	if err != nil {
 		return err
 	}
 
-	err = steps.Package(dock, n, *dpkgFlags, *withNetwork)
+	err = steps.Package(dock, n, *dpkgFlags, *network)
 	if err != nil {
 		return err
 	}
@@ -165,77 +146,9 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if !*keepContainer {
-		err = steps.Remove(dock, n)
-		if err != nil {
-			return err
-		}
+	if *noRemove {
+		return nil
 	}
 
-	return nil
-}
-
-func list(dock *docker.Docker) error {
-	indent := "    "
-
-	if *listPackages {
-		_, err := os.Stat(*archiveBaseDir)
-		if err == nil {
-			fmt.Println("Packages:")
-
-			walker := func(file *tree.File) error {
-				addIndent := ""
-
-				for i := 0; i < file.Depth; i++ {
-					addIndent += indent
-				}
-
-				fmt.Printf("%s%s\n", addIndent, filepath.Base(file.Path))
-
-				return nil
-			}
-
-			t, err := tree.New(*archiveBaseDir, 3)
-			if err != nil {
-				return err
-			}
-
-			err = t.Walk(walker)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	if *listContainers {
-		list, err := dock.ContainerList(Name)
-		if err != nil {
-			return err
-		}
-
-		if len(list) > 0 {
-			fmt.Println("Containers:")
-		}
-
-		for _, container := range list {
-			fmt.Printf("%s%s\n", indent, container)
-		}
-	}
-
-	if *listImages {
-		list, err := dock.ImageList(Name)
-		if err != nil {
-			return err
-		}
-
-		if len(list) > 0 {
-			fmt.Println("Images:")
-		}
-
-		for _, image := range list {
-			fmt.Printf("%s%s\n", indent, image)
-		}
-	}
-
-	return nil
+	return steps.Remove(dock, n)
 }
