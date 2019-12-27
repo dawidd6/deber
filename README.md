@@ -72,6 +72,12 @@ gbp buildpackage
 If you run it first time, it will build Docker image and then proceed to build
 your package.
 
+To make use of packages from archive to build another package, specify desired directories with built artifacts and `deber` will take them to consideration when installing dependencies:
+
+```bash
+deber -p ~/deber/unstable/pkg1/1.0.0-1 -p ~/deber/unstable/pkg2/2.0.0-2
+```
+
 ## FAQ
 
 **Okay everything went well, but... where the hell is my `.deb`?!**
