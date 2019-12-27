@@ -33,16 +33,8 @@ Docker containers.
   to avoid repetitive unnecessary network load
 - Option to drop into interactive bash shell session in container,
   for debugging or other purposes
-- Listing of containers, images and packages
 - Use network in build process or not
 - Automatically rebuilds image if old enough
-
-## Dependencies
-
-Name | Min Version | Notes
----|:---:|:---:
-**Go** | `1.8` | compiler version
-**Docker** | `1.30` | only daemon is required, version of API
 
 ## Installation
 
@@ -52,7 +44,7 @@ Name | Min Version | Notes
 brew install dawidd6/tap/deber
 ```
 
-**From source (latest master)**
+**Source (latest master)**
 
 ```bash
 go get -u github.com/dawidd6/deber
