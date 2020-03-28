@@ -1,8 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Source: https://github.com/dawidd6/deber
 Upstream-Name: deber
-Files-Excluded:
- Godeps/_workspace
 
 Files:
  *
