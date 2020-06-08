@@ -56,11 +56,11 @@ github.com/pkg/errors
 github.com/pmezard/go-difflib/difflib
 # github.com/sirupsen/logrus v1.4.2
 github.com/sirupsen/logrus
-# github.com/spf13/cobra v0.0.6
+# github.com/spf13/cobra v0.0.7
 github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
-# github.com/stretchr/testify v1.3.0
+# github.com/stretchr/testify v1.6.1
 github.com/stretchr/testify/assert
 # golang.org/x/net v0.0.0-20200301022130-244492dfa37a
 golang.org/x/net/internal/socks
@@ -68,6 +68,8 @@ golang.org/x/net/proxy
 # golang.org/x/sys v0.0.0-20200301153931-2f85c7ec1e52
 golang.org/x/sys/unix
 golang.org/x/sys/windows
+# gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
+gopkg.in/yaml.v3
 # pault.ag/go/debian v0.0.0-20190530135403-b831f604d664
 pault.ag/go/debian/changelog
 pault.ag/go/debian/version
