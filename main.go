@@ -24,6 +24,8 @@ const (
 )
 
 var (
+	buildDir     = pflag.StringP("build-dir", "B", "/tmp", "where to place build stuff")
+	cacheDir     = pflag.StringP("cache-dir", "C", "/tmp", "where to place cached stuff")
 	distribution = pflag.StringP("distribution", "d", "", "override target distribution")
 	packages     = pflag.StringArrayP("package", "p", nil, "additional packages to be installed in container (either single .deb or a directory)")
 	age          = pflag.DurationP("age", "a", time.Hour*24*14, "time after which image will be refreshed")
@@ -91,8 +93,8 @@ func run(cmd *cobra.Command, args []string) error {
 		Upstream:       ch.Version.Version,
 		Target:         *distribution,
 		SourceBaseDir:  cwd,
-		BuildBaseDir:   "/tmp",
-		CacheBaseDir:   "/tmp",
+		BuildBaseDir:   *buildDir,
+		CacheBaseDir:   *cacheDir,
 		ArchiveBaseDir: filepath.Join(home, Program),
 	}
 	n := naming.New(namingArgs)
