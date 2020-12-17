@@ -96,7 +96,7 @@ cluttered with `.orig.tar.gz`, `.deb`, `.changes` and God knows what else.
 
 **How images built by deber are named?**
 
-Repository is `deber` and tag is `$DIST`.
+`deber:$DIST`
 
 **I have already built image but it is building again?!**
 
