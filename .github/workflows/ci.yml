@@ -1,16 +1,21 @@
-name: Ruby
+name: CI
 
-on: [push,pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
 
 jobs:
-  build:
+  cli:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Ruby
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: 3.0.2
-        bundler-cache: true
-    - name: Run the default task
-      run: bundle exec rake
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v2
+        with:
+          ruby-version: 3
+          bundler-cache: true
+      - name: Run rake
+        run: rake
