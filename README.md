@@ -1,39 +1,119 @@
-# Deber
+# deber
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/deber`. To experiment with that code, run `bin/console` for an interactive prompt.
+![](https://github.com/dawidd6/deber/workflows/Tests/badge.svg)
+[![GoDoc](https://godoc.org/github.com/dawidd6/deber?status.svg)](https://godoc.org/github.com/dawidd6/deber)
+[![go report card](https://goreportcard.com/badge/github.com/dawidd6/deber)](https://goreportcard.com/report/github.com/dawidd6/deber)
+[![latest tag](https://img.shields.io/github/tag-date/dawidd6/deber.svg)](https://github.com/dawidd6/deber/releases/latest)
 
-TODO: Delete this and the text above, and describe your gem
+### `Debian` **+** `Docker` **=** `deber`
+
+Utility made with simplicity in mind to provide
+an easy way for building Debian packages in
+Docker containers.
+
+## Screencast
+
+[![asciicast](https://asciinema.org/a/H2bjgbvzYnFNZLvEZruztIdnZ.svg)](https://asciinema.org/a/H2bjgbvzYnFNZLvEZruztIdnZ)
+
+## Features
+
+- Build packages for Debian and Ubuntu
+- Use official Debian and Ubuntu images from DockerHub
+- Automatically determine if target distribution is Ubuntu or Debian
+  by querying DockerHub API
+- Skip already ran steps (not every one)
+- Install extra local packages in container
+- Plays nice with `gbp-buildpackage`
+- Easy local package dependency resolve
+- Don't clutter your parent directories with `.deb`, `.dsc` and company
+- Every successfully built package goes to local repo automatically
+  so you can easily build another package that depends on previous one
+- Ability to provide custom `dpkg-buildpackage` and `lintian` options
+- Packages downloaded by apt are stored in temporary directory,
+  to avoid repetitive unnecessary network load
+- Option to drop into interactive bash shell session in container,
+  for debugging or other purposes
+- Use network in build process or not
+- Automatically rebuilds image if old enough
 
 ## Installation
 
-Add this line to your application's Gemfile:
+**Homebrew (latest tag)**
 
-```ruby
-gem 'deber'
+```bash
+brew install dawidd6/tap/deber
 ```
 
-And then execute:
+**Source (latest master)**
 
-    $ bundle install
-
-Or install it yourself as:
-
-    $ gem install deber
+```bash
+go get -u github.com/dawidd6/deber
+```
 
 ## Usage
 
-TODO: Write usage instructions here
+I recommend to use deber with gbp if possible, but it will work just fine
+as a standalone builder, like sbuild or pbuilder.
 
-## Development
+Let's assume that you are in directory with already debianized source, have
+orig upstream tarball in parent directory and you want to build a package.
+Just run:
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+```bash
+deber
+```
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+or if you use gbp and have `builder = deber` in `gbp.conf`
 
-## Contributing
+```bash
+gbp buildpackage
+```
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/deber.
+If you run it first time, it will build Docker image and then proceed to build
+your package.
 
-## License
+To make use of packages from archive to build another package, specify desired directories with built artifacts and `deber` will take them to consideration when installing dependencies:
 
-The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+```bash
+deber -p ~/deber/unstable/pkg1/1.0.0-1 -p ~/deber/unstable/pkg2/2.0.0-2
+```
+
+## FAQ
+
+**Okay everything went well, but... where the hell is my `.deb`?!**
+
+The location for all build outputs defaults to `$HOME/deber`.
+I made it this way, because it was just hard to look at my parent directory,
+cluttered with `.orig.tar.gz`, `.deb`, `.changes` and God knows what else.
+
+**Where is build directory located?**
+
+`/tmp/$CONTAINER`
+
+**Where is apt's cache directory located?**
+
+`/tmp/$IMAGE`
+
+**How images built by deber are named?**
+
+`deber:$DIST`
+
+**I have already built image but it is building again?!**
+
+Probably because it is 14 days old and deber decided to
+update it.
+
+**How to build a package for different distributions?**
+
+Make a new entry with desired target distribution in `debian/changelog`
+and run `deber`.
+
+Or specify the desired distribution with `--distribution` option.
+
+**How to cross-build package for different architecture?**
+
+This is not implemented yet. But I'm planning to make use of `qemu` or something else.
+
+## CONTRIBUTING
+
+I appreciate any contributions, so feel free to do so!
