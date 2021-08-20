@@ -36,6 +36,7 @@ var (
 	noLintian    = pflag.BoolP("no-lintian", "l", false, "don't run lintian in container")
 	noLogColor   = pflag.BoolP("no-log-color", "c", false, "do not colorize log output")
 	noRemove     = pflag.BoolP("no-remove", "r", false, "do not remove container at the end of the process")
+	test         = pflag.BoolP("test", "t", false, "do test package at the end of the process")
 )
 
 func main() {
@@ -133,9 +134,11 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	err = steps.Test(dock, n, *lintianFlags, *noLintian)
-	if err != nil {
-		return err
+	if *test {
+		err = steps.Test(dock, n, *lintianFlags, *noLintian)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = steps.Archive(n)
