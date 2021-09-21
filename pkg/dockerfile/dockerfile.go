@@ -44,7 +44,7 @@ RUN apt-get update && \
 WORKDIR {{ .SourceDir }}
 
 # Sleep all the time and just wait for commands.
-CMD ["sleep", "inf"]
+CMD ["sleep", "4h"]
 `
 
 // Parse function returns ready to use template
