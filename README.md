@@ -38,16 +38,16 @@ Docker containers.
 
 ## Installation
 
-**Homebrew (latest tag)**
+**Homebrew**
 
 ```bash
 brew install dawidd6/tap/deber
 ```
 
-**Source (latest master)**
+**Source**
 
 ```bash
-go get -u github.com/dawidd6/deber
+go install github.com/dawidd6/deber@latest
 ```
 
 ## Usage
