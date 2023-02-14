@@ -43,7 +43,7 @@ github.com/docker/go-connections/tlsconfig
 # github.com/docker/go-units v0.4.0
 ## explicit
 github.com/docker/go-units
-# github.com/gogo/protobuf v1.3.1
+# github.com/gogo/protobuf v1.3.2
 ## explicit
 github.com/gogo/protobuf/proto
 # github.com/gorilla/mux v1.7.3
@@ -79,12 +79,10 @@ github.com/spf13/pflag
 # github.com/stretchr/testify v1.6.1
 ## explicit
 github.com/stretchr/testify/assert
-# golang.org/x/net v0.0.0-20200602114024-627f9648deb9
-## explicit
+# golang.org/x/net v0.0.0-20201021035429-f5854403a974
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy
-# golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980
-## explicit
+# golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
