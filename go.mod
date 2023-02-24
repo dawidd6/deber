@@ -21,7 +21,7 @@ require (
 	golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980 // indirect
 	google.golang.org/grpc v1.22.1 // indirect
 	gotest.tools v2.2.0+incompatible // indirect
-	pault.ag/go/debian v0.0.0-20190530135403-b831f604d664
+	pault.ag/go/debian v0.12.0
 )
 
 go 1.14
